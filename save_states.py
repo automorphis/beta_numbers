@@ -172,9 +172,9 @@ class Pickle_Register:
         for metadata, filename in self._slice_metadata(Save_State_Type.BS, beta).items():
             return metadata.is_complete
 
-    # def append_to_save_state(self, beta, prec, start_iter, num_iters, Bs):
+    # def append_to_save_state(self, beta, dps, start_iter, num_iters, Bs):
     #     self.load_metadata()
-    #     filename = self.metadata[beta.min_poly, prec, start_iter, num_iters]
+    #     filename = self.metadata[beta.min_poly, dps, start_iter, num_iters]
     #     logging.info("Appending data.")
     #     logging.info("Loading from %s" % filename)
     #     start = time.time()
@@ -239,7 +239,7 @@ class Save_State:
         self.type = typee
         self.beta0 = beta.beta0
         self.min_poly = tuple(beta.min_poly.coef)
-        self.prec = beta.prec
+        self.dps = beta.dps
         self.start_n = start_n
         self.data = data
         self.is_complete = False
@@ -259,7 +259,7 @@ class Save_State:
         return save_state
 
     def get_beta(self):
-        return Salem_Number(poly1d(self.min_poly), self.prec, self.beta0)
+        return Salem_Number(poly1d(self.min_poly), self.dps, self.beta0)
 
     def remove_redundancies(self):
         if self.is_complete:

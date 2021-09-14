@@ -13,7 +13,7 @@
     GNU General Public License for more details.
 """
 
-from mpmath import workprec, polyroots, im, re, almosteq, mpf
+from mpmath import workdps, polyroots, im, re, almosteq, mpf, mp
 from numpy import poly1d
 
 class Salem_Number:
@@ -25,27 +25,27 @@ class Salem_Number:
         * the non-real roots of p all have modulus exactly 1.
     """
 
-    def __init__(self, min_poly, prec, beta0 = None):
+    def __init__(self, min_poly, dps, beta0 = None):
         """
 
         :param min_poly: Type `numpy.poly1d`. Should be checked to actually be the minimal polynomial of a Salem number
         before calling this method.
-        :param prec: Guaranteed number of correct bits of `beta0` from the mathematically correct maximum modulus root of
+        :param dps: Guaranteed number of correct digits of `beta0` from the mathematically correct maximum modulus root of
         `min_poly`.
         :param beta0: Default `None`. Can also be calculated with a call to `calc_beta0`.
         """
 
         self.min_poly = min_poly
-        self.prec = prec
+        self.dps = dps
         self.beta0 = beta0
         self.deg = len(min_poly)
         self.conjs = None
 
     def __eq__(self, other):
-        return self.min_poly == other.min_poly and self.prec == other.prec
+        return self.min_poly == other.min_poly and self.dps == other.dps
 
     def __hash__(self):
-        return hash((tuple(self.min_poly.coef), self.prec))
+        return hash((tuple(self.min_poly.coef), self.dps))
 
     def __str__(self):
         if self.beta0:
@@ -54,15 +54,15 @@ class Salem_Number:
             return str(tuple(self.min_poly.coef))
 
     def calc_beta0(self, remember_conjs = False):
-        """Calculates the maximum modulus root of `self.min_poly` to within `self.prec` binary bits of precision.
+        """Calculates the maximum modulus root of `self.min_poly` to within `self.dps` digits bits of precision.
 
         :param remember_conjs: Default `False`. Set to `True` and access the conjugate roots via `self.conjs`. The number
         `self.conjs[0]` is the Salem number, `self.conjs[1]` is its reciprocal, and `self.conjs[2:]` have modulus 1.
         :return: `beta0`, for convenience. Also sets `self.beta0` to the return value.
         """
         if not self.beta0 or (remember_conjs and not self.conjs):
-            with workprec(self.prec):
-                rts = polyroots(self.min_poly.coef)
+            with workdps(self.dps):
+                rts = polyroots(tuple(self.min_poly.coef))
                 rts = sorted(rts, key=lambda z: abs(im(z)))
                 self.beta0 = re(max(rts[:2], key=re))
                 if remember_conjs:
@@ -73,7 +73,7 @@ class Salem_Number:
     def check_salem(self):
         """Check that this object actually encodes a Salem number as promised."""
         self.calc_beta0(True)
-        with workprec(self.prec):
+        with workdps(self.dps):
             return self.conjs[1] < 1 < self.conjs[0] and all(almosteq(abs(conj), 1) for conj in self.conjs[2:])
 
 def _is_salem_6poly(a, b, c):
@@ -89,7 +89,7 @@ def _is_salem_6poly(a, b, c):
         return False
 
 
-def salem_iter(deg, max_trace, prec):
+def salem_iter(deg, max_trace, dps):
     if deg != 6:
         raise NotImplementedError
     for a in range(0, -max_trace - 1, -1):
@@ -99,7 +99,7 @@ def salem_iter(deg, max_trace, prec):
             for c in range(-c_max, c_max + 1):
                 if _is_salem_6poly(a, b, c):
                     P = poly1d((1, a, b, c, b, a, 1))
-                    beta = Salem_Number(P, prec)
+                    beta = Salem_Number(P, dps)
                     beta.calc_beta0()
                     yield beta
 
@@ -108,19 +108,19 @@ def salem_iter(deg, max_trace, prec):
 #     degree six Salem numbers.
 #     """
 #
-#     def __init__(self, deg, max_trace, prec):
+#     def __init__(self, deg, max_trace, dps):
 #         """
 #
 #         :param deg: The degree of all Salem numbers returned by this iterator. MUST BE 6.
 #         :param max_trace: The maximum trace of all Salem numbers returned by this iterator.
-#         :param prec: Guaranteed number of correct bits of `beta0` from the mathematically correct maximum modulus root of
+#         :param dps: Guaranteed number of correct bits of `beta0` from the mathematically correct maximum modulus root of
 #         `min_poly`.
 #         """
 #         if deg != 6:
 #             raise NotImplementedError
 #         self.deg = deg
 #         self.max_trace = max_trace
-#         self.prec = prec
+#         self.dps = dps
 #         self.betas = None
 #         self.i = 0
 #
@@ -133,7 +133,7 @@ def salem_iter(deg, max_trace, prec):
 #                 for c in range(-c_max,c_max+1):
 #                     if _is_salem_6poly(a, b, c):
 #                         P = poly1d((1,a,b,c,b,a,1))
-#                         beta = Salem_Number(P, self.prec)
+#                         beta = Salem_Number(P, self.dps)
 #                         beta.calc_beta0()
 #                         self.betas.append(beta)
 #         return self

@@ -22,7 +22,7 @@ from numpy import poly1d
 
 from beta_orbit import calc_period
 from boyd_data import boyd
-from constants import BYTES_PER_MB, BYTES_PER_GB
+from utility import BYTES_PER_MB, BYTES_PER_GB
 
 from salem_numbers import Salem_Number, salem_iter
 from save_states import Pickle_Register
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     max_n = 10 ** 9
 
     max_restarts = 4
-    starting_prec = 53
+    starting_dps = 53
 
     save_period = 100000
     check_memory_period = 100000
@@ -53,32 +53,34 @@ if __name__ == "__main__":
 
     logging.basicConfig(filename = log_filename, level=logging.INFO)
 
-    for beta in salem_iter(deg, max_trace, starting_prec):
+    for beta in salem_iter(deg, max_trace, starting_dps):
         # Loop over Salem numbers
         logging.info("Found Salem number: %s" % beta)
-        calc_period(beta, max_n, max_restarts, starting_prec, save_period, check_memory_period, needed_bytes, register)
+        calc_period(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register)
 
         if save_register:
             with open(register_filename, "wb") as fh:
                 pkl.dump(register, fh)
+
+
 
     # betas = []
     # data = []
     # for datum in boyd:
     #     if datum["D_label"] == "medium":
     #         data.append(datum)
-    #         beta = Salem_Number(datum["poly"], starting_prec)
+    #         beta = Salem_Number(datum["poly"], starting_dps)
     #         logging.info("Adding Salem number: %s" % beta)
     #         if not beta.check_salem():
     #             logging.warning("The following is not the minimal polynomial of a Salem number: %s" % (tuple(beta.min_poly.coef),))
     #         betas.append(beta)
 
-    # beta = Salem_Number(poly1d((1, -1, -1, -3, -1, -1, 1)), starting_prec)
-    # calc_period(beta, max_n, max_restarts, starting_prec, save_period, check_memory_period, needed_bytes, register)
+    # beta = Salem_Number(poly1d((1, -1, -1, -3, -1, -1, 1)), starting_dps)
+    # calc_period(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register)
 
     # for beta, datum in zip(betas,data):
     #     logging.info("Boyd p = %d, Boyd m = %d" % (datum["p"], datum["m"]))
-    #     calc_period(beta, max_n, max_restarts, starting_prec, save_period, check_memory_period, needed_bytes, register)
+    #     calc_period(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register)
     #
     # for beta, datum in zip(betas, data):
     #     if not register.get_complete_status(beta) or not register.get_p(beta) or not register.get_m(beta):

@@ -18,10 +18,10 @@ import logging
 import time
 
 import psutil
-from mpmath import workprec, power, polyval, frac, mp, floor
+from mpmath import workdps, power, polyval, frac, mp, floor
 from numpy import poly1d, median
 
-from constants import X, NUM_EXTRA_EPS_BITS, BYTES_PER_KB, BYTES_PER_MB
+from utility import X, BYTES_PER_KB, BYTES_PER_MB
 from periodicity_checker import check_periodicity_ram_only, check_periodicity_ram_and_disk
 from save_states import Save_State_Type, Save_State
 
@@ -32,8 +32,8 @@ class Beta_Orbit_Iter:
         self.length = length
         self.n = 0
         self.curr_B = poly1d((1,))
-        with workprec(self.beta.prec):
-            self._eps = power(2, -self.beta.prec + NUM_EXTRA_EPS_BITS)
+        with workdps(self.beta.dps):
+            self._eps = power(2, -self.beta.dps)
 
     def __iter__(self):
         return self
@@ -49,7 +49,7 @@ class Beta_Orbit_Iter:
         xi = self.beta.beta0 * polyval(tuple(self.curr_B.coef), self.beta.beta0)
         eta = self._calc_eta()
         if frac(xi) <= eta:
-            raise Accuracy_Error(mp)
+            raise Accuracy_Error(self.beta.dps)
         c = int(floor(xi))
         self.curr_B = X * self.curr_B - c
         _deg = self.beta.deg
@@ -58,13 +58,13 @@ class Beta_Orbit_Iter:
         return self.n, c, xi, self.curr_B
 
     def _calc_eta(self):
-        return self._eps * polyval(tuple(X * self.curr_B.coef), self.beta.beta0 + self._eps, derivative=True)[1]
+        return self._eps * polyval(tuple(X * self.curr_B), self.beta.beta0 + self._eps, derivative=True)[1]
 
 
 class Accuracy_Error(RuntimeError):
-    def __init__(self, ctx):
-        self.ctx = ctx
-        super().__init__("current binary precision: %d" % ctx.prec)
+    def __init__(self, dps):
+        self.dps = dps
+        super().__init__("current decimal : %d" % dps)
 
 def _dump_data(beta, Bs, cs, last_save_n, register, p = None, m = None):
     for typee, data in [(Save_State_Type.CS, cs), (Save_State_Type.BS, Bs)]:
@@ -102,14 +102,14 @@ def _check_memory(check_memory_period, available_memory, memory_used_since_last_
         logging.info("Estimated number of iterates before switch: %d" % approx_num_iter)
     return have_excess_memory, available_memory
 
-def calc_period(beta, max_n, max_restarts, starting_prec, save_period, check_memory_period, needed_bytes, register):
+def calc_period(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register):
     """Calculate the period of the orbit of 1 under multiplication by `beta` mod 1, where `beta` is a Salem number.
 
     :param beta: Type `Salem_Number`.
     :param max_n: Positive int. Maximum length of the orbit to calculate. Logs a warning if this limit is reached.
     :param max_restarts: Positive int. The algorithm may periodically encounter critical rounding errors. This is the maximum
     number of times to increase float precision before giving up. Logs a warning if this limit is reached.
-    :param starting_prec: Positive int. Starting float precision (in binary).
+    :param starting_dps: Positive int. Starting float precision (in decimal).
     :param save_period: How many iterates to calculate before saving orbit to file.
     :param check_memory_period: How many iterates to calculate before checking to see if we have enough memory to
     proceed. If not, the algorithm switches to a slower variant that relies less on memory.
@@ -118,13 +118,13 @@ def calc_period(beta, max_n, max_restarts, starting_prec, save_period, check_mem
     :param register: Type `Pickle_Register`.
     """
 
-    mp.prec = starting_prec
+    mp.dps = starting_dps
     beta.calc_beta0()
 
     logging.info("Finding period for Salem number: %s" % beta)
 
     for _ in range(max_restarts):
-        # This loop increases `mp.prec` until a good orbit is found, or until `mp.prec` reaches a defined maximum.
+        # This loop increases `mp.dps` until a good orbit is found, or until `mp.dps` reaches a defined maximum.
 
         try:
             start_time = time.time()
@@ -231,12 +231,12 @@ def calc_period(beta, max_n, max_restarts, starting_prec, save_period, check_mem
                 return
 
         except Accuracy_Error:
-            logging.warning("Orbit ran into an integer. Restarting with prec = %d" % (mp.prec * 2))
+            logging.warning("Orbit ran into an integer. Restarting with dps = %d" % (mp.dps * 2))
             logging.warning("Deleting bad orbit from disk.")
             register.clear(Save_State_Type.BS, beta)
-            mp.prec *= 2
+            mp.dps *= 2
 
     logging.warning("Did not find period for beta = %s." % beta)
-    logging.warning("The maximum allowable precision (%d bits) was reached." % (mp.prec // 2))
+    logging.warning("The maximum allowable precision (%d digits) was reached." % (mp.dps // 2))
 
 
