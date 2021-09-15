@@ -80,7 +80,7 @@ def _is_salem_6poly(a, b, c):
     U = poly1d((1, a, b - 3, c - 2 * a))
     if U(2) >= 0 or U(-2) >= 0:
         return False
-    for n in range(-1, max(abs(a), abs(b - 3), abs(c - 2 * a))):
+    for n in range(-1, max(abs(a), abs(b - 3), abs(c - 2 * a))+2):
         if U(n) == 0:
             return False
     if U(-1) > 0 or U(0) > 0 or U(1) > 0:

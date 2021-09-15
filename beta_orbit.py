@@ -64,7 +64,7 @@ class Beta_Orbit_Iter:
 class Accuracy_Error(RuntimeError):
     def __init__(self, dps):
         self.dps = dps
-        super().__init__("current decimal : %d" % dps)
+        super().__init__("current decimal precision: %d" % dps)
 
 def _dump_data(beta, Bs, cs, last_save_n, register, p = None, m = None):
     for typee, data in [(Save_State_Type.CS, cs), (Save_State_Type.BS, Bs)]:
