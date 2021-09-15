@@ -16,15 +16,9 @@
 import logging
 import os
 import pickle as pkl
-import mpmath
-import psutil
-from numpy import poly1d
 
 from beta_orbit import calc_period
-from boyd_data import boyd
-from utility import BYTES_PER_MB, BYTES_PER_GB
-
-from salem_numbers import Salem_Number, salem_iter
+from salem_numbers import salem_iter
 from save_states import Pickle_Register
 
 if __name__ == "__main__":
@@ -53,7 +47,7 @@ if __name__ == "__main__":
 
     logging.basicConfig(filename = log_filename, level=logging.INFO)
 
-    for beta in salem_iter(deg, max_trace, starting_dps):
+    for beta in salem_iter(deg, 0, max_trace, starting_dps):
         # Loop over Salem numbers
         logging.info("Found Salem number: %s" % beta)
         calc_period(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register)

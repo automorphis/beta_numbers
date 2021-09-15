@@ -13,7 +13,7 @@
     GNU General Public License for more details.
 """
 
-from mpmath import workdps, polyroots, im, re, almosteq, mpf, mp
+from mpmath import workdps, polyroots, im, re, almosteq
 from numpy import poly1d
 
 class Salem_Number:
@@ -76,7 +76,7 @@ class Salem_Number:
         with workdps(self.dps):
             return self.conjs[1] < 1 < self.conjs[0] and all(almosteq(abs(conj), 1) for conj in self.conjs[2:])
 
-def _is_salem_6poly(a, b, c):
+def _is_salem_6poly(a, b, c, dps):
     U = poly1d((1, a, b - 3, c - 2 * a))
     if U(2) >= 0 or U(-2) >= 0:
         return False
@@ -86,18 +86,19 @@ def _is_salem_6poly(a, b, c):
     if U(-1) > 0 or U(0) > 0 or U(1) > 0:
         return True
     else:
-        return False
+        P = poly1d((1,a,b,c,b,a,1))
+        return Salem_Number(P,dps).check_salem()
 
 
-def salem_iter(deg, max_trace, dps):
+def salem_iter(deg, min_trace, max_trace, dps):
     if deg != 6:
         raise NotImplementedError
-    for a in range(0, -max_trace - 1, -1):
+    for a in range(-min_trace, -max_trace - 1, -1):
         b_max = 7 + (5 - a) * 4
         c_max = 8 + (5 - a) * 6
         for b in range(-b_max, b_max + 1):
             for c in range(-c_max, c_max + 1):
-                if _is_salem_6poly(a, b, c):
+                if _is_salem_6poly(a, b, c, dps):
                     P = poly1d((1, a, b, c, b, a, 1))
                     beta = Salem_Number(P, dps)
                     beta.calc_beta0()

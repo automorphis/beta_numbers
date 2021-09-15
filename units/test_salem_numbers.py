@@ -1,8 +1,22 @@
+"""
+    Beta Expansions of Salem Numbers, calculating periods thereof
+    Copyright (C) 2021 Michael P. Lane
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+"""
+
 from unittest import TestCase
 
-from mpmath import workdps, almosteq, mpf, mp
+from mpmath import workdps, almosteq, mpf
 from numpy import poly1d
-from utility import inequal_dps
 
 from salem_numbers import Salem_Number, salem_iter
 
@@ -411,6 +425,10 @@ class Test_Salem_Number(TestCase):
                 self.assertTrue(beta.check_salem())
             dps *= 2
 
-    def test_salem_iter(self):
-        # just cross-ref with the boyd table
-        self.assertEqual(497, len(list(salem_iter(6,5,32))))
+    def test_salem_iter_short(self):
+        # just cross-ref with the boyd table, takes a couple min
+        self.assertEqual(497, len(list(salem_iter(6,0,5,32))))
+
+    def test_salem_iter_long(self):
+        # cross ref again, takes a long time
+        self.assertEqual(11836 - 497, len(list(salem_iter(6,6,15,32))))
