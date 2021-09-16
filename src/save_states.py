@@ -21,39 +21,51 @@ import os
 
 from numpy import poly1d
 
-from salem_numbers import Salem_Number
+from src.salem_numbers import Salem_Number
 
 BASE56 = "23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
 FILENAME_LEN = 20
 PICKLE_EXT = "pkl"
-DATA_DIRECTORY = "C:\\Users\\Michael\\beta_orbit_saves"
 
 class Pickle_Register:
     """Access orbit data saved to the disk via this class."""
 
-    def __init__(self):
-        self.save_states_filenames = {typee: [] for typee in Save_State_Type}
-        self.metadata = {}
-        self.metadata_utd = False
+    def __init__(self, saves_directory, dump_data = None):
+
+        self.saves_directory = os.path.abspath(saves_directory)
+
+        # make directory if it's not already there
+        if not os.path.isdir(self.saves_directory):
+            os.mkdir(self.saves_directory)
+
+        if dump_data:
+            self.metadatas_utd = True
+            self.save_states_filenames = dump_data[0]
+            self.metadatas = dump_data[1]
+
+        else:
+            self.metadatas_utd = False
+            self.metadatas = {}
+            self.save_states_filenames = {typee: [] for typee in Save_State_Type}
 
     def list_orbits_calculated(self):
-        return [(metadata.min_poly, metadata.type) for metadata in self.metadata]
+        return [(metadatas.min_poly, metadatas.type) for metadatas in self.metadatas]
 
-    def _load_metadata(self):
-        if not self.metadata_utd:
-            self.metadata = {}
+    def _load_metadatas(self):
+        if not self.metadatas_utd:
+            self.metadatas = {}
             for typee in Save_State_Type:
                 for filename in self.save_states_filenames[typee]:
                     with open(filename, "rb") as fh:
                         save_state = pkl.load(fh)
                         self._add_metadata(save_state.get_metadata(), filename)
-            self.metadata_utd = True
+            self.metadatas_utd = True
 
     def _add_metadata(self, save_state, filename):
-        self.metadata[save_state] = filename
+        self.metadatas[save_state] = filename
 
     def _remove_metadata(self, metadata):
-        del self.metadata[metadata]
+        del self.metadatas[metadata]
 
     def add_save_state(self, save_state, num_attempts=10):
         """Let a `Save_State` be known to this `Register` and save the `Save_State` to disk.
@@ -66,18 +78,13 @@ class Pickle_Register:
             return
 
         for _ in range(num_attempts):
-            filename = _random_filename()
+            filename = _random_filename(self.saves_directory)
             if not os.path.isfile(filename):
                 break
         else:
             raise RuntimeError("buy a lottery ticket fr")
         self.save_states_filenames[save_state.type].append(filename)
         self._add_metadata(save_state.get_metadata(),filename)
-
-        # make directory if it's not already there
-        dirname = os.path.dirname(filename)
-        if not os.path.isdir(dirname):
-            os.mkdir(dirname)
 
         with open(filename, "wb") as fh:
             pkl.dump(save_state, fh)
@@ -88,14 +95,14 @@ class Pickle_Register:
         :param typee: Type `Save_State_Types`. The type of data to clear.
         :param beta: Type `Salem_Number`. The beta associated with the `Save_State` to clear.
         """
-        self._load_metadata()
-        for metadata,filename in self._slice_metadata(typee,beta).items():
+        self._load_metadatas()
+        for metadata,filename in self._slice_metadatas(typee,beta).items():
             os.remove(filename)
             self._remove_metadata(metadata)
 
     def cleanup_redundancies(self, typee, beta):
-        self._load_metadata()
-        for metadata,filename in self._slice_metadata(typee, beta).items():
+        self._load_metadatas()
+        for metadata,filename in self._slice_metadatas(typee, beta).items():
             if metadata.is_complete:
                 start_n, p, m = metadata.start_n, metadata.p, metadata.m
                 if start_n + len(metadata) > p + m:
@@ -121,17 +128,17 @@ class Pickle_Register:
         """
         return self.get_save_state(typee, beta, n)[n]
 
-    def _slice_metadata(self, typee, beta):
+    def _slice_metadatas(self, typee, beta):
         ret = {}
-        for metadata, filename in self.metadata.items():
+        for metadata, filename in self.metadatas.items():
             if metadata.type == typee and metadata.get_beta() == beta:
                 ret[metadata] = filename
         return ret
 
     def get_save_state(self, typee, beta, n):
         """Like `self.get_n`, but returns the `Save_State` associated with the index `n`. Useful for iterating."""
-        self._load_metadata()
-        for metadata, filename in self._slice_metadata(typee,beta).items():
+        self._load_metadatas()
+        for metadata, filename in self._slice_metadatas(typee,beta).items():
             if n in metadata:
                 with open(filename, "rb") as fh:
                     save_state = pkl.load(fh)
@@ -146,7 +153,7 @@ class Pickle_Register:
         return _Save_States_Iter(self, typee, beta, lower, upper)
 
     def mark_complete(self, typee, beta, p, m):
-        for metadata,filename in self._slice_metadata(typee,beta).items():
+        for metadata,filename in self._slice_metadatas(typee,beta).items():
             if not (metadata.is_complete and metadata.p == p and metadata.m == m):
                 with open(filename, "rb") as fh:
                     save_state = pkl.load(fh)
@@ -159,18 +166,21 @@ class Pickle_Register:
 
 
     def get_p(self, beta):
-        for metadata, filename in self._slice_metadata(Save_State_Type.BS, beta).items():
+        for metadata, filename in self._slice_metadatas(Save_State_Type.BS, beta).items():
             if metadata.is_complete:
                 return metadata.p
 
     def get_m(self, beta):
-        for metadata, filename in self._slice_metadata(Save_State_Type.BS, beta).items():
+        for metadata, filename in self._slice_metadatas(Save_State_Type.BS, beta).items():
             if metadata.is_complete:
                 return metadata.m
 
     def get_complete_status(self, beta):
-        for metadata, filename in self._slice_metadata(Save_State_Type.BS, beta).items():
+        for metadata, filename in self._slice_metadatas(Save_State_Type.BS, beta).items():
             return metadata.is_complete
+
+    def get_dump_data(self):
+        return self.save_states_filenames, self.metadatas
 
     # def append_to_save_state(self, beta, dps, start_iter, num_iters, Bs):
     #     self.load_metadata()
@@ -320,8 +330,8 @@ class Save_State:
         self.m = m
         self.is_complete = True
 
-def _random_filename(directory = DATA_DIRECTORY, alphabet = BASE56, length = FILENAME_LEN):
-    return os.path.join(
+def _random_filename(directory, alphabet = BASE56, length = FILENAME_LEN):
+    return os.path.abspath(os.path.join(
         directory,
         "".join(random.choices(alphabet, k=length)) + "." + PICKLE_EXT
-    )
+    ))

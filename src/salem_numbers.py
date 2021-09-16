@@ -13,7 +13,7 @@
     GNU General Public License for more details.
 """
 
-from mpmath import workdps, polyroots, im, re, almosteq
+from mpmath import workdps, polyroots, im, re, almosteq, log10
 from numpy import poly1d
 
 class Salem_Number:
@@ -35,10 +35,13 @@ class Salem_Number:
         :param beta0: Default `None`. Can also be calculated with a call to `calc_beta0`.
         """
 
-        self.min_poly = min_poly
+        if not isinstance(min_poly, poly1d):
+            self.min_poly = poly1d(min_poly)
+        else:
+            self.min_poly = min_poly
         self.dps = dps
         self.beta0 = beta0
-        self.deg = len(min_poly)
+        self.deg = len(self.min_poly)
         self.conjs = None
 
     def __eq__(self, other):
@@ -53,16 +56,24 @@ class Salem_Number:
         else:
             return str(tuple(self.min_poly.coef))
 
+    def get_trace(self):
+        return -self.min_poly[1]
+
     def calc_beta0(self, remember_conjs = False):
         """Calculates the maximum modulus root of `self.min_poly` to within `self.dps` digits bits of precision.
 
         :param remember_conjs: Default `False`. Set to `True` and access the conjugate roots via `self.conjs`. The number
         `self.conjs[0]` is the Salem number, `self.conjs[1]` is its reciprocal, and `self.conjs[2:]` have modulus 1.
+        :raises: `NotSalemError`, if `self.min_poly` is not the minimal polynomial of a Salem number.
         :return: `beta0`, for convenience. Also sets `self.beta0` to the return value.
         """
         if not self.beta0 or (remember_conjs and not self.conjs):
             with workdps(self.dps):
+                if self.min_poly == poly1d((0,)):
+                    raise Not_Salem_Error(self)
                 rts = polyroots(tuple(self.min_poly.coef))
+                if len(rts) < 4 or len(rts) % 2 == 1:
+                    raise Not_Salem_Error(self)
                 rts = sorted(rts, key=lambda z: abs(im(z)))
                 self.beta0 = re(max(rts[:2], key=re))
                 if remember_conjs:
@@ -71,10 +82,14 @@ class Salem_Number:
         return self.beta0
 
     def check_salem(self):
-        """Check that this object actually encodes a Salem number as promised."""
+        """Check that this object actually encodes a Salem number as promised. Raises `Not_Salem_Error` if not."""
         self.calc_beta0(True)
         with workdps(self.dps):
-            return self.conjs[1] < 1 < self.conjs[0] and all(almosteq(abs(conj), 1) for conj in self.conjs[2:])
+            if not(self.conjs[1] < 1 < self.conjs[0] and all(almosteq(abs(conj), 1) for conj in self.conjs[2:])):
+                raise Not_Salem_Error(self)
+
+    def calc_log10_delta_lower_bound(self):
+        raise NotImplementedError
 
 def _is_salem_6poly(a, b, c, dps):
     U = poly1d((1, a, b - 3, c - 2 * a))
@@ -87,7 +102,11 @@ def _is_salem_6poly(a, b, c, dps):
         return True
     else:
         P = poly1d((1,a,b,c,b,a,1))
-        return Salem_Number(P,dps).check_salem()
+        try:
+            Salem_Number(P,dps).check_salem()
+            return True
+        except Not_Salem_Error:
+            return False
 
 
 def salem_iter(deg, min_trace, max_trace, dps):
@@ -103,6 +122,10 @@ def salem_iter(deg, min_trace, max_trace, dps):
                     beta = Salem_Number(P, dps)
                     beta.calc_beta0()
                     yield beta
+
+class Not_Salem_Error(RuntimeError):
+    def __init__(self,beta):
+        super().__init__("Not a Salem number. min_poly = %s" % beta.min_poly)
 
 # class Salem_Iter:
 #     """Iterates over a finite list of `Salem_Numbers` satisfying certain given parameters. Currently only implemented for

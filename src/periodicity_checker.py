@@ -13,22 +13,32 @@
     GNU General Public License for more details.
 """
 
-from save_states import Save_State_Type
+from src.save_states import Save_State_Type
 
 
-def get_divisors(n):
+def _get_divisors(n):
     for d in range(1,1+(n+1)//2):
         if n % d == 0:
             yield d
-    yield n
+    if n > 1:
+        yield n
 
 def check_periodicity_ram_only(Bs):
+    """Check if a given `Bs` orbit cycles, using only RAM.
+
+    :param Bs: The orbit.
+    :return: (boolean) If a cycle has been found.
+    :return: (positive int) The period.
+    :return: (positive int) The length of the non-periodic portion of the orbit. This will always be at least one;
+    hence there is always a non-periodic portion.
+    """
+
     if len(Bs) % 2 == 1:
         return False,None,None
     else:
         k = len(Bs)//2
         if Bs[-1] == Bs[k-1]:
-            for d in get_divisors(k):
+            for d in _get_divisors(k):
                 if Bs[k - 1] == Bs[k - 1 + d]:
                     for m in range(k):
                         if Bs[m] == Bs[m + d]:
@@ -37,12 +47,25 @@ def check_periodicity_ram_only(Bs):
             return False,None,None
 
 def check_periodicity_ram_and_disk(beta, register, n, Bk, B2k):
+    """Check if a given `Bs` orbit cycles, using both RAM and disk.
+
+    :param beta: The beta.
+    :param register: Register used for reading information from the disk.
+    :param n: The current index (1-indexed) of the orbit we're checking.
+    :param Bk: The iterate halfway through the orbit.
+    :param B2k: The most recent even (1-indexed) iterate.
+    :return: (boolean) If a cycle has been found.
+    :return: (positive int) The length of the periodic portion.
+    :return: (positive int) The length of the non-periodic portion of the orbit. This will always be at least one; hence
+    there is always a non-periodic portion.
+    """
+
     if n % 2 == 1:
         return False, None, None
     else:
         k = n//2
         if Bk == B2k:
-            for d in get_divisors(k):
+            for d in _get_divisors(k):
                 if Bk == register.get_n(Save_State_Type.BS, beta, k+d):
                     B1_range = register.get_n_range(Save_State_Type.BS, beta, 1, k + 1)
                     B2_range = register.get_n_range(Save_State_Type.BS, beta, d + 1, k + d + 1)

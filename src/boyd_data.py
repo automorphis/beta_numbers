@@ -212,6 +212,8 @@ class Number_Type (Enum):
     P = 2
 
 number_sizes = [
+    ("smallest",       9),
+    ("smaller",       99),
     ("small",        999),
     ("medium",      9999),
     ("big",        99999),
@@ -242,3 +244,6 @@ boyd = [{
     "p": datum[1][1] if datum[1][1] > 0 else None,
     "poly": poly1d(datum[0])
 } for datum in _boyd]
+
+def filter_by_size(data, label, size):
+    return list(filter(lambda datum: datum[label] == size, data))

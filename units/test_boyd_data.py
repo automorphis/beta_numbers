@@ -14,13 +14,16 @@
 """
 
 from unittest import TestCase
-from boyd_data import _get_number_size, Number_Type
+from src.boyd_data import _get_number_size, Number_Type, boyd
+from src.salem_numbers import Salem_Number, Not_Salem_Error
 
 
 class Test_Boyd_Data(TestCase):
 
     def test_get_number_size(self):
-        self.assertEqual("small", _get_number_size((None,      (1, 1)),                        Number_Type.D))
+        self.assertEqual("smallest", _get_number_size((None,   (1, 1)),                        Number_Type.D))
+        self.assertEqual("smaller", _get_number_size((None,    (1, 10)),                       Number_Type.D))
+        self.assertEqual("small", _get_number_size((None,      (200, 100)),                    Number_Type.D))
         self.assertEqual("medium", _get_number_size((None,     (1, 1000)),                     Number_Type.D))
         self.assertEqual("big", _get_number_size((None,        (10000, 1)),                    Number_Type.D))
         self.assertEqual("bigger", _get_number_size((None,     (50001, 50000)),                Number_Type.D))
@@ -30,8 +33,8 @@ class Test_Boyd_Data(TestCase):
         self.assertEqual("extreme", _get_number_size((None,    (10000000000000, 1)),           Number_Type.D))
         self.assertEqual("extreme", _get_number_size((None,    (100000000000, 1000000000000)), Number_Type.D))
 
-        self.assertEqual("small", _get_number_size((None,      (1, 1)),                        Number_Type.M))
-        self.assertEqual("small", _get_number_size((None,      (1, 1000000)),                  Number_Type.M))
+        self.assertEqual("smallest", _get_number_size((None,   (1, 1)),                        Number_Type.M))
+        self.assertEqual("smallest", _get_number_size((None,   (1, 1000000)),                  Number_Type.M))
         self.assertEqual("medium", _get_number_size((None,     (3000, 1)),                     Number_Type.M))
         self.assertEqual("big", _get_number_size((None,        (99999, 1)),                    Number_Type.M))
         self.assertEqual("bigger", _get_number_size((None,     (100000, 5000034343)),          Number_Type.M))
@@ -39,3 +42,13 @@ class Test_Boyd_Data(TestCase):
         self.assertEqual("titanic", _get_number_size((None,    (90000000, 10000)),             Number_Type.M))
         self.assertEqual("extreme", _get_number_size((None,    (10000000000000, 1)),           Number_Type.M))
         self.assertEqual("extreme", _get_number_size((None,    (100000000000, 1000000000000)), Number_Type.M))
+
+    def test_boyd(self):
+        dps = 32
+        num_times_increase_dps = 3
+        for _ in range(num_times_increase_dps):
+            for boyd_datum in boyd:
+                min_poly = boyd_datum["poly"]
+                with self.assertRaises(Not_Salem_Error):
+                    Salem_Number(min_poly, dps).check_salem()
+            dps *= 2

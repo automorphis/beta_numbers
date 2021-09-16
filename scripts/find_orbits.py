@@ -13,22 +13,18 @@
     GNU General Public License for more details.
 """
 
-from src.salem_numbers import salem_iter
+from src.beta_orbit import calc_period_ram_only
+from src.boyd_data import boyd
+from src.salem_numbers import Salem_Number
 
-filename = "../output/polys.txt"
+filename = "../output/periods.txt"
 
 with open(filename, "w") as fh:
-    a = None
-    last_beta = None
-    for beta in salem_iter(6,0,5,32):
-        fh.write(str(tuple(beta.min_poly.coef)) + "\n")
-    #     if a is None or beta.min_poly[1] != a:
-    #         if a is not None:
-    #             fh.write("\tlargest b = %d\n" % old_b)
-    #         a = beta.min_poly[1]
-    #         b = beta.min_poly[2]
-    #         c = beta.min_poly[3]
-    #         fh.write("a = %d\n" % a)
-    #         fh.write("\tsmallest b = %d\n" % b)
-    #     old_b = beta.min_poly[2]
-    # fh.write("\tlargest b = %d\n" % old_b)
+    dps = 256
+    for datum in boyd:
+        if datum["D_label"] == "very small":
+            beta = Salem_Number(datum["poly"], dps)
+            found_period, Bs, cs, p, m = calc_period_ram_only(beta,10**8,1,dps)
+            if not found_period:
+                raise RuntimeError
+            fh.write(str((tuple(beta.min_poly),beta.calc_beta0(), Bs.data, cs.data, p, m)) + ",\n")

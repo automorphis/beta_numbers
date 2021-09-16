@@ -15,14 +15,14 @@
 
 from mpmath import re, im, workdps
 
-from boyd_data import boyd
-from salem_numbers import Salem_Number
+from src.boyd_data import boyd
+from src.salem_numbers import Salem_Number
 
 
 def _salem_root(rts):
     return re(max(sorted(rts,key=lambda z: abs(im(z))), key=re))
 
-filename = "roots.txt"
+filename = "../output/roots.txt"
 
 polys = [datum["poly"] for datum in boyd]
 

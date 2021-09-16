@@ -21,9 +21,20 @@ import psutil
 from mpmath import workdps, power, polyval, frac, mp, floor
 from numpy import poly1d, median
 
-from utility import X, BYTES_PER_KB, BYTES_PER_MB
-from periodicity_checker import check_periodicity_ram_only, check_periodicity_ram_and_disk
-from save_states import Save_State_Type, Save_State
+from src.mpmath_helpers import Accuracy_Error
+from src.periodic_list import Periodic_List
+from src.salem_numbers import Salem_Number
+from src.utility import X, BYTES_PER_KB, BYTES_PER_MB
+from src.periodicity_checker import check_periodicity_ram_only, check_periodicity_ram_and_disk
+from src.save_states import Save_State_Type, Save_State
+
+def calc_next_iterate(beta, B, c):
+    """Return B*X - c mod beta.min_poly"""
+    B = X * B - c
+    deg = beta.deg
+    if len(B) >= deg:
+        B -= B[deg] * beta.min_poly
+    return B
 
 
 class Beta_Orbit_Iter:
@@ -51,20 +62,13 @@ class Beta_Orbit_Iter:
         if frac(xi) <= eta:
             raise Accuracy_Error(self.beta.dps)
         c = int(floor(xi))
-        self.curr_B = X * self.curr_B - c
-        _deg = self.beta.deg
-        if len(self.curr_B) >= _deg:
-            self.curr_B -= self.curr_B[_deg] * self.beta.min_poly
-        return self.n, c, xi, self.curr_B
+        old_B = self.curr_B
+        self.curr_B = calc_next_iterate(self.beta,self.curr_B, c)
+        return self.n, c, xi, old_B
 
     def _calc_eta(self):
         return self._eps * polyval(tuple(X * self.curr_B), self.beta.beta0 + self._eps, derivative=True)[1]
 
-
-class Accuracy_Error(RuntimeError):
-    def __init__(self, dps):
-        self.dps = dps
-        super().__init__("current decimal precision: %d" % dps)
 
 def _dump_data(beta, Bs, cs, last_save_n, register, p = None, m = None):
     for typee, data in [(Save_State_Type.CS, cs), (Save_State_Type.BS, Bs)]:
@@ -102,7 +106,44 @@ def _check_memory(check_memory_period, available_memory, memory_used_since_last_
         logging.info("Estimated number of iterates before switch: %d" % approx_num_iter)
     return have_excess_memory, available_memory
 
-def calc_period(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register):
+def calc_period_ram_only(beta, max_n, max_restarts, starting_dps):
+    """Calculate the period of a beta expansion, using only RAM.
+
+    :param beta: The beta.
+    :param max_n: The maximum number of iterates to make.
+    :param max_restarts: The maximum number of times to increase decimal precision if an orbit is bad; that is, if it
+    hits an integer.
+    :param starting_dps: The starting decimal precision.
+    :return: (boolean) if a cycle has been found.
+    :return: (`Periodic_List`) The polynomial orbit `Bs`.
+    :return: (`Periodic_List`) The coefficient orbit `cs`.
+    """
+
+    mp.dps = starting_dps
+
+    for _ in range(max_restarts):
+        beta.calc_beta0()
+        try:
+            cs = []
+            Bs = []
+            for n, c, _, B in Beta_Orbit_Iter(beta, max_n):
+                cs.append(c)
+                Bs.append(B)
+                is_periodic, p, m = check_periodicity_ram_only(Bs)
+                if is_periodic:
+                    Bs = Periodic_List(Bs,p,m)
+                    cs = Periodic_List(cs,p,m)
+                    return True, Bs, cs
+            return False, None, None
+
+        except Accuracy_Error:
+            mp.dps *= 2
+            beta = Salem_Number(beta.min_poly, mp.dps)
+
+    return False, None, None
+
+
+def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register):
     """Calculate the period of the orbit of 1 under multiplication by `beta` mod 1, where `beta` is a Salem number.
 
     :param beta: Type `Salem_Number`.
@@ -116,15 +157,17 @@ def calc_period(beta, max_n, max_restarts, starting_dps, save_period, check_memo
     :param needed_bytes: Minimum number of excess bytes needed until the algorithm switches from the "ram only" variant
     to the "ram and disk" variant.
     :param register: Type `Pickle_Register`.
+    :return: None; everything is saved to disk and access information is encoded in `register`.
     """
 
     mp.dps = starting_dps
-    beta.calc_beta0()
 
     logging.info("Finding period for Salem number: %s" % beta)
 
     for _ in range(max_restarts):
         # This loop increases `mp.dps` until a good orbit is found, or until `mp.dps` reaches a defined maximum.
+
+        beta.calc_beta0()
 
         try:
             start_time = time.time()
@@ -235,6 +278,7 @@ def calc_period(beta, max_n, max_restarts, starting_dps, save_period, check_memo
             logging.warning("Deleting bad orbit from disk.")
             register.clear(Save_State_Type.BS, beta)
             mp.dps *= 2
+            beta = Salem_Number(beta.min_poly, mp.dps)
 
     logging.warning("Did not find period for beta = %s." % beta)
     logging.warning("The maximum allowable precision (%d digits) was reached." % (mp.dps // 2))

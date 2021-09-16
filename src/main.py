@@ -17,9 +17,9 @@ import logging
 import os
 import pickle as pkl
 
-from beta_orbit import calc_period
-from salem_numbers import salem_iter
-from save_states import Pickle_Register
+from src.beta_orbit import calc_period_ram_and_disk
+from src.salem_numbers import salem_iter
+from src.save_states import Pickle_Register
 
 if __name__ == "__main__":
 
@@ -34,27 +34,33 @@ if __name__ == "__main__":
     save_period = 100000
     check_memory_period = 100000
 
-    register_filename = "register.pkl" # where to put the register
+    register_filename = "~/beta_orbit_saves/register.pkl" # where to put the register
     save_register = True
-    log_filename = "log.log"
+    log_filename = "../logs/beta_orbit.log"
+
+    saves_directory = "~/beta_orbit_saves"
 
     if os.path.isfile(register_filename):
         with open(register_filename, "rb") as fh:
-            register = pkl.load(fh)
+            register_data = pkl.load(fh)
+            register = Pickle_Register(saves_directory, register_data)
     else:
-        register = Pickle_Register()
-    needed_bytes = 300*save_period
+        register = Pickle_Register(saves_directory)
+    needed_bytes = 300*max(save_period, check_memory_period)
 
     logging.basicConfig(filename = log_filename, level=logging.INFO)
 
-    for beta in salem_iter(deg, 0, max_trace, starting_dps):
+    for beta in salem_iter(deg, 0, 1, starting_dps):
         # Loop over Salem numbers
         logging.info("Found Salem number: %s" % beta)
-        calc_period(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register)
+        calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register)
 
         if save_register:
+            register_dirname = os.path.dirname(register_filename)
+            if not os.path.isdir(register_dirname):
+                os.mkdir(register_dirname)
             with open(register_filename, "wb") as fh:
-                pkl.dump(register, fh)
+                pkl.dump(register.get_dump_data(), fh)
 
 
 

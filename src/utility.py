@@ -14,15 +14,15 @@
 """
 
 from numpy import poly1d
-from mpmath import workdps, almosteq
+from mpmath import workdps, mpf
 
 X = poly1d((1,0))
 BYTES_PER_KB = 1024
 BYTES_PER_MB = 1024**2
 BYTES_PER_GB = 1024**3
 
-def inequal_dps(x,y,max_dps = 1000):
-    for dps in range(1,max_dps+1):
-        with workdps(dps):
-            if not almosteq(x,y):
-                return dps
+
+def eval_code_in_file(filename, dps = 32):
+    with workdps(dps):
+        with open(filename, "r") as fh:
+            return eval("".join(fh.readlines()))
