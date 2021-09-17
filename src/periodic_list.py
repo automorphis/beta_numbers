@@ -43,6 +43,10 @@ class Periodic_List:
     def __eq__(self, other):
         return self.data == other.data and self.p == other.p and self.m == other.m
 
+    def __iter__(self):
+        return self[:self.p+self.m]
+
+
     # def remove_redundancies(self):
     #     new_data = copy.deepcopy(self.data[:self.p+self.m])
     #     self.data.clear()

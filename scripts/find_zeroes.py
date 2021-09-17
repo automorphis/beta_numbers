@@ -12,8 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
+import random
 
-from mpmath import re, im, workdps
+from mpmath import re, im, workdps, power
 
 from src.boyd_data import boyd
 from src.salem_numbers import Salem_Number
@@ -58,5 +59,7 @@ dps = 256
 
 with open(filename, "w") as fh:
     for poly in polys:
+        i = random.randint(1,25)
         with workdps(dps):
-            fh.write("(poly1d(" + str(tuple(poly.coef)) + "), mpf(\"" + str(Salem_Number(poly,dps).calc_beta0()) + "\")),\n")
+            pow10 = power(10, -i)
+            fh.write("(poly1d(" + str(tuple(poly.coef)) + "), mpf(\"" + str(Salem_Number(poly,dps).calc_beta0() + pow10) + "\")),\n")

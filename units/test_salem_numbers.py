@@ -27,8 +27,10 @@ class Test_Salem_Number(TestCase):
     def setUp(self):
 
         # correct to 256 decimal places
-        self.salems = eval_code_in_file("several_salem_numbers.txt", 256)
+        self.data_dps = 256
+        self.salems = eval_code_in_file("several_salem_numbers.txt", self.data_dps)
         self.non_salems = eval_code_in_file("several_nonsalem_min_polys.txt")
+        self.incorrect_salems = eval_code_in_file("several_incorrect_salem_numbers.txt")
 
 
     def test_calc_beta0(self):
@@ -39,6 +41,10 @@ class Test_Salem_Number(TestCase):
                 beta0 = Salem_Number(min_poly, dps).calc_beta0()
                 with workdps(dps):
                     self.assertTrue(almosteq(salem,beta0))
+            for min_poly, incorrect_salem in self.incorrect_salems:
+                beta0 = Salem_Number(min_poly, dps).calc_beta0()
+                with workdps(dps):
+                    self.assertFalse(almosteq(incorrect_salem, beta0))
             dps *= 2
 
 
@@ -51,7 +57,7 @@ class Test_Salem_Number(TestCase):
                 try:
                     beta.check_salem()
                 except Salem_Number:
-                    self.fail("`beta is a Salem number, but `beta.check_salem()` threw a `Not_Salem_Error`: %s" % beta)
+                    self.fail("`beta` is a Salem number, but `beta.check_salem()` threw a `Not_Salem_Error`: %s" % beta)
             dps *= 2
             for min_poly in self.non_salems:
                 beta = Salem_Number(min_poly, dps)

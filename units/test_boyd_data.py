@@ -49,6 +49,10 @@ class Test_Boyd_Data(TestCase):
         for _ in range(num_times_increase_dps):
             for boyd_datum in boyd:
                 min_poly = boyd_datum["poly"]
-                with self.assertRaises(Not_Salem_Error):
-                    Salem_Number(min_poly, dps).check_salem()
+                try:
+                    beta = Salem_Number(min_poly, dps)
+                    beta.check_salem()
+                except Not_Salem_Error:
+                    self.fail("The following is not a Salem Number: %s" % beta)
+
             dps *= 2

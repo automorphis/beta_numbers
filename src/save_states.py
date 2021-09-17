@@ -246,12 +246,17 @@ class Save_State:
         P_n modulo `beta.min_poly`.
         :param start_n: Positive int. 1-Indexed. The first iterate encoded by the `data` parameter.
         """
+
         self.type = typee
         self.beta0 = beta.beta0
         self.min_poly = tuple(beta.min_poly.coef)
         self.dps = beta.dps
         self.start_n = start_n
-        self.data = data
+        self.data = list(data)
+        if len(self.data) == 0:
+            raise ValueError("input data cannot be empty")
+        if self.start_n < 1:
+            raise ValueError("start_n must be at least 1")
         self.is_complete = False
         self.length = len(self.data)
         self.p = None
@@ -273,7 +278,7 @@ class Save_State:
 
     def remove_redundancies(self):
         if self.is_complete:
-            self.data = self.data[:self.p + self.m - self.start_n]
+            self.data = self.data[:self.p + self.m - self.start_n + 1]
             self.length = len(self.data)
 
     # def append(self, data):
