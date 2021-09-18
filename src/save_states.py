@@ -21,6 +21,7 @@ import os
 
 from numpy import poly1d
 
+from src.periodic_list import has_redundancies, calc_beginning_index_of_redundant_data
 from src.salem_numbers import Salem_Number
 
 BASE56 = "23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
@@ -31,6 +32,11 @@ class Pickle_Register:
     """Access orbit data saved to the disk via this class."""
 
     def __init__(self, saves_directory, dump_data = None):
+        """
+        :param saves_directory: Where to put the saves.
+        :param dump_data: Optional. Construct a register based off the return of the method `get_dump_data` from another
+        `Pickle_Register`.
+        """
 
         self.saves_directory = os.path.abspath(saves_directory)
 
@@ -48,8 +54,8 @@ class Pickle_Register:
             self.metadatas = {}
             self.save_states_filenames = {typee: [] for typee in Save_State_Type}
 
-    def list_orbits_calculated(self):
-        return [(metadatas.min_poly, metadatas.type) for metadatas in self.metadatas]
+    # def list_orbits_calculated(self):
+    #     return [(Salem_Number(metadatas.min_poly,, metadatas.type) for metadatas in self.metadatas]
 
     def _load_metadatas(self):
         if not self.metadatas_utd:
@@ -72,10 +78,18 @@ class Pickle_Register:
 
         :param save_state: Type `Save_State`.
         :param num_attempts: Default 10.
+        :raises ValueError: if the `Save_State` is empty.
+        :raises FileExistsError: if the `Save_State` has already been added (ignores `is_complete`)
         """
 
         if len(save_state) == 0:
-            return
+            raise ValueError("save state cannot be empty")
+
+        if (
+            save_state in self.metadatas or
+            len( list( filter(lambda metadata: metadata.eq_except_complete(save_state), self.metadatas) ) ) > 0
+        ):
+            raise FileExistsError("the passed `Save_State` has already been added to this register.")
 
         for _ in range(num_attempts):
             filename = _random_filename(self.saves_directory)
@@ -101,19 +115,25 @@ class Pickle_Register:
             self._remove_metadata(metadata)
 
     def cleanup_redundancies(self, typee, beta):
+        """Delete from the disk redundant data. For example, if a `save_state.is_complete`, then all entries past
+        `save_state.p + save_state.m` will be deleted.
+
+        :param typee: Type `Save_State_Type`.
+        :param beta: The `Salem_Number` to cleanup.
+        """
         self._load_metadatas()
         for metadata,filename in self._slice_metadatas(typee, beta).items():
             if metadata.is_complete:
                 start_n, p, m = metadata.start_n, metadata.p, metadata.m
-                if start_n + len(metadata) > p + m:
-                    if start_n >= p + m:
+                if has_redundancies(start_n, len(metadata), p, m):
+                    if has_redundancies(start_n, 1, p, m):
                         os.remove(filename)
                         self._remove_metadata(metadata)
-                    elif start_n + len(metadata) > p + m:
+                    elif has_redundancies(start_n, len(metadata), p, m):
                         with open(filename, "rb") as fh:
                             save_state = pkl.load(fh)
                         os.remove(filename)
-                        sliced = save_state.get_slice(start_n, p + m)
+                        sliced = save_state.get_slice(start_n, p + m + 1)
                         self._remove_metadata(metadata)
                         self.add_save_state(sliced)
 
@@ -124,6 +144,8 @@ class Pickle_Register:
         :param typee: Type `Save_State_Types`.
         :param beta: Type `Salem_Number`.
         :param n: Positive int.
+        :raises ValueError: if `n` is not positive.
+        :raises FileNotFoundError: if the data is not found on the disk.
         :return: Either a coefficient of the beta expansion or the polynomial B_n, depending on `typee`.
         """
         return self.get_save_state(typee, beta, n)[n]
@@ -136,7 +158,15 @@ class Pickle_Register:
         return ret
 
     def get_save_state(self, typee, beta, n):
-        """Like `self.get_n`, but returns the `Save_State` associated with the index `n`. Useful for iterating."""
+        """Like `self.get_n`, but returns the `Save_State` associated with the index `n`. Useful for iterating.
+
+        :raises ValueError: if `n` is not positive.
+        :raises FileNotFoundError: if the data is not found on the disk.
+        """
+
+        if n < 1:
+            raise ValueError("n is not positive, passed value: %d" % n)
+
         self._load_metadatas()
         for metadata, filename in self._slice_metadatas(typee,beta).items():
             if n in metadata:
@@ -164,40 +194,27 @@ class Pickle_Register:
                 with open(filename, "wb") as fh:
                     pkl.dump(save_state,fh)
 
-
-    def get_p(self, beta):
-        for metadata, filename in self._slice_metadatas(Save_State_Type.BS, beta).items():
+    def get_p(self, typee, beta):
+        for metadata, filename in self._slice_metadatas(typee, beta).items():
             if metadata.is_complete:
                 return metadata.p
+        return None
 
-    def get_m(self, beta):
-        for metadata, filename in self._slice_metadatas(Save_State_Type.BS, beta).items():
+    def get_m(self, typee, beta):
+        for metadata, filename in self._slice_metadatas(typee, beta).items():
             if metadata.is_complete:
                 return metadata.m
+        return None
 
-    def get_complete_status(self, beta):
-        for metadata, filename in self._slice_metadatas(Save_State_Type.BS, beta).items():
-            return metadata.is_complete
+    def get_complete_status(self, typee, beta):
+        for metadata, filename in self._slice_metadatas(typee, beta).items():
+            if metadata.is_complete:
+                return True
+        return False
 
     def get_dump_data(self):
+        """This is what should be pickled."""
         return self.save_states_filenames, self.metadatas
-
-    # def append_to_save_state(self, beta, dps, start_iter, num_iters, Bs):
-    #     self.load_metadata()
-    #     filename = self.metadata[beta.min_poly, dps, start_iter, num_iters]
-    #     logging.info("Appending data.")
-    #     logging.info("Loading from %s" % filename)
-    #     start = time.time()
-    #     with open(filename, "rb") as fh:
-    #         save_state = pkl.load(fh)
-    #         save_state.append(Bs)
-    #     logging.info("Loading took %d s" % (time.time()-start))
-    #     logging.info("Writing to %s" % filename)
-    #     start = time.time()
-    #     with open(filename, "wb") as fh:
-    #         pkl.dump(save_state, fh)
-    #     logging.info("Writing took %d s" % (time.time() - start))
-    #     logging.info("Successfully appended iterates %d to %d" % (start_iter,start_iter+num_iters-1))
 
 class _Save_States_Iter:
     def __init__(self, register, typee, beta, lower, upper=None):
@@ -263,6 +280,12 @@ class Save_State:
         self.m = None
 
     def get_slice(self, n_lower, n_upper):
+        """Return a new `Save_State` encoding a contiguous slice of data from this `Save_State`.
+
+        :param n_lower: (positive int) The first index of the new `Save_State`.
+        :param n_upper: (positive int) One more than the last index to return.
+        :return: A new `Save_State` encoding `n_upper - n_lower` entries.
+        """
         if not (self.start_n <= n_lower < n_upper <= self.start_n + self.length):
             raise IndexError("Acceptable range is between %d and %d. Given numbers are %d and %d" % (
                 self.start_n, self.start_n + self.length, n_lower, n_upper)
@@ -276,17 +299,18 @@ class Save_State:
     def get_beta(self):
         return Salem_Number(poly1d(self.min_poly), self.dps, self.beta0)
 
+    def eq_except_complete(self, other):
+        return (
+            self.type == other.type and
+            self.get_beta() == other.get_beta() and
+            self.start_n == other.start_n and
+            len(self) == len(other)
+        )
+
     def remove_redundancies(self):
         if self.is_complete:
-            self.data = self.data[:self.p + self.m - self.start_n + 1]
+            self.data = self.data[:calc_beginning_index_of_redundant_data(self.start_n,self.p,self.m)]
             self.length = len(self.data)
-
-    # def append(self, data):
-    #     """Append a `list` of data to this `Save_State`.
-    #
-    #     :param data: Be sure that `self.type` is what you expect before passing data.
-    #     """
-    #     self.data.extend(data)
 
     def get_metadata(self):
         metadata = copy.copy(self)

@@ -16,8 +16,11 @@
 from src.beta_orbit import calc_period_ram_only
 from src.boyd_data import boyd
 from src.salem_numbers import Salem_Number
+from src.utility import check_mkdir
 
 filename = "../output/periods.txt"
+
+check_mkdir(filename)
 
 with open(filename, "w") as fh:
     dps = 256

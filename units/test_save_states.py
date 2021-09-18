@@ -23,107 +23,333 @@ from numpy import poly1d
 
 from src.beta_orbit import calc_period_ram_only
 from src.boyd_data import filter_by_size, boyd
+from src.periodic_list import calc_beginning_index_of_redundant_data, has_redundancies
 from src.salem_numbers import Salem_Number
-from src.save_states import Save_State, Save_State_Type
+from src.save_states import Save_State, Save_State_Type, Pickle_Register
 from src.utility import eval_code_in_file
 
+def _set_up_save_states(obj):
+    medium_m_smaller_p_boyd = filter_by_size(
+        filter_by_size(boyd, "m_label", "smaller"),
+        "p_label",
+        "smaller"
+    )[0]
+
+    obj.dps = 32
+    obj.beta = Salem_Number(
+        medium_m_smaller_p_boyd["poly"], 32
+    )
+    _, obj.Bs, obj.cs = calc_period_ram_only(obj.beta, 3000, 2, 32)
+
+    obj.p, obj.m = obj.Bs.p, obj.Bs.m
+
+    obj.lengths = [1, 2, 3, 5, 7, 11, 10, 100, 1000]
+    obj.save_statess_Bs_incomplete = {
+        length: [
+            Save_State(
+                Save_State_Type.BS,
+                obj.beta,
+                obj.Bs[i * length: (i + 1) * length],
+                i * length + 1
+            )
+            for i in range(int(ceil((obj.p + obj.m) / length)))
+        ]
+        for length in obj.lengths
+    }
+    obj.save_statess_cs_incomplete = {
+        length: [
+            Save_State(
+                Save_State_Type.CS,
+                obj.beta,
+                obj.cs[i * length: (i + 1) * length],
+                i * length + 1
+            )
+            for i in range(int(ceil((obj.p + obj.m) / length)))
+        ]
+        for length in obj.lengths
+    }
+
+    obj.save_statess_cs_complete = copy.deepcopy(obj.save_statess_cs_incomplete)
+    obj.save_statess_Bs_complete = copy.deepcopy(obj.save_statess_Bs_incomplete)
+    for length in obj.lengths:
+        for save_state in chain(obj.save_statess_cs_complete[length], obj.save_statess_Bs_complete[length]):
+            save_state.mark_complete(obj.p, obj.m)
+
+def _iter_over_completes(obj):
+    for length in obj.lengths:
+        for save_state in chain(obj.save_statess_cs_complete[length], obj.save_statess_Bs_complete[length]):
+            yield save_state
+
+def _iter_over_incompletes(obj):
+    for length in obj.lengths:
+        for save_state in chain(obj.save_statess_cs_incomplete[length], obj.save_statess_Bs_incomplete[length]):
+            yield save_state
+
+def _iter_over_all(obj):
+    return chain(_iter_over_incompletes(obj), _iter_over_completes(obj))
+
+def _populate_register(saves_directory, save_states):
+    register = Pickle_Register(saves_directory)
+    for save_state in save_states:
+        register.add_save_state(save_state)
+    return register
 
 class Test_Pickle_Register(TestCase):
 
     def setUp(self):
-        if not os.path.isdir("tmp"):
-            os.mkdir("tmp")
 
+        self.tmp_dir = os.path.join(os.path.expanduser("~"), "test_save_states_tmp")
+
+        if os.path.isdir(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
+        os.mkdir(self.tmp_dir)
+
+        _set_up_save_states(self)
+
+        saves_directory_base = os.path.join(self.tmp_dir, "saves")
+
+        self.empty_register_dir = saves_directory_base + "-empty"
+
+        self.register_complete = _populate_register(saves_directory_base + "-complete", _iter_over_completes(self))
+        self.register_incomplete = _populate_register(saves_directory_base + "-incomplete", _iter_over_incompletes(self))
+
+        self.registers_incomplete_by_length = {}
+        for length in self.lengths:
+            self.registers_incomplete_by_length[length] = _populate_register(
+                saves_directory_base + "-incomplete-length-%d" % length,
+                chain(
+                    self.save_statess_Bs_incomplete[length],
+                    self.save_statess_cs_incomplete[length],
+                )
+            )
+
+        self.registers_complete_by_length = {}
+        for length in self.lengths:
+            self.registers_complete_by_length[length] = _populate_register(
+                saves_directory_base + "-complete-length-%d" % length,
+                chain(
+                    self.save_statess_Bs_complete[length],
+                    self.save_statess_cs_complete[length],
+                )
+            )
+
+
+        self.total_Bs_save_states = (
+            sum(len(self.save_statess_Bs_complete[length]) for length in self.lengths)
+        )
+
+        self.total_cs_save_states = (
+            sum(len(self.save_statess_cs_complete[length]) for length in self.lengths)
+        )
 
     def tearDown(self):
-        if os.path.isdir("tmp"):
-            shutil.rmtree("tmp")
+        if os.path.isdir(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
+
+    def _get_empty_register(self):
+        if os.path.isdir(self.empty_register_dir):
+            shutil.rmtree(self.empty_register_dir)
+        return Pickle_Register(self.empty_register_dir)
+
+    def test___init__(self):
+        saves_directory = os.path.join(self.tmp_dir, "saves-test-init")
+        Pickle_Register(saves_directory + "-0")
+        self.assertTrue(os.path.isdir(saves_directory + "-0"))
+        os.rmdir(saves_directory + "-0")
+
+
+        register1 = _populate_register(saves_directory + "-1", _iter_over_incompletes(self))
+        dump_data = register1.get_dump_data()
+        register2 = Pickle_Register(saves_directory + "-2", dump_data)
+        self.assertEqual(set(register1.metadatas), set(register2.metadatas))
+
+        register1 = _populate_register(saves_directory + "-3", _iter_over_completes(self))
+        dump_data = register1.get_dump_data()
+        register2 = Pickle_Register(saves_directory + "-4", dump_data)
+        self.assertEqual(set(register1.metadatas), set(register2.metadatas))
+
+    def test_add_save_state(self):
+        register = self._get_empty_register()
+        for save_state in _iter_over_completes(self):
+            register.add_save_state(save_state)
+            self.assertEqual(list(register.metadatas.keys()).count(save_state), 1)
+
+        register = self._get_empty_register()
+        for save_state in _iter_over_incompletes(self):
+            register.add_save_state(save_state)
+            self.assertEqual(list(register.metadatas.keys()).count(save_state), 1)
+
+    def test_clear(self):
+        self.register_incomplete.clear(Save_State_Type.CS, self.beta)
+        self.assertEqual(
+            self.total_Bs_save_states,
+            len(self.register_incomplete.metadatas)
+        )
+        self.register_incomplete.clear(Save_State_Type.BS, self.beta)
+        self.assertEqual(
+            0,
+            len(self.register_incomplete.metadatas)
+        )
+        self.assertEqual(
+            0,
+            len(os.listdir(self.register_incomplete.saves_directory))
+        )
+
+        self.register_complete.clear(Save_State_Type.CS, self.beta)
+        self.assertEqual(
+            self.total_Bs_save_states,
+            len(self.register_complete.metadatas)
+        )
+        self.register_complete.clear(Save_State_Type.BS, self.beta)
+        self.assertEqual(
+            0,
+            len(self.register_complete.metadatas)
+        )
+        self.assertEqual(
+            0,
+            len(os.listdir(self.register_complete.saves_directory))
+        )
+
+    def test_cleanup_redundancies(self):
+
+        for register in self.registers_incomplete_by_length.values():
+
+            incomplete_metadatas = copy.deepcopy(register.metadatas)
+
+            register.cleanup_redundancies(Save_State_Type.CS, self.beta)
+            register.cleanup_redundancies(Save_State_Type.BS, self.beta)
+
+            self.assertEqual(
+                set(incomplete_metadatas),
+                set(register.metadatas)
+            )
+
+        for register in self.registers_complete_by_length.values():
+
+            register.cleanup_redundancies(Save_State_Type.CS, self.beta)
+            register.cleanup_redundancies(Save_State_Type.BS, self.beta)
+
+            self.assertFalse(
+                any(has_redundancies(metadata.start_n, len(metadata), metadata.p, metadata.m) for metadata in register.metadatas)
+            )
+
+    def test_get_n(self):
+        for register in chain(self.registers_complete_by_length.values(),self.registers_incomplete_by_length.values()):
+            for n in range(1, self.p + self.m + 1):
+                self.assertEqual(
+                    self.Bs[n-1],
+                    register.get_n(Save_State_Type.BS, self.beta, n)
+                )
+                self.assertEqual(
+                    self.cs[n-1],
+                    register.get_n(Save_State_Type.CS, self.beta, n)
+                )
+            with self.assertRaises(ValueError):
+                register.get_n(Save_State_Type.BS, self.beta, 0)
+            with self.assertRaises(FileNotFoundError):
+                register.get_n(Save_State_Type.CS, self.beta, 10**15)
+
+    def test_get_save_state(self):
+        for register in chain(self.registers_complete_by_length.values(),self.registers_incomplete_by_length.values()):
+            for n in range(1,self.p + self.m + 1):
+                self.assertIn(
+                    n,
+                    register.get_save_state(Save_State_Type.BS,self.beta,n)
+                )
+                self.assertIn(
+                    n,
+                    register.get_save_state(Save_State_Type.CS,self.beta,n)
+                )
+
+    def test_get_all(self):
+        for register in chain(self.registers_complete_by_length.values(), self.registers_incomplete_by_length.values()):
+            for n_1, datum in enumerate(register.get_all(Save_State_Type.BS, self.beta)):
+                self.assertEqual(
+                    self.Bs[n_1],
+                    datum
+                )
+            for n_1, datum in enumerate(register.get_all(Save_State_Type.CS, self.beta)):
+                self.assertEqual(
+                    self.cs[n_1],
+                    datum
+                )
+
+    def test_mark_complete(self):
+
+        incomplete_metadatas = copy.deepcopy(self.register_incomplete.metadatas)
+        self.register_incomplete.mark_complete(Save_State_Type.CS, self.beta, self.p, self.m)
+        self.register_incomplete.mark_complete(Save_State_Type.BS, self.beta, self.p, self.m)
+        for metadata1 in self.register_incomplete.metadatas:
+            self.assertTrue(metadata1.is_complete)
+            for metadata2 in incomplete_metadatas:
+                if metadata1.eq_except_complete(metadata2):
+                    break
+            else:
+                self.fail("something went wrong 1")
+        for metadata2 in incomplete_metadatas:
+            for metadata1 in self.register_incomplete.metadatas:
+                if metadata1.eq_except_complete(metadata2):
+                    break
+            else:
+                self.fail("something went wrong 2")
+
+    def test_get_p(self):
+        self.assertEqual(
+            self.register_complete.get_p(Save_State_Type.CS, self.beta),
+            self.p
+        )
+        self.assertEqual(
+            self.register_complete.get_p(Save_State_Type.BS, self.beta),
+            self.p
+        )
+
+    def test_get_m(self):
+        self.assertEqual(
+            self.register_complete.get_m(Save_State_Type.CS, self.beta),
+            self.m
+        )
+        self.assertEqual(
+            self.register_complete.get_m(Save_State_Type.BS, self.beta),
+            self.m
+        )
+
+    def test_get_complete_status(self):
+        self.assertTrue(
+            self.register_complete.get_complete_status(Save_State_Type.BS, self.beta)
+        )
+        self.assertTrue(
+            self.register_complete.get_complete_status(Save_State_Type.CS, self.beta)
+        )
+
+    def test_get_dump_data(self):pass
 
 class Test_Save_State(TestCase):
 
     def setUp(self):
-
-        medium_m_smaller_p_boyd = filter_by_size(
-            filter_by_size(boyd, "m_label", "smaller"),
-            "p_label",
-            "smaller"
-        )[0]
-
-        self.dps = 32
-        self.medium_m_smaller_p_beta = Salem_Number(
-            medium_m_smaller_p_boyd["poly"], 32
-        )
-        _, Bs, cs = calc_period_ram_only(self.medium_m_smaller_p_beta,3000,2,32)
-
-        self.p, self.m = Bs.p, Bs.m
-
-        self.lengths = [1, 2, 3, 5, 7, 11, 10, 100, 1000]
-        self.save_statess_Bs = {
-            length: [
-                Save_State(
-                    Save_State_Type.BS,
-                    self.medium_m_smaller_p_beta,
-                    Bs[i*length : (i+1)*length],
-                    i*length + 1
-                )
-                for i in range(int(ceil((self.p + self.m)/length)))
-            ]
-            for length in self.lengths
-        }
-        self.save_statess_cs = {
-            length: [
-                Save_State(
-                    Save_State_Type.CS,
-                    self.medium_m_smaller_p_beta,
-                    cs[i * length: (i + 1) * length],
-                    i * length + 1
-                )
-                for i in range(int(ceil((self.p + self.m) / length)))
-            ]
-            for length in self.lengths
-        }
-
-        self.save_statess_cs_complete = copy.deepcopy(self.save_statess_cs)
-        self.save_statess_Bs_complete = copy.deepcopy(self.save_statess_Bs)
-        for length in self.lengths:
-            for save_state in chain(self.save_statess_cs_complete[length], self.save_statess_Bs_complete[length]):
-                save_state.mark_complete(self.p,self.m)
-
-    def _iter_over_completes(self):
-        for length in self.lengths:
-            for save_state in chain(self.save_statess_cs_complete[length], self.save_statess_Bs_complete[length]):
-                yield save_state
-
-    def _iter_over_incompletes(self):
-        for length in self.lengths:
-            for save_state in chain(self.save_statess_cs[length], self.save_statess_Bs[length]):
-                yield save_state
-
-    def _iter_over_all(self):
-        return chain(self._iter_over_incompletes(), self._iter_over_completes())
+        _set_up_save_states(self)
 
     def test___init__(self):
         with self.assertRaises(ValueError):
-            Save_State(Save_State_Type.CS, self.medium_m_smaller_p_beta, [], 1)
+            Save_State(Save_State_Type.CS, self.beta, [], 1)
         with self.assertRaises(ValueError):
-            Save_State(Save_State_Type.CS, self.medium_m_smaller_p_beta, ["hi"], 0)
+            Save_State(Save_State_Type.CS, self.beta, ["hi"], 0)
 
     def test_get_beta(self):
-        for save_state in self._iter_over_all():
-            self.assertEqual(self.medium_m_smaller_p_beta, save_state.get_beta())
+        for save_state in _iter_over_all(self):
+            self.assertEqual(self.beta, save_state.get_beta())
 
     def test_mark_complete(self):
-        for save_state in self._iter_over_completes():
+        for save_state in _iter_over_completes(self):
             self.assertTrue(save_state.is_complete)
             self.assertEqual(self.p, save_state.p)
             self.assertEqual(self.m, save_state.m)
-        for save_state in self._iter_over_incompletes():
+        for save_state in _iter_over_incompletes(self):
             self.assertFalse(save_state.is_complete)
             self.assertIsNone(save_state.p)
             self.assertIsNone(save_state.m)
 
     def test_get_metadata(self):
-        for save_state in self._iter_over_all():
+        for save_state in _iter_over_all(self):
             metadata = save_state.get_metadata()
             self.assertTrue(
                 metadata.type == save_state.type and
@@ -138,12 +364,12 @@ class Test_Save_State(TestCase):
             )
 
     def test_length(self):
-        for save_state in self._iter_over_all():
+        for save_state in _iter_over_all(self):
             self.assertEqual(len(save_state.data), len(save_state))
             self.assertEqual(len(save_state), len(save_state.get_metadata()))
 
     def test___eq__(self):
-        for save_state in self._iter_over_all():
+        for save_state in _iter_over_all(self):
 
             save_state1 = copy.copy(save_state)
             save_state2 = copy.copy(save_state)
@@ -207,7 +433,7 @@ class Test_Save_State(TestCase):
             self.assertNotEqual(save_state1, save_state2, "m should be different")
 
     def test___hash__(self):
-        for save_state in self._iter_over_all():
+        for save_state in _iter_over_all(self):
 
             save_state1 = copy.copy(save_state)
             save_state2 = copy.copy(save_state)
@@ -265,7 +491,7 @@ class Test_Save_State(TestCase):
             self.assertNotEqual(hash(save_state1), hash(save_state2), "m should be different")
 
     def test___contains__(self):
-        for save_state in self._iter_over_all():
+        for save_state in _iter_over_all(self):
             self.assertNotIn(-1, save_state)
             self.assertNotIn(0, save_state)
             self.assertNotIn(save_state.start_n-1, save_state)
@@ -274,7 +500,7 @@ class Test_Save_State(TestCase):
             self.assertNotIn(save_state.start_n + len(save_state), save_state)
 
     def test___getitem__(self):
-        for save_state in self._iter_over_all():
+        for save_state in _iter_over_all(self):
             with self.assertRaises(IndexError):
                 save_state[-1]
             with self.assertRaises(IndexError):
@@ -287,7 +513,7 @@ class Test_Save_State(TestCase):
                 self.assertEqual(save_state[save_state.start_n+i], save_state.data[i])
 
     def test_get_slice(self):
-        for save_state in self._iter_over_all():
+        for save_state in _iter_over_all(self):
             with self.assertRaises(IndexError):
                 save_state.get_slice(-1, save_state.start_n+1)
             with self.assertRaises(IndexError):
@@ -295,7 +521,7 @@ class Test_Save_State(TestCase):
             with self.assertRaises(IndexError):
                 save_state.get_slice(save_state.start_n, save_state.start_n + len(save_state)+1)
             if len(save_state) > 1:
-                _save_state = Save_State(save_state.type,self.medium_m_smaller_p_beta, save_state.data[1:], save_state.start_n+1)
+                _save_state = Save_State(save_state.type,self.beta, save_state.data[1:], save_state.start_n+1)
                 if save_state.is_complete:
                     _save_state.mark_complete(save_state.p,save_state.m)
                 self.assertEqual(
@@ -303,7 +529,7 @@ class Test_Save_State(TestCase):
                     _save_state,
                     "slice off beginning error"
                 )
-                _save_state = Save_State(save_state.type,self.medium_m_smaller_p_beta, save_state.data[:-1], save_state.start_n)
+                _save_state = Save_State(save_state.type,self.beta, save_state.data[:-1], save_state.start_n)
                 if save_state.is_complete:
                     _save_state.mark_complete(save_state.p,save_state.m)
                 self.assertEqual(
@@ -312,7 +538,7 @@ class Test_Save_State(TestCase):
                     "slice off end error"
                 )
                 if len(save_state) > 2:
-                    _save_state = Save_State(save_state.type,self.medium_m_smaller_p_beta, save_state.data[1:-1], save_state.start_n+1)
+                    _save_state = Save_State(save_state.type,self.beta, save_state.data[1:-1], save_state.start_n+1)
                     if save_state.is_complete:
                         _save_state.mark_complete(save_state.p, save_state.m)
                     self.assertEqual(
@@ -325,17 +551,17 @@ class Test_Save_State(TestCase):
         #         self.assertFalse(save_state.get_slice(save_state.start_n+1, save_state.start_n + len(save_state)).is_complete)
 
     def test_remove_redundancies(self):
-        for save_state in self._iter_over_incompletes():
+        for save_state in _iter_over_incompletes(self):
             data = copy.deepcopy(save_state.data)
             save_state.remove_redundancies()
             self.assertEqual(data, save_state.data, "inequal incomplete data")
-        for save_state in self._iter_over_completes():
+        for save_state in _iter_over_completes(self):
             data = copy.deepcopy(save_state.data)
             _save_state = copy.copy(save_state)
             _save_state.remove_redundancies()
 
             self.assertEqual(
-                data[:save_state.p + save_state.m - save_state.start_n + 1],
+                data[:calc_beginning_index_of_redundant_data(save_state.start_n, save_state.p, save_state.m)],
                 _save_state.data,
                 "inequal chopped data"
                 )

@@ -20,6 +20,7 @@ import pickle as pkl
 from src.beta_orbit import calc_period_ram_and_disk
 from src.salem_numbers import salem_iter
 from src.save_states import Pickle_Register
+from src.utility import check_mkdir
 
 if __name__ == "__main__":
 
@@ -56,9 +57,7 @@ if __name__ == "__main__":
         calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register)
 
         if save_register:
-            register_dirname = os.path.dirname(register_filename)
-            if not os.path.isdir(register_dirname):
-                os.mkdir(register_dirname)
+            check_mkdir(register_filename)
             with open(register_filename, "wb") as fh:
                 pkl.dump(register.get_dump_data(), fh)
 
