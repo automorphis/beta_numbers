@@ -17,13 +17,14 @@ import shutil
 from pathlib import Path
 from unittest import TestCase
 
+import psutil
 from numpy import poly1d
 
 from src.beta_orbit import calc_next_iterate, calc_period_ram_only, calc_period_ram_and_disk
 from src.periodic_list import Periodic_List
 from src.salem_numbers import Salem_Number
 from src.save_states import Pickle_Register, Save_State_Type
-from src.utility import eval_code_in_file
+from src.utility import eval_code_in_file, BYTES_PER_MB, BYTES_PER_KB, BYTES_PER_GB
 
 
 class Test_Beta_Orbit_Iter(TestCase):
@@ -33,8 +34,11 @@ class Test_Beta_Orbit(TestCase):
 
     def setUp(self):
         self.several_smaller_orbits = eval_code_in_file("several_smaller_orbits.txt", 256)
-
+        self.tmp_dir = Path.home() / "tmp_saves"
         self.beta_nearly_hits_integer = Salem_Number(poly1d((1,-10,-40,-59,-40,-10,1)), 32)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
 
     def test_calc_next_iterate(self):
         dps = 32
@@ -68,10 +72,10 @@ class Test_Beta_Orbit(TestCase):
         check_memory_period = 10000
         needed_bytes = 1
 
-        tmp_dir = Path.home() / "tmp_saves"
+        # ram version only
         for length in save_periods:
             register = Pickle_Register(
-                tmp_dir / ("length-%d" % length)
+                self.tmp_dir / ("length-%d" % length)
             )
             for min_poly, _, actual_Bs, actual_cs, p, m in self.several_smaller_orbits[:10]:
                 beta = Salem_Number(min_poly, starting_dps)
@@ -110,7 +114,55 @@ class Test_Beta_Orbit(TestCase):
                     actual_cs
                 )
 
+        shutil.rmtree(self.tmp_dir)
 
-        shutil.rmtree(tmp_dir)
+        # disk version only
+        check_memory_periods = [5, 10, 25, 100]
+        needed_bytes = psutil.virtual_memory().available + BYTES_PER_GB
+
+        for check_memory_period in check_memory_periods:
+            for length in save_periods:
+                register = Pickle_Register(
+                    self.tmp_dir / ("length-%d" % length)
+                )
+                for min_poly, _, actual_Bs, actual_cs, p, m in self.several_smaller_orbits[:10]:
+                    beta = Salem_Number(min_poly, starting_dps)
+                    actual_Bs = Periodic_List(actual_Bs, p, m)
+                    actual_cs = Periodic_List(actual_cs, p, m)
+                    calc_period_ram_and_disk(
+                        beta,
+                        max_n,
+                        max_restarts,
+                        starting_dps,
+                        length,
+                        check_memory_period,
+                        needed_bytes,
+                        register
+                    )
+
+                    calc_Bs = Periodic_List(
+                        list(register.get_all(Save_State_Type.BS, beta)),
+                        register.get_p(Save_State_Type.BS, beta),
+                        register.get_m(Save_State_Type.BS, beta)
+                    )
+
+                    calc_cs = Periodic_List(
+                        list(register.get_all(Save_State_Type.CS, beta)),
+                        register.get_p(Save_State_Type.CS, beta),
+                        register.get_m(Save_State_Type.CS, beta)
+                    )
+
+                    self.assertEqual(
+                        calc_Bs,
+                        actual_Bs
+                    )
+
+                    self.assertEqual(
+                        calc_cs,
+                        actual_cs
+                    )
+                shutil.rmtree(self.tmp_dir)
+
+
 
 

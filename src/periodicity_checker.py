@@ -46,14 +46,14 @@ def check_periodicity_ram_only(Bs):
         else:
             return False,None,None
 
-def check_periodicity_ram_and_disk(beta, register, n, Bk, B2k):
+def check_periodicity_ram_and_disk(beta, n, Bk, B2k, register):
     """Check if a given `Bs` orbit cycles, using both RAM and disk.
 
     :param beta: The beta.
-    :param register: Register used for reading information from the disk.
     :param n: The current index (1-indexed) of the orbit we're checking.
     :param Bk: The iterate halfway through the orbit.
     :param B2k: The most recent even (1-indexed) iterate.
+    :param register: Register used for reading information from the disk.
     :return: (boolean) If a cycle has been found.
     :return: (positive int) The length of the periodic portion.
     :return: (positive int) The length of the non-periodic portion of the orbit. This will always be at least one; hence

@@ -26,7 +26,8 @@ from src.periodic_list import Periodic_List
 from src.salem_numbers import Salem_Number
 from src.utility import X, BYTES_PER_KB, BYTES_PER_MB
 from src.periodicity_checker import check_periodicity_ram_only, check_periodicity_ram_and_disk
-from src.save_states import Save_State_Type, Save_State
+from src.save_states import Save_State_Type, Save_State, Ram_Data
+
 
 def calc_next_iterate(beta, B, c):
     """Return B*X - c mod beta.min_poly"""
@@ -161,6 +162,9 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
     :return: None; everything is saved to disk and access information is encoded in `register`.
     """
 
+    if check_memory_period < save_period:
+        raise RuntimeError("`check_memory_period` must be at least `save_period`")
+
     mp.dps = starting_dps
 
     logging.info("Finding period for Salem number: %s" % beta)
@@ -179,6 +183,10 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
             last_save_n = 0
             cs = []
             Bs = []
+            cs_ram_data = Ram_Data(Save_State_Type.CS, beta, cs, 1)
+            Bs_ram_data = Ram_Data(Save_State_Type.BS, beta, Bs, 1)
+            register.add_ram_data( cs_ram_data )
+            register.add_ram_data( Bs_ram_data )
             last_save_time = time.time()
 
             for n, c, _, B in Beta_Orbit_Iter(beta, max_n):
@@ -244,16 +252,18 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
 
                         new_Bs = copy.deepcopy(Bs[last_save_n:])
                         new_cs = copy.deepcopy(cs[last_save_n:])
-                        Bs.clear()
-                        cs.clear()
-                        Bs = new_Bs
-                        cs = new_cs
+                        cs_ram_data.clear()
+                        Bs_ram_data.clear()
+                        cs_ram_data.set_data(new_cs)
+                        cs_ram_data.set_data(new_Bs)
+                        cs_ram_data.set_start_n(last_save_n + 1)
+                        cs_ram_data.set_start_n(last_save_n + 1)
 
                     elif n % 2 == 0:
                         # advance halfway point B
                         Bk = Bk_iter.__next__()[3]
 
-                    is_periodic, p, m = check_periodicity_ram_and_disk(beta, register, n, Bk, B)
+                    is_periodic, p, m = check_periodicity_ram_and_disk(beta, n, Bk, B, register)
                     if is_periodic:
                         if last_save_n > p + m:
                             last_save_time = _dump_data_log(last_save_n, p + m - 1, last_save_time)
@@ -265,8 +275,11 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
                         # dump data to disk
                         last_save_time = _dump_data_log(last_save_n, n, last_save_time)
                         last_save_n = _dump_data(beta, Bs, cs, last_save_n, register)
-                        Bs.clear()
-                        cs.clear()
+                        cs_ram_data.clear()
+                        Bs_ram_data.clear()
+                        cs_ram_data.set_start_n(n+1)
+                        Bs_ram_data.set_start_n(n+1)
+
 
             else:
                 # When `n` is in excess of `max_n`

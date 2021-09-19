@@ -17,6 +17,7 @@ import shutil
 from itertools import chain
 from math import ceil
 from pathlib import Path
+import random
 from unittest import TestCase
 
 from numpy import poly1d
@@ -25,7 +26,7 @@ from src.beta_orbit import calc_period_ram_only
 from src.boyd_data import filter_by_size, boyd
 from src.periodic_list import calc_beginning_index_of_redundant_data, has_redundancies
 from src.salem_numbers import Salem_Number
-from src.save_states import Save_State, Save_State_Type, Pickle_Register
+from src.save_states import Save_State, Save_State_Type, Pickle_Register, Ram_Data
 from src.utility import eval_code_in_file
 
 def _set_up_save_states(obj):
@@ -88,10 +89,19 @@ def _iter_over_incompletes(obj):
 def _iter_over_all(obj):
     return chain(_iter_over_incompletes(obj), _iter_over_completes(obj))
 
-def _populate_register(saves_directory, save_states):
+def _populate_disk_register(saves_directory, save_states):
     register = Pickle_Register(saves_directory)
     for save_state in save_states:
         register.add_save_state(save_state)
+    return register
+
+def _populate_ram_and_disk_register(saves_directory, save_states):
+    register = Pickle_Register(saves_directory)
+    for save_state in save_states:
+        if random.randint(0,1) == 0:
+            register.add_save_state(save_state)
+        else:
+            register.add_ram_data( Ram_Data(save_state.type, save_state.get_beta(), save_state.data, save_state.start_n) )
     return register
 
 class Test_Pickle_Register(TestCase):
@@ -100,37 +110,61 @@ class Test_Pickle_Register(TestCase):
 
         self.tmp_dir = Path.home() / "tmp_saves"
 
+        random.seed(133742069)
+
         if Path.is_dir(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
         Path.mkdir(self.tmp_dir, parents = True)
 
         _set_up_save_states(self)
 
-        self.empty_register_dir = Path( "empty" )
+        self.empty_register_dir = self.tmp_dir / "empty"
 
-        self.register_complete = _populate_register( self.tmp_dir / "complete", _iter_over_completes(self))
-        self.register_incomplete = _populate_register( self.tmp_dir / "incomplete", _iter_over_incompletes(self))
+        self.disk_register_complete = _populate_disk_register(self.tmp_dir / "disk-complete", _iter_over_completes(self))
+        self.disk_register_incomplete = _populate_disk_register(self.tmp_dir / "disk-incomplete", _iter_over_incompletes(self))
 
-        self.registers_incomplete_by_length = {}
+        self.disk_registers_incomplete_by_length = {}
         for length in self.lengths:
-            self.registers_incomplete_by_length[length] = _populate_register(
-                self.tmp_dir / ("incomplete-length-%d" % length),
+            self.disk_registers_incomplete_by_length[length] = _populate_disk_register(
+                self.tmp_dir / ("disk-incomplete-length-%d" % length),
                 chain(
                     self.save_statess_Bs_incomplete[length],
                     self.save_statess_cs_incomplete[length],
                 )
             )
 
-        self.registers_complete_by_length = {}
+        self.disk_registers_complete_by_length = {}
         for length in self.lengths:
-            self.registers_complete_by_length[length] = _populate_register(
-                self.tmp_dir / ("complete-length-%d" % length),
+            self.disk_registers_complete_by_length[length] = _populate_disk_register(
+                self.tmp_dir / ("disk-complete-length-%d" % length),
                 chain(
                     self.save_statess_Bs_complete[length],
                     self.save_statess_cs_complete[length],
                 )
             )
 
+        self.ram_and_disk_register_complete = _populate_ram_and_disk_register(self.tmp_dir / "ram_and_disk-complete", _iter_over_completes(self))
+        self.ram_and_disk_register_incomplete = _populate_ram_and_disk_register(self.tmp_dir / "ram_and_disk-incomplete", _iter_over_incompletes(self))
+
+        self.ram_and_disk_registers_incomplete_by_length = {}
+        for length in self.lengths:
+            self.ram_and_disk_registers_incomplete_by_length[length] = _populate_ram_and_disk_register(
+                self.tmp_dir / ("ram_and_disk-incomplete-length-%d" % length),
+                chain(
+                    self.save_statess_Bs_incomplete[length],
+                    self.save_statess_cs_incomplete[length],
+                )
+            )
+
+        self.ram_and_disk_registers_complete_by_length = {}
+        for length in self.lengths:
+            self.ram_and_disk_registers_complete_by_length[length] = _populate_ram_and_disk_register(
+                self.tmp_dir / ("ram_and_disk-complete-length-%d" % length),
+                chain(
+                    self.save_statess_Bs_complete[length],
+                    self.save_statess_cs_complete[length],
+                )
+            )
 
         self.total_Bs_save_states = (
             sum(len(self.save_statess_Bs_complete[length]) for length in self.lengths)
@@ -155,12 +189,12 @@ class Test_Pickle_Register(TestCase):
         Path.rmdir(self.tmp_dir / "saves-test-init-0")
 
 
-        register1 = _populate_register(self.tmp_dir / "saves-test-init-1", _iter_over_incompletes(self))
+        register1 = _populate_disk_register(self.tmp_dir / "saves-test-init-1", _iter_over_incompletes(self))
         dump_data = register1.get_dump_data()
         register2 = Pickle_Register(self.tmp_dir / "saves-test-init-2", dump_data)
         self.assertEqual(set(register1.metadatas), set(register2.metadatas))
 
-        register1 = _populate_register(self.tmp_dir / "saves-test-init-3", _iter_over_completes(self))
+        register1 = _populate_disk_register(self.tmp_dir / "saves-test-init-3", _iter_over_completes(self))
         dump_data = register1.get_dump_data()
         register2 = Pickle_Register(self.tmp_dir / "saves-test-init-4", dump_data)
         self.assertEqual(set(register1.metadatas), set(register2.metadatas))
@@ -177,39 +211,73 @@ class Test_Pickle_Register(TestCase):
             self.assertEqual(list(register.metadatas.keys()).count(save_state), 1)
 
     def test_clear(self):
-        self.register_incomplete.clear(Save_State_Type.CS, self.beta)
+
+        #disk only
+        self.disk_register_incomplete.clear(Save_State_Type.CS, self.beta)
         self.assertEqual(
             self.total_Bs_save_states,
-            len(self.register_incomplete.metadatas)
+            len(self.disk_register_incomplete.metadatas)
         )
-        self.register_incomplete.clear(Save_State_Type.BS, self.beta)
+        self.disk_register_incomplete.clear(Save_State_Type.BS, self.beta)
         self.assertEqual(
             0,
-            len(self.register_incomplete.metadatas)
+            len(self.disk_register_incomplete.metadatas)
         )
         self.assertEqual(
             0,
-            len( list( Path.iterdir( self.register_incomplete.saves_directory ) ) )
+            len(list(Path.iterdir(self.disk_register_incomplete.saves_directory)))
         )
 
-        self.register_complete.clear(Save_State_Type.CS, self.beta)
+        self.disk_register_complete.clear(Save_State_Type.CS, self.beta)
         self.assertEqual(
             self.total_Bs_save_states,
-            len(self.register_complete.metadatas)
+            len(self.disk_register_complete.metadatas)
         )
-        self.register_complete.clear(Save_State_Type.BS, self.beta)
+        self.disk_register_complete.clear(Save_State_Type.BS, self.beta)
         self.assertEqual(
             0,
-            len(self.register_complete.metadatas)
+            len(self.disk_register_complete.metadatas)
         )
         self.assertEqual(
             0,
-            len( list( Path.iterdir( self.register_incomplete.saves_directory ) ) )
+            len(list(Path.iterdir(self.disk_register_incomplete.saves_directory)))
+        )
+
+        # ram and disk
+        self.ram_and_disk_register_incomplete.clear(Save_State_Type.CS, self.beta)
+        self.assertEqual(
+            self.total_Bs_save_states,
+            len(self.ram_and_disk_register_incomplete.metadatas) + len(self.ram_and_disk_register_incomplete.ram_datas)
+        )
+        self.ram_and_disk_register_incomplete.clear(Save_State_Type.BS, self.beta)
+        self.assertEqual(
+            0,
+            len(self.ram_and_disk_register_incomplete.metadatas)
+        )
+        self.assertEqual(
+            0,
+            len(list(Path.iterdir(self.ram_and_disk_register_incomplete.saves_directory)))
+        )
+
+        self.ram_and_disk_register_complete.clear(Save_State_Type.CS, self.beta)
+        self.assertEqual(
+            self.total_Bs_save_states,
+            len(self.ram_and_disk_register_complete.metadatas) + len(self.ram_and_disk_register_complete.ram_datas)
+        )
+        self.ram_and_disk_register_complete.clear(Save_State_Type.BS, self.beta)
+        self.assertEqual(
+            0,
+            len(self.ram_and_disk_register_complete.metadatas)
+        )
+        self.assertEqual(
+            0,
+            len(list(Path.iterdir(self.ram_and_disk_register_incomplete.saves_directory)))
         )
 
     def test_cleanup_redundancies(self):
 
-        for register in self.registers_incomplete_by_length.values():
+        # disk only
+        for register in self.disk_registers_incomplete_by_length.values():
 
             incomplete_metadatas = copy.deepcopy(register.metadatas)
 
@@ -221,17 +289,47 @@ class Test_Pickle_Register(TestCase):
                 set(register.metadatas)
             )
 
-        for register in self.registers_complete_by_length.values():
+        for register in self.disk_registers_complete_by_length.values():
 
             register.cleanup_redundancies(Save_State_Type.CS, self.beta)
             register.cleanup_redundancies(Save_State_Type.BS, self.beta)
 
             self.assertFalse(
-                any(has_redundancies(metadata.start_n, len(metadata), metadata.p, metadata.m) for metadata in register.metadatas)
+                any(has_redundancies(metadata.start_n, len(metadata), metadata.p, metadata.m) for metadata in register.metadatas.keys())
+            )
+
+        # ram and disk.
+        for register in self.disk_registers_incomplete_by_length.values():
+
+            incomplete_metadatas = copy.deepcopy(register.metadatas)
+
+            register.cleanup_redundancies(Save_State_Type.CS, self.beta)
+            register.cleanup_redundancies(Save_State_Type.BS, self.beta)
+
+            self.assertEqual(
+                set(incomplete_metadatas),
+                set(register.metadatas)
+            )
+
+        for register in self.ram_and_disk_registers_complete_by_length.values():
+
+            register.cleanup_redundancies(Save_State_Type.CS, self.beta)
+            register.cleanup_redundancies(Save_State_Type.BS, self.beta)
+
+            self.assertFalse(
+                any(has_redundancies(metadata.start_n, len(metadata), metadata.p, metadata.m) for metadata in register.metadatas.keys())
+            )
+            self.assertFalse(
+                any(has_redundancies(ram_data.start_n, len(ram_data), ram_data.p, ram_data.m) for ram_data in register.ram_datas)
             )
 
     def test_get_n(self):
-        for register in chain(self.registers_complete_by_length.values(),self.registers_incomplete_by_length.values()):
+        for register in chain(
+            self.disk_registers_complete_by_length.values(),
+            self.disk_registers_incomplete_by_length.values(),
+            self.ram_and_disk_registers_complete_by_length.values(),
+            self.ram_and_disk_registers_incomplete_by_length.values()
+        ):
             for n in range(1, self.p + self.m + 1):
                 self.assertEqual(
                     self.Bs[n-1],
@@ -247,7 +345,12 @@ class Test_Pickle_Register(TestCase):
                 register.get_n(Save_State_Type.CS, self.beta, 10**15)
 
     def test_get_save_state(self):
-        for register in chain(self.registers_complete_by_length.values(),self.registers_incomplete_by_length.values()):
+        for register in chain(
+            self.disk_registers_complete_by_length.values(),
+            self.disk_registers_incomplete_by_length.values(),
+            self.ram_and_disk_registers_complete_by_length.values(),
+            self.ram_and_disk_registers_incomplete_by_length.values()
+        ):
             for n in range(1,self.p + self.m + 1):
                 self.assertIn(
                     n,
@@ -259,7 +362,12 @@ class Test_Pickle_Register(TestCase):
                 )
 
     def test_get_all(self):
-        for register in chain(self.registers_complete_by_length.values(), self.registers_incomplete_by_length.values()):
+        for register in chain(
+            self.disk_registers_complete_by_length.values(),
+            self.disk_registers_incomplete_by_length.values(),
+            self.ram_and_disk_registers_complete_by_length.values(),
+            self.ram_and_disk_registers_incomplete_by_length.values()
+        ):
             for n_1, datum in enumerate(register.get_all(Save_State_Type.BS, self.beta)):
                 self.assertEqual(
                     self.Bs[n_1],
@@ -273,10 +381,11 @@ class Test_Pickle_Register(TestCase):
 
     def test_mark_complete(self):
 
-        incomplete_metadatas = copy.deepcopy(self.register_incomplete.metadatas)
-        self.register_incomplete.mark_complete(Save_State_Type.CS, self.beta, self.p, self.m)
-        self.register_incomplete.mark_complete(Save_State_Type.BS, self.beta, self.p, self.m)
-        for metadata1 in self.register_incomplete.metadatas:
+        # disk registers
+        incomplete_metadatas = copy.deepcopy(self.disk_register_incomplete.metadatas)
+        self.disk_register_incomplete.mark_complete(Save_State_Type.CS, self.beta, self.p, self.m)
+        self.disk_register_incomplete.mark_complete(Save_State_Type.BS, self.beta, self.p, self.m)
+        for metadata1 in self.disk_register_incomplete.metadatas:
             self.assertTrue(metadata1.is_complete)
             for metadata2 in incomplete_metadatas:
                 if metadata1.eq_except_complete(metadata2):
@@ -284,7 +393,33 @@ class Test_Pickle_Register(TestCase):
             else:
                 self.fail("something went wrong 1")
         for metadata2 in incomplete_metadatas:
-            for metadata1 in self.register_incomplete.metadatas:
+            for metadata1 in self.disk_register_incomplete.metadatas:
+                if metadata1.eq_except_complete(metadata2):
+                    break
+            else:
+                self.fail("something went wrong 2")
+
+
+        # ram and disk registers
+        incomplete_metadatas = copy.deepcopy(self.ram_and_disk_register_incomplete.metadatas)
+        incomplete_ram_datas = copy.deepcopy(self.ram_and_disk_register_incomplete.ram_datas)
+        self.ram_and_disk_register_incomplete.mark_complete(Save_State_Type.CS, self.beta, self.p, self.m)
+        self.ram_and_disk_register_incomplete.mark_complete(Save_State_Type.BS, self.beta, self.p, self.m)
+        for metadata1 in chain(
+            self.ram_and_disk_register_incomplete.metadatas.keys(),
+            self.ram_and_disk_register_incomplete.ram_datas
+        ):
+            self.assertTrue(metadata1.is_complete)
+            for metadata2 in chain(incomplete_metadatas,incomplete_ram_datas):
+                if metadata1.eq_except_complete(metadata2):
+                    break
+            else:
+                self.fail("something went wrong 1")
+        for metadata2 in incomplete_metadatas:
+            for metadata1 in chain(
+                self.ram_and_disk_register_incomplete.metadatas.keys(),
+                self.ram_and_disk_register_incomplete.ram_datas
+            ):
                 if metadata1.eq_except_complete(metadata2):
                     break
             else:
@@ -292,31 +427,90 @@ class Test_Pickle_Register(TestCase):
 
     def test_get_p(self):
         self.assertEqual(
-            self.register_complete.get_p(Save_State_Type.CS, self.beta),
+            self.disk_register_complete.get_p(Save_State_Type.CS, self.beta),
             self.p
         )
         self.assertEqual(
-            self.register_complete.get_p(Save_State_Type.BS, self.beta),
+            self.disk_register_complete.get_p(Save_State_Type.BS, self.beta),
             self.p
+        )
+        self.assertEqual(
+            self.ram_and_disk_register_complete.get_p(Save_State_Type.CS, self.beta),
+            self.p
+        )
+        self.assertEqual(
+            self.ram_and_disk_register_complete.get_p(Save_State_Type.BS, self.beta),
+            self.p
+        )
+        self.assertIsNone(
+            self.disk_register_incomplete.get_p(Save_State_Type.CS, self.beta)
+        )
+        self.assertIsNone(
+            self.disk_register_incomplete.get_p(Save_State_Type.BS, self.beta)
+        )
+        self.assertIsNone(
+            self.ram_and_disk_register_incomplete.get_p(Save_State_Type.CS, self.beta)
+        )
+        self.assertIsNone(
+            self.ram_and_disk_register_incomplete.get_p(Save_State_Type.BS, self.beta)
         )
 
     def test_get_m(self):
         self.assertEqual(
-            self.register_complete.get_m(Save_State_Type.CS, self.beta),
+            self.disk_register_complete.get_m(Save_State_Type.CS, self.beta),
             self.m
         )
         self.assertEqual(
-            self.register_complete.get_m(Save_State_Type.BS, self.beta),
+            self.disk_register_complete.get_m(Save_State_Type.BS, self.beta),
             self.m
+        )
+        self.assertEqual(
+            self.ram_and_disk_register_complete.get_m(Save_State_Type.CS, self.beta),
+            self.m
+        )
+        self.assertEqual(
+            self.ram_and_disk_register_complete.get_m(Save_State_Type.BS, self.beta),
+            self.m
+        )
+        self.assertIsNone(
+            self.disk_register_incomplete.get_m(Save_State_Type.CS, self.beta)
+        )
+        self.assertIsNone(
+            self.disk_register_incomplete.get_m(Save_State_Type.BS, self.beta)
+        )
+        self.assertIsNone(
+            self.ram_and_disk_register_incomplete.get_m(Save_State_Type.CS, self.beta)
+        )
+        self.assertIsNone(
+            self.ram_and_disk_register_incomplete.get_m(Save_State_Type.BS, self.beta)
         )
 
     def test_get_complete_status(self):
         self.assertTrue(
-            self.register_complete.get_complete_status(Save_State_Type.BS, self.beta)
+            self.disk_register_complete.get_complete_status(Save_State_Type.BS, self.beta)
         )
         self.assertTrue(
-            self.register_complete.get_complete_status(Save_State_Type.CS, self.beta)
+            self.disk_register_complete.get_complete_status(Save_State_Type.CS, self.beta)
         )
+        self.assertTrue(
+            self.ram_and_disk_register_complete.get_complete_status(Save_State_Type.BS, self.beta)
+        )
+        self.assertTrue(
+            self.ram_and_disk_register_complete.get_complete_status(Save_State_Type.CS, self.beta)
+        )
+        self.assertFalse(
+            self.disk_register_incomplete.get_complete_status(Save_State_Type.BS, self.beta)
+        )
+        self.assertFalse(
+            self.disk_register_incomplete.get_complete_status(Save_State_Type.CS, self.beta)
+        )
+        self.assertFalse(
+            self.ram_and_disk_register_incomplete.get_complete_status(Save_State_Type.BS, self.beta)
+        )
+        self.assertFalse(
+            self.ram_and_disk_register_incomplete.get_complete_status(Save_State_Type.CS, self.beta)
+        )
+
 
     def test_get_dump_data(self):pass
 
