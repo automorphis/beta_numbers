@@ -76,7 +76,8 @@ def _dump_data(beta, Bs, cs, last_save_n, register, p = None, m = None):
         if p and m:
             save_state.mark_complete(p,m)
             save_state.remove_redundancies()
-        register.add_save_state(save_state)
+        if len(save_state) > 0:
+            register.add_save_state(save_state)
     if p and m:
         for typee in Save_State_Type:
             register.mark_complete(typee,beta,p,m)

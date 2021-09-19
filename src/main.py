@@ -14,8 +14,8 @@
 """
 
 import logging
-import os
 import pickle as pkl
+from pathlib import Path
 
 from src.beta_orbit import calc_period_ram_and_disk
 from src.salem_numbers import salem_iter
@@ -35,31 +35,31 @@ if __name__ == "__main__":
     save_period = 100000
     check_memory_period = 100000
 
-    register_filename = "~/beta_orbit_saves/register.pkl" # where to put the register
-    save_register = True
-    log_filename = "../logs/beta_orbit.log"
-
-    saves_directory = "~/beta_orbit_saves"
-
-    if os.path.isfile(register_filename):
-        with open(register_filename, "rb") as fh:
-            register_data = pkl.load(fh)
-            register = Pickle_Register(saves_directory, register_data)
-    else:
-        register = Pickle_Register(saves_directory)
-    needed_bytes = 300*max(save_period, check_memory_period)
-
-    logging.basicConfig(filename = log_filename, level=logging.INFO)
-
-    for beta in salem_iter(deg, 0, 1, starting_dps):
-        # Loop over Salem numbers
-        logging.info("Found Salem number: %s" % beta)
-        calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register)
-
-        if save_register:
-            check_mkdir(register_filename)
-            with open(register_filename, "wb") as fh:
-                pkl.dump(register.get_dump_data(), fh)
+    # register_filename = "~/beta_orbit_saves/register.pkl" # where to put the register
+    # save_register = True
+    # log_filename = "../logs/beta_orbit.log"
+    #
+    # saves_directory = "~/beta_orbit_saves"
+    #
+    # if Path.is_file(register_filename):
+    #     with register_filename.open("rb") as fh:
+    #         register_data = pkl.load(fh)
+    #         register = Pickle_Register(saves_directory, register_data)
+    # else:
+    #     register = Pickle_Register(saves_directory)
+    # needed_bytes = 300*max(save_period, check_memory_period)
+    #
+    # logging.basicConfig(filename = log_filename, level=logging.INFO)
+    #
+    # for beta in salem_iter(deg, 0, 1, starting_dps):
+    #     # Loop over Salem numbers
+    #     logging.info("Found Salem number: %s" % beta)
+    #     calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register)
+    #
+    #     if save_register:
+    #         check_mkdir(register_filename)
+    #         with open(register_filename, "wb") as fh:
+    #             pkl.dump(register.get_dump_data(), fh)
 
 
 

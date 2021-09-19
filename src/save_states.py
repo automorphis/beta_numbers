@@ -17,7 +17,7 @@ import copy
 import random
 import pickle as pkl
 from enum import Enum
-import os
+from pathlib import Path
 
 from numpy import poly1d
 
@@ -26,7 +26,7 @@ from src.salem_numbers import Salem_Number
 
 BASE56 = "23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
 FILENAME_LEN = 20
-PICKLE_EXT = "pkl"
+PICKLE_EXT = ".pkl"
 
 class Pickle_Register:
     """Access orbit data saved to the disk via this class."""
@@ -38,16 +38,19 @@ class Pickle_Register:
         `Pickle_Register`.
         """
 
-        self.saves_directory = os.path.abspath(saves_directory)
+        self.saves_directory = Path.resolve( Path(saves_directory) )
 
         # make directory if it's not already there
-        if not os.path.isdir(self.saves_directory):
-            os.mkdir(self.saves_directory)
+        Path.mkdir( self.saves_directory, parents = True, exist_ok = True )
 
         if dump_data:
             self.metadatas_utd = True
-            self.save_states_filenames = dump_data[0]
-            self.metadatas = dump_data[1]
+            self.save_states_filenames = {
+                typee: [Path(filename) for filename in filenames] for typee, filenames in dump_data[0].items()
+            }
+            self.metadatas = {
+                metadata: Path(filename) for metadata,filename in dump_data[1].items()
+            }
 
         else:
             self.metadatas_utd = False
@@ -62,7 +65,7 @@ class Pickle_Register:
             self.metadatas = {}
             for typee in Save_State_Type:
                 for filename in self.save_states_filenames[typee]:
-                    with open(filename, "rb") as fh:
+                    with filename.open("rb") as fh:
                         save_state = pkl.load(fh)
                         self._add_metadata(save_state.get_metadata(), filename)
             self.metadatas_utd = True
@@ -87,20 +90,20 @@ class Pickle_Register:
 
         if (
             save_state in self.metadatas or
-            len( list( filter(lambda metadata: metadata.eq_except_complete(save_state), self.metadatas) ) ) > 0
+            sum(metadata.eq_except_complete(save_state) for metadata in self.metadatas) > 0
         ):
             raise FileExistsError("the passed `Save_State` has already been added to this register.")
 
         for _ in range(num_attempts):
             filename = _random_filename(self.saves_directory)
-            if not os.path.isfile(filename):
+            if not Path.is_file(filename):
                 break
         else:
             raise RuntimeError("buy a lottery ticket fr")
-        self.save_states_filenames[save_state.type].append(filename)
-        self._add_metadata(save_state.get_metadata(),filename)
+        self.save_states_filenames[save_state.type].append( filename )
+        self._add_metadata( save_state.get_metadata(), filename )
 
-        with open(filename, "wb") as fh:
+        with filename.open("wb") as fh:
             pkl.dump(save_state, fh)
 
     def clear(self, typee, beta):
@@ -111,7 +114,7 @@ class Pickle_Register:
         """
         self._load_metadatas()
         for metadata,filename in self._slice_metadatas(typee,beta).items():
-            os.remove(filename)
+            Path.unlink(filename)
             self._remove_metadata(metadata)
 
     def cleanup_redundancies(self, typee, beta):
@@ -127,12 +130,12 @@ class Pickle_Register:
                 start_n, p, m = metadata.start_n, metadata.p, metadata.m
                 if has_redundancies(start_n, len(metadata), p, m):
                     if has_redundancies(start_n, 1, p, m):
-                        os.remove(filename)
+                        Path.unlink(filename)
                         self._remove_metadata(metadata)
                     elif has_redundancies(start_n, len(metadata), p, m):
-                        with open(filename, "rb") as fh:
+                        with filename.open("rb") as fh:
                             save_state = pkl.load(fh)
-                        os.remove(filename)
+                        Path.unlink(filename)
                         sliced = save_state.get_slice(start_n, p + m + 1)
                         self._remove_metadata(metadata)
                         self.add_save_state(sliced)
@@ -170,7 +173,7 @@ class Pickle_Register:
         self._load_metadatas()
         for metadata, filename in self._slice_metadatas(typee,beta).items():
             if n in metadata:
-                with open(filename, "rb") as fh:
+                with filename.open("rb") as fh:
                     save_state = pkl.load(fh)
                 return save_state
         raise FileNotFoundError
@@ -185,13 +188,13 @@ class Pickle_Register:
     def mark_complete(self, typee, beta, p, m):
         for metadata,filename in self._slice_metadatas(typee,beta).items():
             if not (metadata.is_complete and metadata.p == p and metadata.m == m):
-                with open(filename, "rb") as fh:
+                with filename.open("rb") as fh:
                     save_state = pkl.load(fh)
                 save_state.mark_complete(p,m)
                 self._remove_metadata(metadata)
                 metadata.mark_complete(p,m)
                 self._add_metadata(metadata, filename)
-                with open(filename, "wb") as fh:
+                with filename.open("wb") as fh:
                     pkl.dump(save_state,fh)
 
     def get_p(self, typee, beta):
@@ -214,7 +217,10 @@ class Pickle_Register:
 
     def get_dump_data(self):
         """This is what should be pickled."""
-        return self.save_states_filenames, self.metadatas
+        return (
+            {typee: [str(filename) for filename in filenames] for typee, filenames in self.save_states_filenames.items()},
+            {metadata: str(filename) for metadata, filename in self.metadatas.items()}
+        )
 
 class _Save_States_Iter:
     def __init__(self, register, typee, beta, lower, upper=None):
@@ -360,7 +366,7 @@ class Save_State:
         self.is_complete = True
 
 def _random_filename(directory, alphabet = BASE56, length = FILENAME_LEN):
-    return os.path.abspath(os.path.join(
-        directory,
-        "".join(random.choices(alphabet, k=length)) + "." + PICKLE_EXT
-    ))
+    return Path.resolve(
+        directory /
+        "".join(random.choices(alphabet, k=length))
+    ).with_suffix(PICKLE_EXT)

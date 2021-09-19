@@ -13,10 +13,10 @@
     GNU General Public License for more details.
 """
 import copy
-import os
 import shutil
 from itertools import chain
 from math import ceil
+from pathlib import Path
 from unittest import TestCase
 
 from numpy import poly1d
@@ -98,25 +98,23 @@ class Test_Pickle_Register(TestCase):
 
     def setUp(self):
 
-        self.tmp_dir = os.path.join(os.path.expanduser("~"), "test_save_states_tmp")
+        self.tmp_dir = Path.home() / "tmp_saves"
 
-        if os.path.isdir(self.tmp_dir):
+        if Path.is_dir(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
-        os.mkdir(self.tmp_dir)
+        Path.mkdir(self.tmp_dir, parents = True)
 
         _set_up_save_states(self)
 
-        saves_directory_base = os.path.join(self.tmp_dir, "saves")
+        self.empty_register_dir = Path( "empty" )
 
-        self.empty_register_dir = saves_directory_base + "-empty"
-
-        self.register_complete = _populate_register(saves_directory_base + "-complete", _iter_over_completes(self))
-        self.register_incomplete = _populate_register(saves_directory_base + "-incomplete", _iter_over_incompletes(self))
+        self.register_complete = _populate_register( self.tmp_dir / "complete", _iter_over_completes(self))
+        self.register_incomplete = _populate_register( self.tmp_dir / "incomplete", _iter_over_incompletes(self))
 
         self.registers_incomplete_by_length = {}
         for length in self.lengths:
             self.registers_incomplete_by_length[length] = _populate_register(
-                saves_directory_base + "-incomplete-length-%d" % length,
+                self.tmp_dir / ("incomplete-length-%d" % length),
                 chain(
                     self.save_statess_Bs_incomplete[length],
                     self.save_statess_cs_incomplete[length],
@@ -126,7 +124,7 @@ class Test_Pickle_Register(TestCase):
         self.registers_complete_by_length = {}
         for length in self.lengths:
             self.registers_complete_by_length[length] = _populate_register(
-                saves_directory_base + "-complete-length-%d" % length,
+                self.tmp_dir / ("complete-length-%d" % length),
                 chain(
                     self.save_statess_Bs_complete[length],
                     self.save_statess_cs_complete[length],
@@ -143,29 +141,28 @@ class Test_Pickle_Register(TestCase):
         )
 
     def tearDown(self):
-        if os.path.isdir(self.tmp_dir):
+        if Path.is_dir(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
 
     def _get_empty_register(self):
-        if os.path.isdir(self.empty_register_dir):
+        if Path.is_dir(self.empty_register_dir):
             shutil.rmtree(self.empty_register_dir)
         return Pickle_Register(self.empty_register_dir)
 
     def test___init__(self):
-        saves_directory = os.path.join(self.tmp_dir, "saves-test-init")
-        Pickle_Register(saves_directory + "-0")
-        self.assertTrue(os.path.isdir(saves_directory + "-0"))
-        os.rmdir(saves_directory + "-0")
+        Pickle_Register(self.tmp_dir / "saves-test-init-0")
+        self.assertTrue(Path.is_dir(self.tmp_dir / "saves-test-init-0"))
+        Path.rmdir(self.tmp_dir / "saves-test-init-0")
 
 
-        register1 = _populate_register(saves_directory + "-1", _iter_over_incompletes(self))
+        register1 = _populate_register(self.tmp_dir / "saves-test-init-1", _iter_over_incompletes(self))
         dump_data = register1.get_dump_data()
-        register2 = Pickle_Register(saves_directory + "-2", dump_data)
+        register2 = Pickle_Register(self.tmp_dir / "saves-test-init-2", dump_data)
         self.assertEqual(set(register1.metadatas), set(register2.metadatas))
 
-        register1 = _populate_register(saves_directory + "-3", _iter_over_completes(self))
+        register1 = _populate_register(self.tmp_dir / "saves-test-init-3", _iter_over_completes(self))
         dump_data = register1.get_dump_data()
-        register2 = Pickle_Register(saves_directory + "-4", dump_data)
+        register2 = Pickle_Register(self.tmp_dir / "saves-test-init-4", dump_data)
         self.assertEqual(set(register1.metadatas), set(register2.metadatas))
 
     def test_add_save_state(self):
@@ -192,7 +189,7 @@ class Test_Pickle_Register(TestCase):
         )
         self.assertEqual(
             0,
-            len(os.listdir(self.register_incomplete.saves_directory))
+            len( list( Path.iterdir( self.register_incomplete.saves_directory ) ) )
         )
 
         self.register_complete.clear(Save_State_Type.CS, self.beta)
@@ -207,7 +204,7 @@ class Test_Pickle_Register(TestCase):
         )
         self.assertEqual(
             0,
-            len(os.listdir(self.register_complete.saves_directory))
+            len( list( Path.iterdir( self.register_incomplete.saves_directory ) ) )
         )
 
     def test_cleanup_redundancies(self):

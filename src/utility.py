@@ -12,7 +12,7 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
-import os
+from pathlib import Path
 
 from numpy import poly1d
 from mpmath import workdps, mpf
@@ -22,11 +22,9 @@ BYTES_PER_KB = 1024
 BYTES_PER_MB = 1024**2
 BYTES_PER_GB = 1024**3
 
-def check_mkdir(filename):
-    if not os.path.isdir(os.path.dirname(filename)):
-        os.mkdir(os.path.dirname(filename))
 
 def eval_code_in_file(filename, dps = 32):
+    filename = Path(filename)
     with workdps(dps):
-        with open(filename, "r") as fh:
+        with filename.open("r") as fh:
             return eval("".join(fh.readlines()))

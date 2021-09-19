@@ -12,6 +12,7 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
+from numpy import poly1d
 
 from src.beta_orbit import calc_period_ram_only
 from src.boyd_data import boyd
@@ -22,12 +23,21 @@ filename = "../output/periods.txt"
 
 check_mkdir(filename)
 
+beta_nearly_hits_integer = Salem_Number(poly1d((1, -10, -40, -59, -40, -10, 1)), 32)
+
+found_orbit, Bs, cs = calc_period_ram_only(
+    beta_nearly_hits_integer,
+    10 ** 7,
+    4,
+    32
+)
+
+print("success")
+
 with open(filename, "w") as fh:
-    dps = 256
-    for datum in boyd:
-        if datum["D_label"] == "very small":
-            beta = Salem_Number(datum["poly"], dps)
-            found_period, Bs, cs, p, m = calc_period_ram_only(beta,10**8,1,dps)
-            if not found_period:
-                raise RuntimeError
-            fh.write(str((tuple(beta.min_poly),beta.calc_beta0(), Bs.data, cs.data, p, m)) + ",\n")
+    fh.write("[\n")
+    for c,B in zip(cs, Bs):
+        fh.write("\t(%d, %s),\n" % (c, repr(B)))
+    fh.write("]")
+
+

@@ -12,7 +12,7 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
-
+from pathlib import Path
 from unittest import TestCase
 
 from mpmath import workdps, almosteq, mpf
@@ -29,8 +29,8 @@ class Test_Salem_Number(TestCase):
         # correct to 256 decimal places
         self.data_dps = 256
         self.salems = eval_code_in_file("several_salem_numbers.txt", self.data_dps)
-        self.non_salems = eval_code_in_file("several_nonsalem_min_polys.txt")
-        self.incorrect_salems = eval_code_in_file("several_incorrect_salem_numbers.txt")
+        self.non_salems = eval_code_in_file("several_nonsalem_min_polys.txt", self.data_dps)
+        self.incorrect_salems = eval_code_in_file("several_incorrect_salem_numbers.txt", self.data_dps)
 
 
     def test_calc_beta0(self):
@@ -68,7 +68,7 @@ class Test_Salem_Number(TestCase):
         # just cross-ref with the boyd table, takes a couple min
         salems = list(salem_iter(6, 0, 5, 32))
         for trace, num_salems in zip(range(6), [4, 15, 39, 79, 139, 221]):
-            self.assertEqual(num_salems, len(list(filter(lambda beta: beta.get_trace() == trace, salems))))
+            self.assertEqual(num_salems, sum(beta.get_trace() == trace for beta in salems))
 
 
     def test_salem_iter_long(self):

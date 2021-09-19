@@ -108,7 +108,6 @@ def _is_salem_6poly(a, b, c, dps):
         except Not_Salem_Error:
             return False
 
-
 def salem_iter(deg, min_trace, max_trace, dps):
     if deg != 6:
         raise NotImplementedError
