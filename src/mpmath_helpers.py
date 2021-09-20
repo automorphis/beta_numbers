@@ -12,8 +12,7 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
-
-
+import numpy as np
 from mpmath import workdps, almosteq
 
 
@@ -28,3 +27,6 @@ def inequal_dps(x,y,max_dps = 1000):
         with workdps(dps):
             if not almosteq(x,y):
                 return dps
+
+def convert_polynomial_format(poly):
+    return tuple(np.flip(poly.coef))

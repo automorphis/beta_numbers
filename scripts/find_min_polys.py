@@ -14,7 +14,6 @@
 """
 
 from src.salem_numbers import salem_iter
-from src.utility import check_mkdir
 
 filename = "../output/polys.txt"
 

@@ -14,7 +14,8 @@
 """
 
 from enum import Enum
-from numpy import poly1d
+
+from numpy.polynomial.polynomial import Polynomial
 
 _boyd = [
     ( (1,   0,  -4,  -7,  -4,   0, 1), (       1,       60) ),
@@ -229,7 +230,7 @@ def _get_number_size(datum, number_type):
     for label, size in number_sizes:
         if size == -1:
             return label
-        if number_type == Number_Type.D and size >= datum[1][0] + datum[1][1]:
+        if number_type == Number_Type.D and size >= datum[1][0] + datum[1][1] :
             return label
         if number_type == Number_Type.M and size >= datum[1][0]:
             return label
@@ -242,7 +243,7 @@ boyd = [{
     "m_label": _get_number_size(datum, Number_Type.M),
     "m": datum[1][0] if datum[1][0] > 0 else None,
     "p": datum[1][1] if datum[1][1] > 0 else None,
-    "poly": poly1d(datum[0])
+    "poly": Polynomial(datum[0])
 } for datum in _boyd]
 
 def filter_by_size(data, label, size):

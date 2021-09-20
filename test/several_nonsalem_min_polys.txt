@@ -1,0 +1,8 @@
+[
+    Polynomial((0,1)),
+    Polynomial((1,)),
+    Polynomial((0,)),
+    Polynomial((1, 0, -4, -7, -4, 1, 1)),
+    Polynomial((-1, -1, 1)),
+    Polynomial((1, 0, -4, -7, -4, 0, 1)) * Polynomial((1, 0, -2, -3, -2, 0, 1))
+]

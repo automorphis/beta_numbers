@@ -14,10 +14,11 @@
 """
 from pathlib import Path
 
-from numpy import poly1d
-from mpmath import workdps, mpf
 
-X = poly1d((1,0))
+from mpmath import workdps, mpf
+from numpy.polynomial.polynomial import Polynomial
+
+X = Polynomial((0,1))
 BYTES_PER_KB = 1024
 BYTES_PER_MB = 1024**2
 BYTES_PER_GB = 1024**3

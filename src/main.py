@@ -20,7 +20,6 @@ from pathlib import Path
 from src.beta_orbit import calc_period_ram_and_disk
 from src.salem_numbers import salem_iter
 from src.save_states import Pickle_Register
-from src.utility import check_mkdir
 
 if __name__ == "__main__":
 

@@ -19,7 +19,8 @@ import pickle as pkl
 from enum import Enum
 from pathlib import Path
 
-from numpy import poly1d
+import numpy as np
+from numpy.polynomial.polynomial import Polynomial
 
 from src.periodic_list import has_redundancies, calc_beginning_index_of_redundant_data
 from src.salem_numbers import Salem_Number
@@ -39,7 +40,7 @@ class Save_State:
         :param beta: Class `Salem_Number`. The beta of the beta expansion.
         :param data: The data as a `list`. Either a segment of the coefficients of the beta expansion, or the polynomials
         P_n modulo `beta.min_poly`.
-        :param start_n: Positive int. 1-Indexed. The first iterate encoded by the `data` parameter.
+        :param start_n: Positive int or 0. The first iterate encoded by the `data` parameter.
         """
 
         self.type = typee
@@ -50,32 +51,32 @@ class Save_State:
         self.data = list(data)
         if len(self.data) == 0:
             raise ValueError("input data cannot be empty")
-        if self.start_n < 1:
-            raise ValueError("start_n must be at least 1")
+        if self.start_n < 0:
+            raise ValueError("start_n must be at least 0")
         self.is_complete = False
-        self.length = len(self.data)
+        self._length = len(self.data)
         self.p = None
         self.m = None
 
     def get_slice(self, n_lower, n_upper):
         """Return a new `Save_State` encoding a contiguous slice of data from this `Save_State`.
 
-        :param n_lower: (positive int) The first index of the new `Save_State`.
+        :param n_lower: (positive int or 0) The first index of the new `Save_State`.
         :param n_upper: (positive int) One more than the last index to return.
         :return: A new `Save_State` encoding `n_upper - n_lower` entries.
         """
-        if not (self.start_n <= n_lower < n_upper <= self.start_n + self.length):
+        if not (self.start_n <= n_lower < n_upper <= self.start_n + len(self)):
             raise IndexError("Acceptable range is between %d and %d. Given numbers are %d and %d" % (
-                self.start_n, self.start_n + self.length, n_lower, n_upper)
+                self.start_n, self.start_n + len(self), n_lower, n_upper)
              )
         save_state = copy.copy(self)
-        save_state.data = copy.copy(self.data[ n_lower - self.start_n : n_upper - self.start_n ])
+        save_state.data = self.data[ n_lower - self.start_n : n_upper - self.start_n ]
         save_state.start_n = n_lower
-        save_state.length = n_upper - n_lower
+        save_state._length = n_upper - n_lower
         return save_state
 
     def get_beta(self):
-        return Salem_Number(poly1d(self.min_poly), self.dps, self.beta0)
+        return Salem_Number(self.min_poly, self.dps, self.beta0)
 
     def eq_except_complete(self, other):
         return (
@@ -88,7 +89,7 @@ class Save_State:
     def remove_redundancies(self):
         if self.is_complete:
             self.data = self.data[:calc_beginning_index_of_redundant_data(self.start_n,self.p,self.m)]
-            self.length = len(self.data)
+            self._length = len(self.data)
 
     def get_metadata(self):
         metadata = copy.copy(self)
@@ -97,7 +98,7 @@ class Save_State:
 
     def __len__(self):
         """Just the length of the data."""
-        return self.length
+        return self._length
 
     def __contains__(self, n):
         """Check if the datum with index `n` is encoded by this object."""
@@ -138,14 +139,75 @@ class Save_State:
         self.is_complete = True
 
 class Ram_Data(Save_State):
+
+    def __init__(self, typee, beta, data, start_n, init_data_size, growth_factor=2):
+        self.type = typee
+        self.beta = beta
+        self.start_n = start_n
+        self.init_data_size = init_data_size
+        self._init_data(data, self.init_data_size)
+        self.growth_factor = growth_factor
+        if self.start_n < 0:
+            raise ValueError("start_n must be at least 0")
+        self.is_complete = False
+        self.p = None
+        self.m = None
+
+    def _init_data(self, data, init_size):
+        if self.type == Save_State_Type.CS:
+            if len(data) > 0:
+                self.data = np.array(data, dtype=int)
+                self._length = len(self.data)
+            else:
+                self.data = np.empty(init_size, dtype=int)
+                self._length = 0
+        else:
+            if len(data)>0:
+                self.data = np.array(data, dtype=object)
+                self._length = len(self.data)
+            else:
+                self.data = np.empty(init_size, dtype=object)
+                self._length = 0
+        if len(self.data) < init_size:
+            pad_size = init_size - len(self.data)
+            self.data = np.pad(self.data, (0, pad_size), mode="empty")
+
+    def append(self, datum):
+        if len(self) < len(self.data):
+            self.data[len(self)] = datum
+            self._length += 1
+        else:
+            self._init_data(
+                self.data,
+                max(
+                    int(self.growth_factor * len(self.data)),
+                    len(self.data) + 1
+                )
+            )
+            self.append(datum)
+
+    def trim_initial(self, n):
+        if n > len(self):
+            raise ValueError("Trimmed more than the length of the data. n: %d, length: %d" % (n, len(self)))
+        self.data = np.delete(self.data, np.s_[:n])
+        self._length -= n
+        self.set_start_n(n)
+
+    def get_beta(self):
+        return self.beta
+
     def set_start_n(self,start_n):
         self.start_n = start_n
+
     def clear(self):
-        self.data.clear()
-        self.length = 0
+        del self.data
+        self._init_data([], self.init_data_size)
+
+    def cast_to_save_state(self):
+        return Save_State(self.type,self.get_beta(), self.data, self.start_n)
+
     def set_data(self,data):
-        self.data = data
-        self.length = len(data)
+        self._init_data(data, self.init_data_size)
 
 class Pickle_Register:
     """Interface with RAM and disk memory via this class.
@@ -274,7 +336,7 @@ class Pickle_Register:
                         with filename.open("rb") as fh:
                             save_state = pkl.load(fh)
                         Path.unlink(filename)
-                        sliced = save_state.get_slice(start_n, p + m + 1)
+                        sliced = save_state.get_slice(start_n, p + m)
                         self._remove_metadata(metadata)
                         self.add_save_state(sliced)
 
@@ -286,7 +348,7 @@ class Pickle_Register:
                     if has_redundancies(start_n, 1, p, m):
                         ram_data.clear()
                     else:
-                        new_ram_data.append(ram_data.get_slice(start_n, p + m + 1))
+                        new_ram_data.append(ram_data.get_slice(start_n, p + m))
         self.ram_datas = new_ram_data
 
     def get_n(self, typee, beta, n):
@@ -295,7 +357,7 @@ class Pickle_Register:
 
         :param typee: Type `Save_State_Types`.
         :param beta: Type `Salem_Number`.
-        :param n: Positive int.
+        :param n: Positive int or 0.
         :raises ValueError: if `n` is not positive.
         :raises Data_Not_Found_Error: If the data is not found.
         :return: Either a coefficient of the beta expansion or the polynomial B_n, depending on `typee`.
@@ -319,12 +381,12 @@ class Pickle_Register:
     def get_save_state(self, typee, beta, n):
         """Like `self.get_n`, but returns the `Save_State` associated with the index `n`. Useful for iterating.
 
-        :raises ValueError: if `n` is not positive.
+        :raises ValueError: if `n` is not positive or 0.
         :raises Data_Not_Found_Error: If the data is not found.
         """
 
-        if n < 1:
-            raise ValueError("n is not positive, passed value: %d" % n)
+        if n < 0:
+            raise ValueError("n is not positive or 0, passed value: %d" % n)
 
         self._load_metadatas()
         for metadata, filename in self._slice_metadatas(typee,beta).items():
@@ -335,18 +397,18 @@ class Pickle_Register:
         for ram_data in self._slice_ram_datas(typee, beta):
             if n in ram_data:
                 return ram_data
-        raise FileNotFoundError
+        raise Data_Not_Found_Error(typee,beta,n)
 
     def get_all(self,typee,beta):
         """Returns an iterator that gives all data on the disk associated with the given parameters."""
-        return _Save_States_Iter(self,typee,beta,1)
+        return _Save_States_Iter(self,typee,beta,0)
 
     def get_n_range(self, typee, beta, lower, upper):
         """Return all data in memory with indices between `lower` (inclusive) and `upper` (exclusive).
 
         :param typee: Type `Save_Data_Type`.
         :param beta: Type `Salem_Numer`.
-        :param lower: (positive int) lower bound of indices, inclusive.
+        :param lower: (positive int or 0) lower bound of indices, inclusive.
         :param upper: (positive int) upper bound of indices, exclusive.
         :raises Data_Not_Found_Error: If the requested data is not found.
         :return: An iterator returning the requested data.
@@ -419,21 +481,24 @@ class _Save_States_Iter:
         if not self.curr_save_state or self.curr_n not in self.curr_save_state:
             try:
                 self.curr_save_state = self.register.get_save_state(self.type, self.beta, self.curr_n)
-            except FileNotFoundError:
+            except Data_Not_Found_Error:
                 if (
                     (not self.upper and self.curr_save_state) or
                     (self.upper and self.curr_save_state and self.curr_save_state.is_complete)
                 ):
                     raise StopIteration
                 else:
-                    raise Data_Not_Found_Error(self.type, self.beta)
+                    raise Data_Not_Found_Error(self.type, self.beta, self.curr_n)
         ret = self.curr_save_state[self.curr_n]
         self.curr_n+=1
         return ret
 
 class Data_Not_Found_Error(RuntimeError):
-    def __init__(self, typee, beta):
-        super().__init__("Requested data not found in disk or RAM. type: %s, beta: %s" % (typee, beta))
+    def __init__(self, typee, beta, n = None):
+        super().__init__(
+            ("Requested data not found in disk or RAM. type: %s, beta: %s, n = %d" % (typee, beta, n)) if n else
+            ("Requested data not found in disk or RAM. type: %s, beta: %s" % (typee, beta))
+        )
 
 class Save_State_Type(Enum):
     BS = 0

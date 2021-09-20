@@ -15,8 +15,7 @@
 from pathlib import Path
 from unittest import TestCase
 
-from mpmath import workdps, almosteq, mpf
-from numpy import poly1d
+from mpmath import workdps, almosteq
 
 from src.salem_numbers import Salem_Number, salem_iter, Not_Salem_Error
 from src.utility import eval_code_in_file
@@ -71,6 +70,6 @@ class Test_Salem_Number(TestCase):
             self.assertEqual(num_salems, sum(beta.get_trace() == trace for beta in salems))
 
 
-    def test_salem_iter_long(self):
-        # cross ref again, takes a long time
-        self.assertEqual(11836 - 497, len(list(salem_iter(6,6,15,32))))
+    # def test_salem_iter_long(self):
+    #     # cross ref again, takes a long time
+    #     self.assertEqual(11836 - 497, len(list(salem_iter(6,6,15,32))))

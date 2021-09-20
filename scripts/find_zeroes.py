@@ -18,15 +18,12 @@ from mpmath import re, im, workdps, power
 
 from src.boyd_data import boyd
 from src.salem_numbers import Salem_Number
-from src.utility import check_mkdir
 
 
 def _salem_root(rts):
     return re(max(sorted(rts,key=lambda z: abs(im(z))), key=re))
 
 filename = "../output/roots.txt"
-
-check_mkdir(filename)
 
 polys = [datum["poly"] for datum in boyd]
 

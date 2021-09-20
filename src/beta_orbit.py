@@ -19,10 +19,11 @@ import time
 
 import psutil
 from mpmath import workdps, power, polyval, frac, mp, floor
-from numpy import poly1d, median
+from numpy import median
+from numpy.polynomial.polynomial import Polynomial
 
-from src.mpmath_helpers import Accuracy_Error
-from src.periodic_list import Periodic_List
+from src.mpmath_helpers import Accuracy_Error, convert_polynomial_format
+from src.periodic_list import Periodic_List, has_redundancies
 from src.salem_numbers import Salem_Number
 from src.utility import X, BYTES_PER_KB, BYTES_PER_MB
 from src.periodicity_checker import check_periodicity_ram_only, check_periodicity_ram_and_disk
@@ -33,8 +34,8 @@ def calc_next_iterate(beta, B, c):
     """Return B*X - c mod beta.min_poly"""
     B = X * B - c
     deg = beta.deg
-    if len(B) >= deg:
-        B -= B[deg] * beta.min_poly
+    if B.degree() >= deg:
+        B -= B.coef[deg] * beta.min_poly
     return B
 
 
@@ -43,7 +44,7 @@ class Beta_Orbit_Iter:
         self.beta = beta
         self.length = length
         self.n = 0
-        self.curr_B = poly1d((1,))
+        self.curr_B = Polynomial((1,))
         with workdps(self.beta.dps):
             self._eps = power(2, -self.beta.dps)
 
@@ -57,23 +58,28 @@ class Beta_Orbit_Iter:
     def __next__(self):
         if self.length is not None and self.n >= self.length:
             raise StopIteration
-        self.n += 1
-        xi = self.beta.beta0 * polyval(tuple(self.curr_B.coef), self.beta.beta0)
+        xi = self.beta.beta0 * polyval( convert_polynomial_format(self.curr_B), self.beta.beta0 )
         eta = self._calc_eta()
         if frac(xi) <= eta:
             raise Accuracy_Error(self.beta.dps)
         c = int(floor(xi))
         old_B = self.curr_B
         self.curr_B = calc_next_iterate(self.beta,self.curr_B, c)
-        return self.n, c, xi, old_B
+        old_n = self.n
+        self.n += 1
+        return old_n, c, xi, old_B
 
     def _calc_eta(self):
         return self._eps * polyval(tuple(X * self.curr_B), self.beta.beta0 + self._eps, derivative=True)[1]
 
 
-def _dump_data(beta, Bs, cs, last_save_n, register, p = None, m = None):
-    for typee, data in [(Save_State_Type.CS, cs), (Save_State_Type.BS, Bs)]:
-        save_state = Save_State(typee, beta, data, last_save_n + 1)
+def _dump_data(n_lower, n_upper, Bs, cs, register, p = None, m = None):
+
+    Bs = Bs.get_slice(n_lower, n_upper+1).cast_to_save_state()
+    cs = cs.get_slice(n_lower, n_upper+1).cast_to_save_state()
+    beta = Bs.get_beta()
+
+    for save_state in [Bs, cs]:
         if p and m:
             save_state.mark_complete(p,m)
             save_state.remove_redundancies()
@@ -83,10 +89,9 @@ def _dump_data(beta, Bs, cs, last_save_n, register, p = None, m = None):
         for typee in Save_State_Type:
             register.mark_complete(typee,beta,p,m)
             register.cleanup_redundancies(typee,beta)
-    return last_save_n + len(Bs)
 
-def _dump_data_log(last_save_n, n, last_save_time):
-    logging.info("Saving iterates %d to %d to disk" % (last_save_n + 1, n))
+def _dump_data_log(n_lower, n_upper, last_save_time):
+    logging.info("Saving iterates %d to %d to disk" % (n_lower, n_upper))
     logging.info("Elapsed time since last save: %.3f s" % (time.time() - last_save_time))
     return time.time()
 
@@ -163,7 +168,7 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
     """
 
     if check_memory_period < save_period:
-        raise RuntimeError("`check_memory_period` must be at least `save_period`")
+        raise RuntimeError("`check_memory_period` must be at least `save_period`. check_memory_period: %d, save_period: %d" % (check_memory_period, save_period))
 
     mp.dps = starting_dps
 
@@ -180,13 +185,12 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
             have_excess_memory = available_memory > needed_bytes
             memory_used_since_last_checks = []
             just_switched = True
-            last_save_n = 0
-            cs = []
-            Bs = []
-            cs_ram_data = Ram_Data(Save_State_Type.CS, beta, cs, 1)
-            Bs_ram_data = Ram_Data(Save_State_Type.BS, beta, Bs, 1)
-            register.add_ram_data( cs_ram_data )
-            register.add_ram_data( Bs_ram_data )
+            start_n_this_save = 0
+
+            cs = Ram_Data(Save_State_Type.CS, beta, [], 0, save_period)
+            Bs = Ram_Data(Save_State_Type.BS, beta, [], 0, save_period)
+            register.add_ram_data( cs )
+            register.add_ram_data( Bs )
             last_save_time = time.time()
 
             for n, c, _, B in Beta_Orbit_Iter(beta, max_n):
@@ -206,22 +210,23 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
                     is_periodic, p, m = check_periodicity_ram_only(Bs)
                     if is_periodic:
                         # found a period
-                        if last_save_n > p + m:
-                            last_save_time = _dump_data_log(last_save_n, p+m-1,last_save_time)
-                        last_save_n = _dump_data(beta, Bs[last_save_n:], cs[last_save_n:], last_save_n, register, p, m)
+                        if not has_redundancies( start_n_this_save, len(cs), p, m ):
+                            _dump_data_log( start_n_this_save, p+m-1, last_save_time )
+                        _dump_data(start_n_this_save, n, Bs, cs, register, p, m)
                         _found_period_log(beta, p, m, start_time)
                         return
 
-                    if n > 1 and n % check_memory_period == 0:
+                    if n % check_memory_period == check_memory_period - 1:
                         # check available memory
                         have_excess_memory, available_memory = _check_memory(
                             check_memory_period, available_memory, memory_used_since_last_checks, needed_bytes
                         )
 
-                    if n > 1 and n % save_period == 0:
+                    if n % save_period == save_period - 1:
                         # dump data to disk
-                        last_save_time = _dump_data_log(last_save_n, n, last_save_time)
-                        last_save_n = _dump_data(beta, Bs[last_save_n:], cs[last_save_n:], last_save_n, register)
+                        last_save_time = _dump_data_log(start_n_this_save, n, last_save_time)
+                        _dump_data(start_n_this_save,n,Bs,cs,register)
+                        start_n_this_save = n+1
 
                 else:
                     """
@@ -242,43 +247,39 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
                         logging.warning("Remaining memory: %d MB %d KB" % (available_memory // BYTES_PER_MB, available_memory % BYTES_PER_KB))
                         logging.warning("Required memory:  %d MB %d KB" % (needed_bytes // BYTES_PER_MB, needed_bytes % BYTES_PER_KB))
 
-                        if n >= 2:
-                            Bk = Bs[n // 2 - 1]
+                        if n > 0:
+                            k = (n-1)//2
+                            B1_iter = Beta_Orbit_Iter(beta)
+                            B1_iter.set_start_info(Bs[k],k)
+                            if n % 2 == 0:
+                                B1 = B1_iter.__next__()[3]
                         else:
-                            Bk = poly1d((1,))
-                        k = n//2
-                        Bk_iter = Beta_Orbit_Iter(beta)
-                        Bk_iter.set_start_info(Bk,k)
+                            B1_iter = Beta_Orbit_Iter(beta)
 
-                        new_Bs = copy.deepcopy(Bs[last_save_n:])
-                        new_cs = copy.deepcopy(cs[last_save_n:])
-                        cs_ram_data.clear()
-                        Bs_ram_data.clear()
-                        cs_ram_data.set_data(new_cs)
-                        cs_ram_data.set_data(new_Bs)
-                        cs_ram_data.set_start_n(last_save_n + 1)
-                        cs_ram_data.set_start_n(last_save_n + 1)
+                        Bs.trim_initial(start_n_this_save)
+                        cs.trim_initial(start_n_this_save)
 
-                    elif n % 2 == 0:
-                        # advance halfway point B
-                        Bk = Bk_iter.__next__()[3]
+                    if n % 2 == 1:
+                        B1 = B1_iter.__next__()[3]
 
-                    is_periodic, p, m = check_periodicity_ram_and_disk(beta, n, Bk, B, register)
-                    if is_periodic:
-                        if last_save_n > p + m:
-                            last_save_time = _dump_data_log(last_save_n, p + m - 1, last_save_time)
-                        last_save_n = _dump_data(beta, Bs, cs, last_save_n, register, p, m)
-                        _found_period_log(beta, p, m, start_time)
-                        return
+                    if n > 0:
+                        is_periodic, p, m = check_periodicity_ram_and_disk(beta, n, B1, B, register)
+                        if is_periodic:
+                            if not has_redundancies(start_n_this_save,1,p,m):
+                                last_save_time = _dump_data_log(start_n_this_save, p + m - 1, last_save_time)
+                            _dump_data(start_n_this_save,n,Bs,cs,register,p,m)
+                            _found_period_log(beta, p, m, start_time)
+                            return
 
-                    if n > 1 and n % save_period == 0:
+                    if n % save_period == save_period - 1:
                         # dump data to disk
-                        last_save_time = _dump_data_log(last_save_n, n, last_save_time)
-                        last_save_n = _dump_data(beta, Bs, cs, last_save_n, register)
-                        cs_ram_data.clear()
-                        Bs_ram_data.clear()
-                        cs_ram_data.set_start_n(n+1)
-                        Bs_ram_data.set_start_n(n+1)
+                        last_save_time = _dump_data_log(start_n_this_save, n, last_save_time)
+                        _dump_data(start_n_this_save,n, Bs, cs, register)
+                        cs.clear()
+                        Bs.clear()
+                        cs.set_start_n(n+1)
+                        Bs.set_start_n(n+1)
+                        start_n_this_save = n+1
 
 
             else:

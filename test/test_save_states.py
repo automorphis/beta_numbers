@@ -20,13 +20,13 @@ from pathlib import Path
 import random
 from unittest import TestCase
 
-from numpy import poly1d
+from numpy.polynomial.polynomial import Polynomial
 
 from src.beta_orbit import calc_period_ram_only
 from src.boyd_data import filter_by_size, boyd
 from src.periodic_list import calc_beginning_index_of_redundant_data, has_redundancies
 from src.salem_numbers import Salem_Number
-from src.save_states import Save_State, Save_State_Type, Pickle_Register, Ram_Data
+from src.save_states import Save_State, Save_State_Type, Pickle_Register, Ram_Data, Data_Not_Found_Error
 from src.utility import eval_code_in_file
 
 def _set_up_save_states(obj):
@@ -51,7 +51,7 @@ def _set_up_save_states(obj):
                 Save_State_Type.BS,
                 obj.beta,
                 obj.Bs[i * length: (i + 1) * length],
-                i * length + 1
+                i * length
             )
             for i in range(int(ceil((obj.p + obj.m) / length)))
         ]
@@ -63,7 +63,7 @@ def _set_up_save_states(obj):
                 Save_State_Type.CS,
                 obj.beta,
                 obj.cs[i * length: (i + 1) * length],
-                i * length + 1
+                i * length
             )
             for i in range(int(ceil((obj.p + obj.m) / length)))
         ]
@@ -95,13 +95,13 @@ def _populate_disk_register(saves_directory, save_states):
         register.add_save_state(save_state)
     return register
 
-def _populate_ram_and_disk_register(saves_directory, save_states):
+def _populate_ram_and_disk_register(saves_directory, save_states, save_period):
     register = Pickle_Register(saves_directory)
     for save_state in save_states:
         if random.randint(0,1) == 0:
             register.add_save_state(save_state)
         else:
-            register.add_ram_data( Ram_Data(save_state.type, save_state.get_beta(), save_state.data, save_state.start_n) )
+            register.add_ram_data( Ram_Data(save_state.type, save_state.get_beta(), save_state.data, save_state.start_n, save_period) )
     return register
 
 class Test_Pickle_Register(TestCase):
@@ -143,8 +143,8 @@ class Test_Pickle_Register(TestCase):
                 )
             )
 
-        self.ram_and_disk_register_complete = _populate_ram_and_disk_register(self.tmp_dir / "ram_and_disk-complete", _iter_over_completes(self))
-        self.ram_and_disk_register_incomplete = _populate_ram_and_disk_register(self.tmp_dir / "ram_and_disk-incomplete", _iter_over_incompletes(self))
+        self.ram_and_disk_register_complete = _populate_ram_and_disk_register(self.tmp_dir / "ram_and_disk-complete", _iter_over_completes(self), length)
+        self.ram_and_disk_register_incomplete = _populate_ram_and_disk_register(self.tmp_dir / "ram_and_disk-incomplete", _iter_over_incompletes(self), length)
 
         self.ram_and_disk_registers_incomplete_by_length = {}
         for length in self.lengths:
@@ -153,7 +153,8 @@ class Test_Pickle_Register(TestCase):
                 chain(
                     self.save_statess_Bs_incomplete[length],
                     self.save_statess_cs_incomplete[length],
-                )
+                ),
+                length
             )
 
         self.ram_and_disk_registers_complete_by_length = {}
@@ -163,7 +164,8 @@ class Test_Pickle_Register(TestCase):
                 chain(
                     self.save_statess_Bs_complete[length],
                     self.save_statess_cs_complete[length],
-                )
+                ),
+                length
             )
 
         self.total_Bs_save_states = (
@@ -294,9 +296,10 @@ class Test_Pickle_Register(TestCase):
             register.cleanup_redundancies(Save_State_Type.CS, self.beta)
             register.cleanup_redundancies(Save_State_Type.BS, self.beta)
 
-            self.assertFalse(
-                any(has_redundancies(metadata.start_n, len(metadata), metadata.p, metadata.m) for metadata in register.metadatas.keys())
-            )
+            for metadata in register.metadatas:
+                self.assertFalse(
+                    has_redundancies(metadata.start_n, len(metadata), metadata.p, metadata.m)
+                )
 
         # ram and disk.
         for register in self.disk_registers_incomplete_by_length.values():
@@ -330,18 +333,18 @@ class Test_Pickle_Register(TestCase):
             self.ram_and_disk_registers_complete_by_length.values(),
             self.ram_and_disk_registers_incomplete_by_length.values()
         ):
-            for n in range(1, self.p + self.m + 1):
+            for n in range(0, self.p + self.m):
                 self.assertEqual(
-                    self.Bs[n-1],
+                    self.Bs[n],
                     register.get_n(Save_State_Type.BS, self.beta, n)
                 )
                 self.assertEqual(
-                    self.cs[n-1],
+                    self.cs[n],
                     register.get_n(Save_State_Type.CS, self.beta, n)
                 )
             with self.assertRaises(ValueError):
-                register.get_n(Save_State_Type.BS, self.beta, 0)
-            with self.assertRaises(FileNotFoundError):
+                register.get_n(Save_State_Type.BS, self.beta, -1)
+            with self.assertRaises(Data_Not_Found_Error):
                 register.get_n(Save_State_Type.CS, self.beta, 10**15)
 
     def test_get_save_state(self):
@@ -351,7 +354,7 @@ class Test_Pickle_Register(TestCase):
             self.ram_and_disk_registers_complete_by_length.values(),
             self.ram_and_disk_registers_incomplete_by_length.values()
         ):
-            for n in range(1,self.p + self.m + 1):
+            for n in range(0,self.p + self.m):
                 self.assertIn(
                     n,
                     register.get_save_state(Save_State_Type.BS,self.beta,n)
@@ -368,14 +371,14 @@ class Test_Pickle_Register(TestCase):
             self.ram_and_disk_registers_complete_by_length.values(),
             self.ram_and_disk_registers_incomplete_by_length.values()
         ):
-            for n_1, datum in enumerate(register.get_all(Save_State_Type.BS, self.beta)):
+            for n, datum in enumerate(register.get_all(Save_State_Type.BS, self.beta)):
+                    self.assertEqual(
+                        self.Bs[n],
+                        datum
+                    )
+            for n, datum in enumerate(register.get_all(Save_State_Type.CS, self.beta)):
                 self.assertEqual(
-                    self.Bs[n_1],
-                    datum
-                )
-            for n_1, datum in enumerate(register.get_all(Save_State_Type.CS, self.beta)):
-                self.assertEqual(
-                    self.cs[n_1],
+                    self.cs[n],
                     datum
                 )
 
@@ -523,7 +526,7 @@ class Test_Save_State(TestCase):
         with self.assertRaises(ValueError):
             Save_State(Save_State_Type.CS, self.beta, [], 1)
         with self.assertRaises(ValueError):
-            Save_State(Save_State_Type.CS, self.beta, ["hi"], 0)
+            Save_State(Save_State_Type.CS, self.beta, ["hi"], -1)
 
     def test_get_beta(self):
         for save_state in _iter_over_all(self):
@@ -548,7 +551,7 @@ class Test_Save_State(TestCase):
                 metadata.dps == save_state.dps and
                 metadata.start_n == save_state.start_n and
                 metadata.data is None and
-                metadata.length == save_state.length and
+                metadata._length == save_state._length and
                 metadata.is_complete == save_state.is_complete and
                 metadata.p == save_state.p and
                 metadata.m == save_state.m
@@ -578,7 +581,7 @@ class Test_Save_State(TestCase):
 
             save_state1 = copy.copy(save_state)
             save_state2 = copy.copy(save_state)
-            save_state1.min_poly = poly1d((1,))
+            save_state1.min_poly = Polynomial((1,))
             self.assertNotEqual(save_state1, save_state2, "min_polys should be different")
 
             save_state1 = copy.copy(save_state)
@@ -607,8 +610,8 @@ class Test_Save_State(TestCase):
 
             save_state1 = copy.copy(save_state)
             save_state2 = copy.copy(save_state)
-            save_state1.length = 1
-            save_state2.length = 2
+            save_state1._length = 1
+            save_state2._length = 2
             self.assertNotEqual(save_state1, save_state2, "length should be different")
 
             save_state1 = copy.copy(save_state)
@@ -642,7 +645,7 @@ class Test_Save_State(TestCase):
 
             save_state1 = copy.copy(save_state)
             save_state2 = copy.copy(save_state)
-            save_state1.min_poly = poly1d((1,))
+            save_state1.min_poly = Polynomial((1,))
             self.assertNotEqual(hash(save_state1), hash(save_state2), "min_polys should be different")
 
             save_state1 = copy.copy(save_state)
@@ -665,8 +668,8 @@ class Test_Save_State(TestCase):
 
             save_state1 = copy.copy(save_state)
             save_state2 = copy.copy(save_state)
-            save_state1.length = 1
-            save_state2.length = 2
+            save_state1._length = 1
+            save_state2._length = 2
             self.assertNotEqual(hash(save_state1), hash(save_state2), "length should be different")
 
             save_state1 = copy.copy(save_state)
@@ -684,7 +687,6 @@ class Test_Save_State(TestCase):
     def test___contains__(self):
         for save_state in _iter_over_all(self):
             self.assertNotIn(-1, save_state)
-            self.assertNotIn(0, save_state)
             self.assertNotIn(save_state.start_n-1, save_state)
             self.assertIn(save_state.start_n, save_state)
             self.assertIn(save_state.start_n + len(save_state) - 1, save_state)
@@ -694,8 +696,6 @@ class Test_Save_State(TestCase):
         for save_state in _iter_over_all(self):
             with self.assertRaises(IndexError):
                 save_state[-1]
-            with self.assertRaises(IndexError):
-                save_state[0]
             with self.assertRaises(IndexError):
                 save_state[save_state.start_n-1]
             with self.assertRaises(IndexError):
@@ -707,8 +707,6 @@ class Test_Save_State(TestCase):
         for save_state in _iter_over_all(self):
             with self.assertRaises(IndexError):
                 save_state.get_slice(-1, save_state.start_n+1)
-            with self.assertRaises(IndexError):
-                save_state.get_slice(0, save_state.start_n+1)
             with self.assertRaises(IndexError):
                 save_state.get_slice(save_state.start_n, save_state.start_n + len(save_state)+1)
             if len(save_state) > 1:

@@ -14,7 +14,10 @@
 """
 
 from mpmath import workdps, polyroots, im, re, almosteq, log10
-from numpy import poly1d
+from numpy.polynomial.polynomial import Polynomial
+
+from src.mpmath_helpers import convert_polynomial_format
+
 
 class Salem_Number:
     """A class representing a Salem number.
@@ -35,13 +38,13 @@ class Salem_Number:
         :param beta0: Default `None`. Can also be calculated with a call to `calc_beta0`.
         """
 
-        if not isinstance(min_poly, poly1d):
-            self.min_poly = poly1d(min_poly)
+        if not isinstance(min_poly, Polynomial):
+            self.min_poly = Polynomial(min_poly)
         else:
             self.min_poly = min_poly
         self.dps = dps
         self.beta0 = beta0
-        self.deg = len(self.min_poly)
+        self.deg = self.min_poly.degree()
         self.conjs = None
 
     def __eq__(self, other):
@@ -57,7 +60,7 @@ class Salem_Number:
             return str(tuple(self.min_poly.coef))
 
     def get_trace(self):
-        return -self.min_poly[1]
+        return -self.min_poly.coef[1]
 
     def calc_beta0(self, remember_conjs = False):
         """Calculates the maximum modulus root of `self.min_poly` to within `self.dps` digits bits of precision.
@@ -69,9 +72,9 @@ class Salem_Number:
         """
         if not self.beta0 or (remember_conjs and not self.conjs):
             with workdps(self.dps):
-                if self.min_poly == poly1d((0,)):
+                if self.min_poly == Polynomial((0,)):
                     raise Not_Salem_Error(self)
-                rts = polyroots(tuple(self.min_poly.coef))
+                rts = polyroots( convert_polynomial_format(self.min_poly) )
                 if len(rts) < 4 or len(rts) % 2 == 1:
                     raise Not_Salem_Error(self)
                 rts = sorted(rts, key=lambda z: abs(im(z)))
@@ -92,7 +95,7 @@ class Salem_Number:
         raise NotImplementedError
 
 def _is_salem_6poly(a, b, c, dps):
-    U = poly1d((1, a, b - 3, c - 2 * a))
+    U = Polynomial((c - 2 * a, b - 3, a, 1))
     if U(2) >= 0 or U(-2) >= 0:
         return False
     for n in range(-1, max(abs(a), abs(b - 3), abs(c - 2 * a))+2):
@@ -101,7 +104,7 @@ def _is_salem_6poly(a, b, c, dps):
     if U(-1) > 0 or U(0) > 0 or U(1) > 0:
         return True
     else:
-        P = poly1d((1,a,b,c,b,a,1))
+        P = Polynomial((1,a,b,c,b,a,1))
         try:
             Salem_Number(P,dps).check_salem()
             return True
@@ -117,7 +120,7 @@ def salem_iter(deg, min_trace, max_trace, dps):
         for b in range(-b_max, b_max + 1):
             for c in range(-c_max, c_max + 1):
                 if _is_salem_6poly(a, b, c, dps):
-                    P = poly1d((1, a, b, c, b, a, 1))
+                    P = Polynomial((1, a, b, c, b, a, 1))
                     beta = Salem_Number(P, dps)
                     beta.calc_beta0()
                     yield beta
