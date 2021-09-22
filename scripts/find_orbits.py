@@ -12,7 +12,11 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
+import logging
+import os
+import sys
 from pathlib import Path
+import pickle as pkl
 
 import numpy as np
 from mpmath import mpf
@@ -21,12 +25,48 @@ from numpy import poly1d
 from mpmath import workdps
 from numpy.polynomial.polynomial import Polynomial
 
-from src.beta_orbit import calc_period_ram_only
+from src.beta_orbit import calc_period_ram_only, calc_period_ram_and_disk
 from src.boyd_data import boyd, filter_by_size
 from src.salem_numbers import Salem_Number
+from src.save_states import Pickle_Register
 
-filename1 = Path("../output/several_smaller_orbits.txt")
-filename2 = Path("../test/several_smaller_orbits.txt")
+max_n = 10 ** 9
+max_restarts = 4
+starting_dps = 64
+save_period = 100000
+check_memory_period = 100000
+needed_bytes = check_memory_period * 300
+register = Pickle_Register(Path.home() / "beta_expansions")
+register_filename = Path.home() / "beta_expansions" / "register_find_close_orbit.pkl"
+
+beta = Salem_Number(Polynomial((1,-10,-40,-59,-40,-10,1)), starting_dps)
+
+logging.basicConfig(filename = "../logs/find_close_orbit.log", level = logging.INFO)
+
+try:
+    calc_period_ram_and_disk(
+        beta,
+        max_n,
+        max_restarts,
+        starting_dps,
+        save_period,
+        check_memory_period,
+        needed_bytes,
+        register
+    )
+except KeyboardInterrupt:
+    with register_filename.open("wb") as fh:
+        pkl.dump(register.get_dump_data(), fh)
+    try:
+        sys.exit(0)
+    except SystemExit:
+        os._exit(0)
+
+with register_filename.open("wb") as fh:
+    pkl.dump(register.get_dump_data(), fh)
+
+# filename1 = Path("../output/several_smaller_orbits.txt")
+# filename2 = Path("../test/several_smaller_orbits.txt")
 
 # with filename.open("w") as fh:
 #     fh.write("[\n")
@@ -38,21 +78,21 @@ filename2 = Path("../test/several_smaller_orbits.txt")
 #             fh.write("\t" + str((tuple(beta.min_poly), beta0, list(Bs), list(cs), Bs.p, Bs.m)) + ",\n")
 #     fh.write("]")
 
-data = []
-
-with filename1.open("r") as fh:
-    for line in fh.readlines():
-        if "poly1d" in line:
-            with workdps(256):
-                data.append(eval(line)[0])
-
-with filename2.open("w") as fh:
-    for datum in data:
-        with workdps(256):
-            Bs = datum[2]
-            Bs = [Polynomial(np.flip(B.coef)) for B in Bs]
-            datum = (datum[0], datum[1], Bs, datum[3], datum[4], datum[5])
-            fh.write(str(datum) + ",\n")
+# data = []
+#
+# with filename1.open("r") as fh:
+#     for line in fh.readlines():
+#         if "poly1d" in line:
+#             with workdps(256):
+#                 data.append(eval(line)[0])
+#
+# with filename2.open("w") as fh:
+#     for datum in data:
+#         with workdps(256):
+#             Bs = datum[2]
+#             Bs = [Polynomial(np.flip(B.coef)) for B in Bs]
+#             datum = (datum[0], datum[1], Bs, datum[3], datum[4], datum[5])
+#             fh.write(str(datum) + ",\n")
 
 
 # beta_nearly_hits_integer = Salem_Number(poly1d((1, -10, -40, -59, -40, -10, 1)), 32)

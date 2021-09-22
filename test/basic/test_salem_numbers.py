@@ -27,9 +27,9 @@ class Test_Salem_Number(TestCase):
 
         # correct to 256 decimal places
         self.data_dps = 256
-        self.salems = eval_code_in_file("several_salem_numbers.txt", self.data_dps)
-        self.non_salems = eval_code_in_file("several_nonsalem_min_polys.txt", self.data_dps)
-        self.incorrect_salems = eval_code_in_file("several_incorrect_salem_numbers.txt", self.data_dps)
+        self.salems = eval_code_in_file("../several_salem_numbers.txt", self.data_dps)
+        self.non_salems = eval_code_in_file("../several_nonsalem_min_polys.txt", self.data_dps)
+        self.incorrect_salems = eval_code_in_file("../several_incorrect_salem_numbers.txt", self.data_dps)
 
 
     def test_calc_beta0(self):

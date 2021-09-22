@@ -27,7 +27,7 @@ from src.periodic_list import Periodic_List, has_redundancies
 from src.salem_numbers import Salem_Number
 from src.utility import X, BYTES_PER_KB, BYTES_PER_MB
 from src.periodicity_checker import check_periodicity_ram_only, check_periodicity_ram_and_disk
-from src.save_states import Save_State_Type, Save_State, Ram_Data
+from src.save_states import Save_State_Type, Ram_Data
 
 
 def calc_next_iterate(beta, B, c):
@@ -38,11 +38,12 @@ def calc_next_iterate(beta, B, c):
         B -= B.coef[deg] * beta.min_poly
     return B
 
-
 class Beta_Orbit_Iter:
-    def __init__(self, beta, length = None):
+    def __init__(self, beta, max_n = None):
+        if max_n and max_n < 0:
+            raise ValueError("max_n must be at least 0. passed max_n: %d" % max_n)
         self.beta = beta
-        self.length = length
+        self.max_n = max_n
         self.n = 0
         self.curr_B = Polynomial((1,))
         with workdps(self.beta.dps):
@@ -51,14 +52,17 @@ class Beta_Orbit_Iter:
     def __iter__(self):
         return self
 
-    def set_start_info(self, start_B, n):
+    def set_start_info(self, start_B, start_n):
+        if self.max_n and start_n > self.max_n:
+            raise ValueError("max_n for this instance is %d, but attempted to set start_n to %d" % (self.max_n, start_n))
         self.curr_B = start_B
-        self.n = n
+        self.n = start_n
 
     def __next__(self):
-        if self.length is not None and self.n >= self.length:
+        if self.max_n is not None and self.n > self.max_n:
             raise StopIteration
-        xi = self.beta.beta0 * polyval( convert_polynomial_format(self.curr_B), self.beta.beta0 )
+        with workdps(self.beta.dps):
+            xi = self.beta.beta0 * polyval( convert_polynomial_format(self.curr_B), self.beta.beta0 )
         eta = self._calc_eta()
         if frac(xi) <= eta:
             raise Accuracy_Error(self.beta.dps)
@@ -70,36 +74,39 @@ class Beta_Orbit_Iter:
         return old_n, c, xi, old_B
 
     def _calc_eta(self):
-        return self._eps * polyval(tuple(X * self.curr_B), self.beta.beta0 + self._eps, derivative=True)[1]
-
+        with workdps(self.beta.dps):
+            return self._eps * polyval(convert_polynomial_format(X * self.curr_B), self.beta.beta0 + self._eps, derivative=True)[1]
 
 def _dump_data(n_lower, n_upper, Bs, cs, register, p = None, m = None):
 
-    Bs = Bs.get_slice(n_lower, n_upper+1).cast_to_save_state()
-    cs = cs.get_slice(n_lower, n_upper+1).cast_to_save_state()
-    beta = Bs.get_beta()
+    if n_upper >= n_lower:
+        Bs = Bs.get_slice(n_lower, n_upper+1).cast_to_save_state()
+        cs = cs.get_slice(n_lower, n_upper+1).cast_to_save_state()
+        beta = Bs.get_beta()
 
-    for save_state in [Bs, cs]:
+        for save_state in [Bs, cs]:
+            if p and m:
+                save_state.mark_complete(p,m)
+                save_state.remove_redundancies()
+            if len(save_state) > 0:
+                register.add_save_state(save_state)
         if p and m:
-            save_state.mark_complete(p,m)
-            save_state.remove_redundancies()
-        if len(save_state) > 0:
-            register.add_save_state(save_state)
-    if p and m:
-        for typee in Save_State_Type:
-            register.mark_complete(typee,beta,p,m)
-            register.cleanup_redundancies(typee,beta)
+            for typee in Save_State_Type:
+                register.mark_complete(typee,beta,p,m)
+                register.cleanup_redundancies(typee,beta)
 
 def _dump_data_log(n_lower, n_upper, last_save_time):
-    logging.info("Saving iterates %d to %d to disk" % (n_lower, n_upper))
-    logging.info("Elapsed time since last save: %.3f s" % (time.time() - last_save_time))
+    if n_upper >= n_lower:
+        logging.info("Saving iterates %d to %d to disk" % (n_lower, n_upper))
+        logging.info("Elapsed time since last save: %.3f s" % (time.time() - last_save_time))
+    else:
+        logging.warning("Invalid range: Attempted to save iterates %d to %d to disk; continuing." % (n_lower, n_upper))
     return time.time()
 
 def _found_period_log(beta, p, m, start_time):
     logging.info("Found period for orbit of Salem number: %s" % beta)
     logging.info("p = %d, m = %d" % (p,m))
     logging.info("Total elapsed time: %.3f" % (time.time() - start_time))
-
 
 def _check_memory(check_memory_period, available_memory, memory_used_since_last_checks, needed_bytes):
     _available_memory = psutil.virtual_memory().available
@@ -112,6 +119,27 @@ def _check_memory(check_memory_period, available_memory, memory_used_since_last_
             (available_memory - needed_bytes) * check_memory_period / median(memory_used_since_last_checks))
         logging.info("Estimated number of iterates before switch: %d" % approx_num_iter)
     return have_excess_memory, available_memory
+
+def _get_Bk_iter(beta, n, register):
+    if n > 0:
+        k = (n - 1) // 2
+        B1_iter = Beta_Orbit_Iter(beta)
+        Bk = register.get_n(Save_State_Type.BS, beta, k)
+        B1_iter.set_start_info(Bk, k)
+        if n % 2 == 0:
+            B1 = B1_iter.__next__()[3]
+        else:
+            B1 = None
+    else:
+        B1 = None
+        B1_iter = Beta_Orbit_Iter(beta)
+
+    return B1, B1_iter
+
+def _clear_ram_data(register, ram_datas):
+    for ram_data in ram_datas:
+        register.remove_ram_data(ram_data)
+        ram_data.clear()
 
 def calc_period_ram_only(beta, max_n, max_restarts, starting_dps):
     """Calculate the period of a beta expansion, using only RAM.
@@ -149,11 +177,11 @@ def calc_period_ram_only(beta, max_n, max_restarts, starting_dps):
 
     return False, None, None
 
-
-def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register):
+def calc_period_ram_and_disk(beta, start_n, max_n, max_restarts, starting_dps, save_period, check_memory_period, needed_bytes, register):
     """Calculate the period of the orbit of 1 under multiplication by `beta` mod 1, where `beta` is a Salem number.
 
     :param beta: Type `Salem_Number`.
+    :param start_n: Positive int. The first iterate to calculate, 0-indexed.
     :param max_n: Positive int. Maximum length of the orbit to calculate. Logs a warning if this limit is reached.
     :param max_restarts: Positive int. The algorithm may periodically encounter critical rounding errors. This is the maximum
     number of times to increase float precision before giving up. Logs a warning if this limit is reached.
@@ -168,11 +196,12 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
     """
 
     if check_memory_period < save_period:
-        raise RuntimeError("`check_memory_period` must be at least `save_period`. check_memory_period: %d, save_period: %d" % (check_memory_period, save_period))
+        raise ValueError("`check_memory_period` must be at least `save_period`. check_memory_period: %d, save_period: %d" % (check_memory_period, save_period))
 
     mp.dps = starting_dps
 
     logging.info("Finding period for Salem number: %s" % beta)
+    logging.info("Starting with iterated: %d" % start_n)
 
     for _ in range(max_restarts):
         # This loop increases `mp.dps` until a good orbit is found, or until `mp.dps` reaches a defined maximum.
@@ -185,15 +214,25 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
             have_excess_memory = available_memory > needed_bytes
             memory_used_since_last_checks = []
             just_switched = True
-            start_n_this_save = 0
+            start_n_this_save = start_n
 
-            cs = Ram_Data(Save_State_Type.CS, beta, [], 0, save_period)
-            Bs = Ram_Data(Save_State_Type.BS, beta, [], 0, save_period)
+            cs = Ram_Data(Save_State_Type.CS, beta, [], start_n, save_period)
+            Bs = Ram_Data(Save_State_Type.BS, beta, [], start_n, save_period)
             register.add_ram_data( cs )
             register.add_ram_data( Bs )
             last_save_time = time.time()
 
-            for n, c, _, B in Beta_Orbit_Iter(beta, max_n):
+            orbit_iter = Beta_Orbit_Iter(beta, max_n)
+
+            if start_n > 0:
+                most_recent_B = register.get_n(Save_State_Type.BS, beta, start_n-1)
+                orbit_iter.set_start_info(most_recent_B, start_n-1)
+                orbit_iter.__next__()
+                just_switched = False
+                have_excess_memory = False
+                B1, B1_iter = _get_Bk_iter(beta, start_n, register)
+
+            for n, c, _, B in orbit_iter:
                 """
                 Loops over the orbit. This loop is broken in one of three circumstances:
                 - The `__next__` method throws an `Accuracy_Error`.
@@ -247,14 +286,7 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
                         logging.warning("Remaining memory: %d MB %d KB" % (available_memory // BYTES_PER_MB, available_memory % BYTES_PER_KB))
                         logging.warning("Required memory:  %d MB %d KB" % (needed_bytes // BYTES_PER_MB, needed_bytes % BYTES_PER_KB))
 
-                        if n > 0:
-                            k = (n-1)//2
-                            B1_iter = Beta_Orbit_Iter(beta)
-                            B1_iter.set_start_info(Bs[k],k)
-                            if n % 2 == 0:
-                                B1 = B1_iter.__next__()[3]
-                        else:
-                            B1_iter = Beta_Orbit_Iter(beta)
+                        B1, B1_iter = _get_Bk_iter(beta, n, register)
 
                         Bs.trim_initial(start_n_this_save)
                         cs.trim_initial(start_n_this_save)
@@ -267,7 +299,7 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
                         if is_periodic:
                             if not has_redundancies(start_n_this_save,1,p,m):
                                 last_save_time = _dump_data_log(start_n_this_save, p + m - 1, last_save_time)
-                            _dump_data(start_n_this_save,n,Bs,cs,register,p,m)
+                            _dump_data(start_n_this_save, n, Bs, cs, register, p, m)
                             _found_period_log(beta, p, m, start_time)
                             return
 
@@ -285,7 +317,11 @@ def calc_period_ram_and_disk(beta, max_n, max_restarts, starting_dps, save_perio
             else:
                 # When `n` is in excess of `max_n`
                 logging.warning("Did not find period for beta = %s." % beta)
-                logging.warning("Exceeded maximum orbit size: %d" % max_n)
+                logging.warning("Exceeded maximum index: %d" % max_n)
+                if start_n_this_save <= n:
+                    _dump_data_log(start_n_this_save, n, last_save_time)
+                    _dump_data(start_n_this_save, n, Bs, cs, register)
+                _clear_ram_data(register, [cs, Bs])
                 return
 
         except Accuracy_Error:

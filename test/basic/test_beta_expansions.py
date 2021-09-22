@@ -29,7 +29,7 @@ class Test_Beta_Expansions(TestCase):
 
     def setUp(self):
         self.data_dps = 256
-        self.several_smaller_orbits = eval_code_in_file("several_smaller_orbits.txt", self.data_dps)
+        self.several_smaller_orbits = eval_code_in_file("../several_smaller_orbits.txt", self.data_dps)
 
     def test_calc_beta_expansion(self):
         num_iterates = 100

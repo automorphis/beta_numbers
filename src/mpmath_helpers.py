@@ -22,11 +22,12 @@ class Accuracy_Error(RuntimeError):
         super().__init__("current decimal precision: %d" % dps)
 
 
-def inequal_dps(x,y,max_dps = 1000):
+def inequal_dps(x,y,max_dps = 256):
     for dps in range(1,max_dps+1):
         with workdps(dps):
             if not almosteq(x,y):
                 return dps
+    return 0
 
 def convert_polynomial_format(poly):
     return tuple(np.flip(poly.coef))

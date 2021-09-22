@@ -20,7 +20,7 @@ from src.salem_numbers import Salem_Number, Not_Salem_Error
 
 class Test_Boyd_Data(TestCase):
 
-    def test_get_number_size(self):
+    def test__get_number_size(self):
         self.assertEqual("smallest", _get_number_size((None,   (1, 1)),                        Number_Type.D))
         self.assertEqual("smaller", _get_number_size((None,    (1, 10)),                       Number_Type.D))
         self.assertEqual("small", _get_number_size((None,      (200, 100)),                    Number_Type.D))

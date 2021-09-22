@@ -29,3 +29,8 @@ def eval_code_in_file(filename, dps = 32):
     with workdps(dps):
         with filename.open("r") as fh:
             return eval("".join(fh.readlines()))
+
+def intervals_overlap(int1,int2):
+    a1,l1 = int1
+    a2,l2 = int2
+    return a1 <= a2 < a1 + l1 or a1 <= a2 + l2 < a1 + l1 or a2 <= a1 < a2 + l2 or a2 <= a1 + l1 < a2 + l2

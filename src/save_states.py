@@ -14,16 +14,19 @@
 """
 
 import copy
+import logging
 import random
 import pickle as pkl
 from enum import Enum
 from pathlib import Path
 
 import numpy as np
+from mpmath import workdps, almosteq
 from numpy.polynomial.polynomial import Polynomial
 
 from src.periodic_list import has_redundancies, calc_beginning_index_of_redundant_data
 from src.salem_numbers import Salem_Number
+from src.utility import intervals_overlap
 
 BASE56 = "23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
 FILENAME_LEN = 20
@@ -49,8 +52,6 @@ class Save_State:
         self.dps = beta.dps
         self.start_n = start_n
         self.data = list(data)
-        if len(self.data) == 0:
-            raise ValueError("input data cannot be empty")
         if self.start_n < 0:
             raise ValueError("start_n must be at least 0")
         self.is_complete = False
@@ -138,20 +139,39 @@ class Save_State:
         self.m = m
         self.is_complete = True
 
+    def verify(self):
+        with workdps(self.dps):
+            return (
+                self.type in Save_State_Type and
+                self.beta0 and
+                self.get_beta().verify_calculated_beta0() and
+                self._length == len(self.data) and
+                (
+                    (
+                        self.type == Save_State_Type.CS and
+                        all(
+                            almosteq(int(datum), datum) and
+                            0 <= datum < self.beta0
+                            for datum in self.data
+                        )
+                    ) or (
+                        self.type == Save_State_Type.BS and
+                        all(
+                            isinstance(datum, Polynomial) and
+                            all( almosteq(int(c), c) for c in datum.coef )
+                            for datum in self.data
+                        )
+                    )
+                )
+            )
+
 class Ram_Data(Save_State):
 
     def __init__(self, typee, beta, data, start_n, init_data_size, growth_factor=2):
-        self.type = typee
-        self.beta = beta
-        self.start_n = start_n
+        super().__init__(typee,beta,data,start_n)
         self.init_data_size = init_data_size
         self._init_data(data, self.init_data_size)
         self.growth_factor = growth_factor
-        if self.start_n < 0:
-            raise ValueError("start_n must be at least 0")
-        self.is_complete = False
-        self.p = None
-        self.m = None
 
     def _init_data(self, data, init_size):
         if self.type == Save_State_Type.CS:
@@ -192,9 +212,6 @@ class Ram_Data(Save_State):
         self.data = np.delete(self.data, np.s_[:n])
         self._length -= n
         self.set_start_n(n)
-
-    def get_beta(self):
-        return self.beta
 
     def set_start_n(self,start_n):
         self.start_n = start_n
@@ -248,8 +265,24 @@ class Pickle_Register:
             self.metadatas = {}
             self.save_states_filenames = {typee: [] for typee in Save_State_Type}
 
-    # def list_orbits_calculated(self):
-    #     return [(Salem_Number(metadatas.min_poly,, metadatas.type) for metadatas in self.metadatas]
+    @staticmethod
+    def discover(saves_directory):
+        register = Pickle_Register(saves_directory)
+        for f in saves_directory.iterdir():
+            if f.is_file():
+                try:
+                    with f.open("rb") as fh:
+                        save_state = pkl.load(fh)
+                    if isinstance(save_state, Save_State) and save_state.verify():
+                        register.add_save_state(save_state)
+                except pkl.UnpicklingError:
+                    logging.warning("Pickled data at %s is corrupted" % f)
+        return register
+
+    @staticmethod
+    def dump(save_state, filename):
+        with filename.open("wb") as fh:
+            pkl.dump(save_state,fh)
 
     def _load_metadatas(self):
         if not self.metadatas_utd:
@@ -258,7 +291,7 @@ class Pickle_Register:
                 for filename in self.save_states_filenames[typee]:
                     with filename.open("rb") as fh:
                         save_state = pkl.load(fh)
-                        self._add_metadata(save_state.get_metadata(), filename)
+                    self._add_metadata(save_state.get_metadata(), filename)
             self.metadatas_utd = True
 
     def _add_metadata(self, save_state, filename):
@@ -267,11 +300,55 @@ class Pickle_Register:
     def _remove_metadata(self, metadata):
         del self.metadatas[metadata]
 
-    def _remove_ram_data(self, ram_data):
-        self.ram_datas.remove(ram_data)
+    def _slice_ram_datas(self, typee, beta):
+        ret = []
+        for ram_data in self.ram_datas:
+            if ram_data.type == typee and ram_data.get_beta() == beta:
+                ret.append(ram_data)
+        return ret
+
+    def _slice_metadatas(self, typee, beta):
+        ret = {}
+        for metadata, filename in self.metadatas.items():
+            if metadata.type == typee and metadata.get_beta() == beta:
+                ret[metadata] = filename
+        return ret
+
+    def load(self,metadata):
+        with self.metadatas[metadata].open("rb") as fh:
+            return pkl.load(fh)
+
+    def list_orbits_calculated(self):
+        betas = list(set(metadata.get_beta() for metadata in self.metadatas))
+        ret = {}
+        for typee in Save_State_Type:
+            for beta in betas:
+                intervals_sorted = sorted(
+                    [
+                        (metadata.start_n, metadata.start_n + len(metadata))
+                        for metadata in self._slice_metadatas(typee,beta)
+                    ],
+                    key = lambda t: t[0]
+                )
+                intervals_reduced = []
+                for int1 in intervals_sorted:
+                    for i, int2 in enumerate(intervals_reduced):
+                        if intervals_overlap(int1,int2):
+                            a1, l1 = int1
+                            a2, l2 = int2
+                            if a2 + l2 < a1 + l1:
+                                intervals_reduced[i] = (a2, a1 + l1 - a2)
+                                break
+                    else:
+                        intervals_reduced.append(int1)
+                ret[(typee, beta)] = intervals_reduced
+        return ret
 
     def add_ram_data(self, ram_data):
         self.ram_datas.append(ram_data)
+
+    def remove_ram_data(self, ram_data):
+        self.ram_datas.remove(ram_data)
 
     def add_save_state(self, save_state, num_attempts=10):
         """Let a `Save_State` be known to this `Register` and save the `Save_State` to disk.
@@ -300,8 +377,7 @@ class Pickle_Register:
         self.save_states_filenames[save_state.type].append( filename )
         self._add_metadata( save_state.get_metadata(), filename )
 
-        with filename.open("wb") as fh:
-            pkl.dump(save_state, fh)
+        Pickle_Register.dump(save_state,filename)
 
     def clear(self, typee, beta):
         """Delete from memory all `Save_States` associated with this `Register`.
@@ -315,7 +391,7 @@ class Pickle_Register:
             self._remove_metadata(metadata)
         for ram_data in self._slice_ram_datas(typee, beta):
             ram_data.clear()
-            self._remove_ram_data(ram_data)
+            self.remove_ram_data(ram_data)
 
     def cleanup_redundancies(self, typee, beta):
         """Delete from memory all redundant data. For example, if a `save_state.is_complete`, then all entries past
@@ -333,8 +409,7 @@ class Pickle_Register:
                         Path.unlink(filename)
                         self._remove_metadata(metadata)
                     else:
-                        with filename.open("rb") as fh:
-                            save_state = pkl.load(fh)
+                        save_state = self.load(metadata)
                         Path.unlink(filename)
                         sliced = save_state.get_slice(start_n, p + m)
                         self._remove_metadata(metadata)
@@ -364,43 +439,32 @@ class Pickle_Register:
         """
         return self.get_save_state(typee, beta, n)[n]
 
-    def _slice_ram_datas(self, typee, beta):
-        ret = []
-        for ram_data in self.ram_datas:
-            if ram_data.type == typee and ram_data.get_beta() == beta:
-                ret.append(ram_data)
-        return ret
-
-    def _slice_metadatas(self, typee, beta):
-        ret = {}
-        for metadata, filename in self.metadatas.items():
-            if metadata.type == typee and metadata.get_beta() == beta:
-                ret[metadata] = filename
-        return ret
-
     def get_save_state(self, typee, beta, n):
         """Like `self.get_n`, but returns the `Save_State` associated with the index `n`. Useful for iterating.
 
         :raises ValueError: if `n` is not positive or 0.
-        :raises Data_Not_Found_Error: If the data is not found.
+        :raises Data_Not_Found_Error
+        :raises UnpicklingError
         """
 
         if n < 0:
             raise ValueError("n is not positive or 0, passed value: %d" % n)
-
-        self._load_metadatas()
-        for metadata, filename in self._slice_metadatas(typee,beta).items():
-            if n in metadata:
-                with filename.open("rb") as fh:
-                    save_state = pkl.load(fh)
-                return save_state
         for ram_data in self._slice_ram_datas(typee, beta):
             if n in ram_data:
                 return ram_data
+        for metadata, _ in self._slice_metadatas(typee,beta).items():
+            if n in metadata:
+                return self.load(metadata)
         raise Data_Not_Found_Error(typee,beta,n)
 
     def get_all(self,typee,beta):
-        """Returns an iterator that gives all data on the disk associated with the given parameters."""
+        """Returns an iterator that gives all data on the disk associated with the given parameters.
+
+        :param typee: Type `Save_Data_Type`.
+        :param beta: Type `Salem_Numer`.
+        :raises UnpicklingError
+        :return: An iterator returning the requested data.
+        """
         return _Save_States_Iter(self,typee,beta,0)
 
     def get_n_range(self, typee, beta, lower, upper):
@@ -410,58 +474,95 @@ class Pickle_Register:
         :param beta: Type `Salem_Numer`.
         :param lower: (positive int or 0) lower bound of indices, inclusive.
         :param upper: (positive int) upper bound of indices, exclusive.
-        :raises Data_Not_Found_Error: If the requested data is not found.
+        :raises Data_Not_Found_Error
+        :raises ValueError: If `lower < 0` or `upper < 0` or `upper < lower`
+        :raises TypeError
+        :raises UnpicklingError
         :return: An iterator returning the requested data.
         """
+        if not (isinstance(lower, int) and isinstance(upper, int)):
+            raise TypeError("either `upper` or `lower` is not an `int`")
+        if lower < 0 or upper < 0 or upper < lower:
+            raise ValueError("Problem with upper and lower. upper: %d, lower: %d" % (upper, lower))
         return _Save_States_Iter(self, typee, beta, lower, upper)
 
     def mark_complete(self, typee, beta, p, m):
+        """Mark all associated data as complete, with period length `p` and preperiod length `m`.
+
+        :param typee: (type `Data_Save_Type`)
+        :param beta: (type `Salem_Number`)
+        :param p: (positive int)
+        :param m: (positive int)
+        :raises PicklingError
+        :raises UnpicklingError
+        """
         for metadata,filename in self._slice_metadatas(typee,beta).items():
             if not (metadata.is_complete and metadata.p == p and metadata.m == m):
-                with filename.open("rb") as fh:
-                    save_state = pkl.load(fh)
+                save_state = self.load(metadata)
                 save_state.mark_complete(p,m)
                 self._remove_metadata(metadata)
                 metadata.mark_complete(p,m)
                 self._add_metadata(metadata, filename)
-                with filename.open("wb") as fh:
-                    pkl.dump(save_state,fh)
+                Pickle_Register.dump(save_state, filename)
+
         for ram_data in self._slice_ram_datas(typee, beta):
             ram_data.mark_complete(p,m)
 
     def get_p(self, typee, beta):
-        for metadata, filename in self._slice_metadatas(typee, beta).items():
-            if metadata.is_complete:
-                return metadata.p
+        """Get all `p` associated with the given `beta`.
+
+        :param typee: (type `Data_Save_Type`)
+        :param beta: (type `Salem_Number`)
+        """
         for ram_data in self._slice_ram_datas(typee, beta):
             if ram_data.is_complete:
                 return ram_data.p
+        for metadata, filename in self._slice_metadatas(typee, beta).items():
+            if metadata.is_complete:
+                return metadata.p
         return None
 
     def get_m(self, typee, beta):
-        for metadata, filename in self._slice_metadatas(typee, beta).items():
-            if metadata.is_complete:
-                return metadata.m
         for ram_data in self._slice_ram_datas(typee, beta):
             if ram_data.is_complete:
                 return ram_data.m
+        for metadata, filename in self._slice_metadatas(typee, beta).items():
+            if metadata.is_complete:
+                return metadata.m
         return None
 
     def get_complete_status(self, typee, beta):
-        for metadata, filename in self._slice_metadatas(typee, beta).items():
-            if metadata.is_complete:
-                return True
         for ram_data in self._slice_ram_datas(typee, beta):
             if ram_data.is_complete:
+                return True
+        for metadata, filename in self._slice_metadatas(typee, beta).items():
+            if metadata.is_complete:
                 return True
         return False
 
     def get_dump_data(self):
-        """This is what should be pickled. ONLY RETURNS METADATA FOR DATA ON THE DISK."""
+        """This is what should be pickled. ONLY RETURNS METADATA FOR DATA ON THE DISK. DOES NOT RETURN `Ram_Data`."""
         return (
             {typee: [str(filename) for filename in filenames] for typee, filenames in self.save_states_filenames.items()},
             {metadata: str(filename) for metadata, filename in self.metadatas.items()}
         )
+
+def convert_native_data_to_current_format(read_directory, write_directory):
+    if read_directory == write_directory:
+        raise ValueError("dont do that lol")
+    register = Pickle_Register.discover(read_directory)
+    for metadata,filename in register.metadatas.items():
+        old_save_state = register.load(metadata)
+        old_data = old_save_state.data
+        if old_save_state.type == Save_State_Type.BS:
+            new_data = np.empty(len(old_data), dtype = object)
+        else:
+            new_data = np.empty(len(old_data), dtype = int)
+        for i,datum in enumerate(old_data):
+            new_data[i] = datum
+        new_save_state = old_save_state.get_metadata()
+        new_save_state.data = new_data
+        Pickle_Register.dump(new_save_state, write_directory / filename.name)
 
 class _Save_States_Iter:
     def __init__(self, register, typee, beta, lower, upper=None):

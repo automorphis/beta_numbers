@@ -13,7 +13,7 @@
     GNU General Public License for more details.
 """
 
-from mpmath import workdps, polyroots, im, re, almosteq, log10
+from mpmath import workdps, polyroots, im, re, almosteq, log10, polyval
 from numpy.polynomial.polynomial import Polynomial
 
 from src.mpmath_helpers import convert_polynomial_format
@@ -91,8 +91,16 @@ class Salem_Number:
             if not(self.conjs[1] < 1 < self.conjs[0] and all(almosteq(abs(conj), 1) for conj in self.conjs[2:])):
                 raise Not_Salem_Error(self)
 
-    def calc_log10_delta_lower_bound(self):
-        raise NotImplementedError
+    def verify_calculated_beta0(self):
+        if self.beta0:
+            with workdps(self.dps):
+                return almosteq(
+                    polyval( convert_polynomial_format(self.min_poly), self.beta0 ),
+                    0
+                )
+        else:
+            return None
+
 
 def _is_salem_6poly(a, b, c, dps):
     U = Polynomial((c - 2 * a, b - 3, a, 1))

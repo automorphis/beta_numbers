@@ -17,8 +17,6 @@ from src.salem_numbers import salem_iter
 
 filename = "../output/polys.txt"
 
-check_mkdir(filename)
-
 with open(filename, "w") as fh:
     a = None
     last_beta = None
