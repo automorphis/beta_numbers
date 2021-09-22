@@ -11,7 +11,14 @@ This project has two aims:
 1. Continue the calculation for degree six where Boyd left off. The hope is that this will provide empirical evidence that will suggest how to refine his heuristic argument, with the goal of making it formally rigorous.
 2. Program an intuitive and user-friendly interface for working with data saved on the disk and in RAM simultaneously, especially when the data is the orbit of a point under a fixed transformation. For example, if the user is calculating a very long orbit of a point `initial_point` under a transformation `T`, then they can request the `n`-th iterate from the disk or RAM, wherever it may be, simply through the call `register.get_n(n, T, initial_point)`.
 
-## Known bugs
+## To do
 
-1. `calc_orbit.calc_period_ram_and_disk` still has a few bugs
+### Improvements
+
+1. Have `Pickle_Register` dynamical discover `Save_State`s.
+2. Edit `calc_orbit.calc_period_ram_and_disk` to pick up where a previous calculation left off.
+
+### Known bugs
+
+1. ~~`calc_orbit.calc_period_ram_and_disk` still has a few bugs~~
 
