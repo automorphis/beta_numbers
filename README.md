@@ -15,10 +15,11 @@ This project has two aims:
 
 ### Improvements
 
-1. Have `Pickle_Register` dynamical discover `Save_State`s.
-2. Edit `calc_orbit.calc_period_ram_and_disk` to pick up where a previous calculation left off.
+1. ~~Have `Pickle_Register` dynamical discover `Save_State`s.~~
+2. ~~Edit `calc_orbit.calc_period_ram_and_disk` to pick up where a previous calculation left off.~~
+3. Implement multiprocessing for calculating orbits.
 
 ### Known bugs
 
-1. ~~`calc_orbit.calc_period_ram_and_disk` still has a few bugs~~
+1. ~~.`calc_orbit.calc_period_ram_and_disk` still has a few bugs~~
 
