@@ -12,8 +12,8 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
+import random
 from pathlib import Path
-
 
 from mpmath import workdps, mpf
 from numpy.polynomial.polynomial import Polynomial
@@ -23,6 +23,8 @@ BYTES_PER_KB = 1024
 BYTES_PER_MB = 1024**2
 BYTES_PER_GB = 1024**3
 
+BASE56 = "23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
+PICKLE_EXT = ".pkl"
 
 def eval_code_in_file(filename, dps = 32):
     filename = Path(filename)
@@ -34,3 +36,14 @@ def intervals_overlap(int1,int2):
     a1,l1 = int1
     a2,l2 = int2
     return a1 <= a2 < a1 + l1 or a1 <= a2 + l2 < a1 + l1 or a2 <= a1 < a2 + l2 or a2 <= a1 + l1 < a2 + l2
+
+
+def random_filename(directory, suffix, alphabet = BASE56, length = 20):
+    filename = Path.resolve(
+        directory /
+        "".join(random.choices(alphabet, k=length))
+    )
+    if suffix:
+        return filename.with_suffix(suffix)
+    else:
+        return filename

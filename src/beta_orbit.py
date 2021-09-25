@@ -50,6 +50,7 @@ class Beta_Orbit_Iter:
             self._eps = power(2, -self.beta.dps)
 
     def __iter__(self):
+        self.beta.calc_beta0()
         return self
 
     def set_start_info(self, start_B, start_n):
@@ -76,6 +77,43 @@ class Beta_Orbit_Iter:
     def _calc_eta(self):
         with workdps(self.beta.dps):
             return self._eps * polyval(convert_polynomial_format(X * self.curr_B), self.beta.beta0 + self._eps, derivative=True)[1]
+
+# class Beta_Orbit_Iter_Global:
+#     def __init__(self, beta, max_n = None):
+#         if max_n and max_n < 0:
+#             raise ValueError("max_n must be at least 0. passed max_n: %d" % max_n)
+#         self.beta = beta
+#         self.max_n = max_n
+#         self.n = 0
+#         self.curr_B = Polynomial((1,))
+#         self._eps = power(2, -self.beta.dps)
+#
+#     def __iter__(self):
+#         self.beta.calc_beta0()
+#         return self
+#
+#     def set_start_info(self, start_B, start_n):
+#         if self.max_n and start_n > self.max_n:
+#             raise ValueError("max_n for this instance is %d, but attempted to set start_n to %d" % (self.max_n, start_n))
+#         self.curr_B = start_B
+#         self.n = start_n
+#
+#     def __next__(self):
+#         if self.max_n is not None and self.n > self.max_n:
+#             raise StopIteration
+#         xi = self.beta.beta0 * polyval( convert_polynomial_format(self.curr_B), self.beta.beta0 )
+#         eta = self._calc_eta()
+#         if frac(xi) <= eta:
+#             raise Accuracy_Error(self.beta.dps)
+#         c = int(floor(xi))
+#         old_B = self.curr_B
+#         self.curr_B = calc_next_iterate(self.beta,self.curr_B, c)
+#         old_n = self.n
+#         self.n += 1
+#         return old_n, c, xi, old_B
+#
+#     def _calc_eta(self):
+#         return self._eps * polyval(convert_polynomial_format(X * self.curr_B), self.beta.beta0 + self._eps, derivative=True)[1]
 
 def _dump_data(n_lower, n_upper, Bs, cs, register, p = None, m = None):
 
@@ -108,16 +146,12 @@ def _found_period_log(beta, p, m, start_time):
     logging.info("p = %d, m = %d" % (p,m))
     logging.info("Total elapsed time: %.3f" % (time.time() - start_time))
 
-def _check_memory(check_memory_period, available_memory, memory_used_since_last_checks, needed_bytes):
+def _check_memory(needed_bytes):
     _available_memory = psutil.virtual_memory().available
-    memory_used_since_last_checks.append(max(1, available_memory - _available_memory))
     available_memory = _available_memory
     have_excess_memory = available_memory > needed_bytes
     if have_excess_memory:
         logging.info("Remaining memory: %d MB" % (available_memory // BYTES_PER_MB))
-        approx_num_iter = int(
-            (available_memory - needed_bytes) * check_memory_period / median(memory_used_since_last_checks))
-        logging.info("Estimated number of iterates before switch: %d" % approx_num_iter)
     return have_excess_memory, available_memory
 
 def _get_Bk_iter(beta, n, register):
@@ -201,7 +235,7 @@ def calc_period_ram_and_disk(beta, start_n, max_n, max_restarts, starting_dps, s
     mp.dps = starting_dps
 
     logging.info("Finding period for Salem number: %s" % beta)
-    logging.info("Starting with iterated: %d" % start_n)
+    logging.info("Starting with iterate: %d" % start_n)
 
     for _ in range(max_restarts):
         # This loop increases `mp.dps` until a good orbit is found, or until `mp.dps` reaches a defined maximum.
@@ -212,7 +246,6 @@ def calc_period_ram_and_disk(beta, start_n, max_n, max_restarts, starting_dps, s
             start_time = time.time()
             available_memory = psutil.virtual_memory().available
             have_excess_memory = available_memory > needed_bytes
-            memory_used_since_last_checks = []
             just_switched = True
             start_n_this_save = start_n
 
@@ -257,9 +290,7 @@ def calc_period_ram_and_disk(beta, start_n, max_n, max_restarts, starting_dps, s
 
                     if n % check_memory_period == check_memory_period - 1:
                         # check available memory
-                        have_excess_memory, available_memory = _check_memory(
-                            check_memory_period, available_memory, memory_used_since_last_checks, needed_bytes
-                        )
+                        have_excess_memory, available_memory = _check_memory(needed_bytes)
 
                     if n % save_period == save_period - 1:
                         # dump data to disk

@@ -84,6 +84,20 @@ class Salem_Number:
                     self.conjs = [self.beta0, beta0_recip] + rts[2:]
         return self.beta0
 
+    # def calc_beta0_global(self, remember_conjs = False):
+    #     if not self.beta0 or (remember_conjs and not self.conjs):
+    #         if self.min_poly == Polynomial((0,)):
+    #             raise Not_Salem_Error(self)
+    #         rts = polyroots( convert_polynomial_format(self.min_poly) )
+    #         if len(rts) < 4 or len(rts) % 2 == 1:
+    #             raise Not_Salem_Error(self)
+    #         rts = sorted(rts, key=lambda z: abs(im(z)))
+    #         self.beta0 = re(max(rts[:2], key=re))
+    #         if remember_conjs:
+    #             beta0_recip = re(min(rts[:2], key=re))
+    #             self.conjs = [self.beta0, beta0_recip] + rts[2:]
+    #     return self.beta0
+
     def check_salem(self):
         """Check that this object actually encodes a Salem number as promised. Raises `Not_Salem_Error` if not."""
         self.calc_beta0(True)

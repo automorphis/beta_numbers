@@ -127,7 +127,7 @@ class Test_Beta_Orbit(TestCase):
     def test_calc_period_ram_and_disk(self):
         start_n = 0
         starting_dps = 32
-        max_n = 400
+        max_n = 10**9
         max_restarts = 1
         save_periods = [1, 2, 3, 5, 7, 10, 11, 100, 1000]
         check_memory_period = 10000
@@ -183,141 +183,141 @@ class Test_Beta_Orbit(TestCase):
         if Path.is_dir(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
 
-        # for needed_bytes_add, start_n, check_memory_period, save_period in product(
-        #     [2*BYTES_PER_GB, -BYTES_PER_GB, 2*BYTES_PER_MB], # needed_bytes_add
-        #     [1, 2, 3, 10, 50, 100], # start_n
-        #     [5, 10, 25, 100], # check_memory_period
-        #     save_periods
-        # ):
-        #     register = Pickle_Register(
-        #         self.tmp_dir / ("save_period-%d" % save_period)
-        #     )
-        #
-        #     for min_poly, _, actual_Bs, actual_cs, p, m in self.several_smaller_orbits[:5]:
-        #
-        #         beta = Salem_Number(min_poly, starting_dps)
-        #         actual_Bs = Periodic_List(actual_Bs, p, m)
-        #         actual_cs = Periodic_List(actual_cs, p, m)
-        #
-        #         if start_n >= p + m and check_memory_period >= save_period and start_n <= max_n:
-        #             with self.subTest():
-        #                 with self.assertRaises(Data_Not_Found_Error):
-        #                     needed_bytes = psutil.virtual_memory().available - needed_bytes_add
-        #                     calc_period_ram_and_disk(
-        #                         beta,
-        #                         start_n,
-        #                         max_n,
-        #                         max_restarts,
-        #                         starting_dps,
-        #                         save_period,
-        #                         check_memory_period,
-        #                         needed_bytes,
-        #                         register
-        #                     )
-        #
-        #         elif check_memory_period < save_period and start_n <= max_n:
-        #             with self.subTest():
-        #                 with self.assertRaises(ValueError):
-        #                     needed_bytes = psutil.virtual_memory().available - needed_bytes_add
-        #                     calc_period_ram_and_disk(
-        #                         beta,
-        #                         start_n,
-        #                         max_n,
-        #                         max_restarts,
-        #                         starting_dps,
-        #                         save_period,
-        #                         check_memory_period,
-        #                         needed_bytes,
-        #                         register
-        #                     )
-        #
-        #         elif start_n > max_n:
-        #             with self.subTest():
-        #                 with self.assertRaises(ValueError):
-        #                     needed_bytes = psutil.virtual_memory().available - needed_bytes_add
-        #                     calc_period_ram_and_disk(
-        #                         beta,
-        #                         start_n,
-        #                         max_n,
-        #                         max_restarts,
-        #                         starting_dps,
-        #                         save_period,
-        #                         check_memory_period,
-        #                         needed_bytes,
-        #                         register
-        #                     )
-        #
-        #         else:
-        #
-        #             if start_n > 0:
-        #                 needed_bytes = psutil.virtual_memory().available - needed_bytes_add
-        #                 calc_period_ram_and_disk(
-        #                     beta,
-        #                     0,
-        #                     start_n - 1,
-        #                     max_restarts,
-        #                     starting_dps,
-        #                     save_period,
-        #                     check_memory_period,
-        #                     needed_bytes,
-        #                     register
-        #                 )
-        #
-        #                 if not register.get_complete_status(Save_State_Type.CS, beta):
-        #
-        #                     needed_bytes = psutil.virtual_memory().available - needed_bytes_add
-        #                     calc_period_ram_and_disk(
-        #                         beta,
-        #                         start_n,
-        #                         max_n,
-        #                         max_restarts,
-        #                         starting_dps,
-        #                         save_period,
-        #                         check_memory_period,
-        #                         needed_bytes,
-        #                         register
-        #                     )
-        #
-        #             else:
-        #
-        #                 needed_bytes = psutil.virtual_memory().available - needed_bytes_add
-        #                 calc_period_ram_and_disk(
-        #                     beta,
-        #                     0,
-        #                     max_n,
-        #                     max_restarts,
-        #                     starting_dps,
-        #                     save_period,
-        #                     check_memory_period,
-        #                     needed_bytes,
-        #                     register
-        #                 )
-        #
-        #             calc_Bs = Periodic_List(
-        #                 list(register.get_all(Save_State_Type.BS, beta)),
-        #                 register.get_p(Save_State_Type.BS, beta),
-        #                 register.get_m(Save_State_Type.BS, beta)
-        #             )
-        #
-        #             calc_cs = Periodic_List(
-        #                 list(register.get_all(Save_State_Type.CS, beta)),
-        #                 register.get_p(Save_State_Type.CS, beta),
-        #                 register.get_m(Save_State_Type.CS, beta)
-        #             )
-        #
-        #             with self.subTest():
-        #                 self.assertEqual(
-        #                     calc_Bs,
-        #                     actual_Bs
-        #                 )
-        #
-        #             with self.subTest():
-        #                 self.assertEqual(
-        #                     calc_cs,
-        #                     actual_cs
-        #                 )
-        #
-        #     shutil.rmtree(self.tmp_dir)
+        for needed_bytes_add, start_n, check_memory_period, save_period in product(
+            [2*BYTES_PER_GB, -BYTES_PER_GB, 2*BYTES_PER_MB], # needed_bytes_add
+            [1, 2, 3, 10, 50, 100], # start_n
+            [5, 10, 25, 100], # check_memory_period
+            save_periods
+        ):
+            register = Pickle_Register(
+                self.tmp_dir / ("save_period-%d" % save_period)
+            )
+
+            for min_poly, _, actual_Bs, actual_cs, p, m in self.several_smaller_orbits[:5]:
+
+                beta = Salem_Number(min_poly, starting_dps)
+                actual_Bs = Periodic_List(actual_Bs, p, m)
+                actual_cs = Periodic_List(actual_cs, p, m)
+
+                if start_n >= p + m and check_memory_period >= save_period and start_n <= max_n:
+                    with self.subTest():
+                        with self.assertRaises(Data_Not_Found_Error):
+                            needed_bytes = psutil.virtual_memory().available - needed_bytes_add
+                            calc_period_ram_and_disk(
+                                beta,
+                                start_n,
+                                max_n,
+                                max_restarts,
+                                starting_dps,
+                                save_period,
+                                check_memory_period,
+                                needed_bytes,
+                                register
+                            )
+
+                elif check_memory_period < save_period and start_n <= max_n:
+                    with self.subTest():
+                        with self.assertRaises(ValueError):
+                            needed_bytes = psutil.virtual_memory().available - needed_bytes_add
+                            calc_period_ram_and_disk(
+                                beta,
+                                start_n,
+                                max_n,
+                                max_restarts,
+                                starting_dps,
+                                save_period,
+                                check_memory_period,
+                                needed_bytes,
+                                register
+                            )
+
+                elif start_n > max_n:
+                    with self.subTest():
+                        with self.assertRaises(ValueError):
+                            needed_bytes = psutil.virtual_memory().available - needed_bytes_add
+                            calc_period_ram_and_disk(
+                                beta,
+                                start_n,
+                                max_n,
+                                max_restarts,
+                                starting_dps,
+                                save_period,
+                                check_memory_period,
+                                needed_bytes,
+                                register
+                            )
+
+                else:
+
+                    if start_n > 0:
+                        needed_bytes = psutil.virtual_memory().available - needed_bytes_add
+                        calc_period_ram_and_disk(
+                            beta,
+                            0,
+                            start_n - 1,
+                            max_restarts,
+                            starting_dps,
+                            save_period,
+                            check_memory_period,
+                            needed_bytes,
+                            register
+                        )
+
+                        if not register.get_complete_status(Save_State_Type.CS, beta):
+
+                            needed_bytes = psutil.virtual_memory().available - needed_bytes_add
+                            calc_period_ram_and_disk(
+                                beta,
+                                start_n,
+                                max_n,
+                                max_restarts,
+                                starting_dps,
+                                save_period,
+                                check_memory_period,
+                                needed_bytes,
+                                register
+                            )
+
+                    else:
+
+                        needed_bytes = psutil.virtual_memory().available - needed_bytes_add
+                        calc_period_ram_and_disk(
+                            beta,
+                            0,
+                            max_n,
+                            max_restarts,
+                            starting_dps,
+                            save_period,
+                            check_memory_period,
+                            needed_bytes,
+                            register
+                        )
+
+                    calc_Bs = Periodic_List(
+                        list(register.get_all(Save_State_Type.BS, beta)),
+                        register.get_p(Save_State_Type.BS, beta),
+                        register.get_m(Save_State_Type.BS, beta)
+                    )
+
+                    calc_cs = Periodic_List(
+                        list(register.get_all(Save_State_Type.CS, beta)),
+                        register.get_p(Save_State_Type.CS, beta),
+                        register.get_m(Save_State_Type.CS, beta)
+                    )
+
+                    with self.subTest():
+                        self.assertEqual(
+                            calc_Bs,
+                            actual_Bs
+                        )
+
+                    with self.subTest():
+                        self.assertEqual(
+                            calc_cs,
+                            actual_cs
+                        )
+
+            shutil.rmtree(self.tmp_dir)
 
 
 

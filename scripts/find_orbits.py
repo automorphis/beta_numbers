@@ -30,40 +30,57 @@ from src.boyd_data import boyd, filter_by_size
 from src.salem_numbers import Salem_Number
 from src.save_states import Pickle_Register
 
+# register = Pickle_Register.discover(Path.home() / "beta_expansions")
+from src.utility import random_filename, BYTES_PER_KB
+
+# with (Path.home() / "beta_expansions" / "register.pkl").open("rb") as fh:
+#     register = Pickle_Register(Path.home() / "beta_expansions",pkl.load(fh))
+
+# print(register.list_orbits_calculated())
+
+start_n = 76300000
 max_n = 10 ** 9
 max_restarts = 4
 starting_dps = 64
 save_period = 100000
 check_memory_period = 100000
-needed_bytes = check_memory_period * 300
-register = Pickle_Register(Path.home() / "beta_expansions")
-register_filename = Path.home() / "beta_expansions" / "register_find_close_orbit.pkl"
+needed_bytes = check_memory_period * BYTES_PER_KB
 
+data_root = Path.home() / "beta_expansions"
+directory = data_root / "hkfy8EJjsbHEgKp7bEqJ"
+register_filename = directory / "register.pkl"
+
+with register_filename.open("rb") as fh:
+    register = Pickle_Register(directory, pkl.load(fh))
+
+# register_filename = Path.home() / "beta_expansions" / "register_find_close_orbit.pkl"
+#
 beta = Salem_Number(Polynomial((1,-10,-40,-59,-40,-10,1)), starting_dps)
-
+#
 logging.basicConfig(filename = "../logs/find_close_orbit.log", level = logging.INFO)
-
-try:
-    calc_period_ram_and_disk(
-        beta,
-        max_n,
-        max_restarts,
-        starting_dps,
-        save_period,
-        check_memory_period,
-        needed_bytes,
-        register
-    )
-except KeyboardInterrupt:
-    with register_filename.open("wb") as fh:
-        pkl.dump(register.get_dump_data(), fh)
-    try:
-        sys.exit(0)
-    except SystemExit:
-        os._exit(0)
-
-with register_filename.open("wb") as fh:
-    pkl.dump(register.get_dump_data(), fh)
+#
+# try:
+calc_period_ram_and_disk(
+    beta,
+    start_n,
+    max_n,
+    max_restarts,
+    starting_dps,
+    save_period,
+    check_memory_period,
+    needed_bytes,
+    register
+)
+# except KeyboardInterrupt:
+#     with register_filename.open("wb") as fh:
+#         pkl.dump(register.get_dump_data(), fh)
+#     try:
+#         sys.exit(0)
+#     except SystemExit:
+#         os._exit(0)
+#
+# with register_filename.open("wb") as fh:
+#     pkl.dump(register.get_dump_data(), fh)
 
 # filename1 = Path("../output/several_smaller_orbits.txt")
 # filename2 = Path("../test/several_smaller_orbits.txt")

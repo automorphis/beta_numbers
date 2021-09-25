@@ -32,7 +32,6 @@ def calc_beta_expansion_partials(beta, cs, n_lower, n_upper):
                 yield partial
 
 
-
 def calc_beta_expansion(beta,cs,n):
     """Calculate the beta expansion of a given coeffient list to a specified precision, namely the decimal
     precision `beta.dps`.
