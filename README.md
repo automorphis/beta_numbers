@@ -13,9 +13,9 @@ This project has two aims:
 
 ## Calculations so far
 
-| Salem number       | Minimal polynomial              | Number of calculated coefficients | Periodicicity |
-| -------------------|-------------------------------- | --------------------------------- | ------------- |
-| 13.345638433018787 | (1, -10, -40, -59, -40, -10, 1) | 104 million                       | unknown       |
+| Salem number       | Minimal polynomial              | Number of calculated coefficients | Periodicity |
+| -------------------|-------------------------------- | --------------------------------- | ----------- |
+| 13.345638433018787 | (1, -10, -40, -59, -40, -10, 1) | 104 million                       | unknown     |
 
 ## To do
 
