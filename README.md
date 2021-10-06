@@ -24,7 +24,9 @@ This project has two aims:
 1. ~~Have `Pickle_Register` dynamical discover `Save_State`s.~~
 2. ~~Edit `calc_orbit.calc_period_ram_and_disk` to pick up where a previous calculation left off.~~
 3. Implement multiprocessing for calculating orbits.
-4. Cythonize `beta_orbit.Beta_Orbit_Iter`
+4. ~~Cythonize `beta_orbit.Beta_Orbit_Iter`.~~
+5. Publish a package for this project.
+6. Publish a package for `Int_Polynomial`.
 
 ### Known bugs
 
