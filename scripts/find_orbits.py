@@ -38,26 +38,24 @@ from src.utility import random_filename, BYTES_PER_KB
 
 # print(register.list_orbits_calculated())
 
-start_n = 76300000
-max_n = 10 ** 9
+start_n = 1000000000
+max_n = 2 * 10 ** 9
 max_restarts = 4
 starting_dps = 64
 save_period = 100000
-check_memory_period = 100000
-needed_bytes = check_memory_period * BYTES_PER_KB
 
 data_root = Path.home() / "beta_expansions"
-directory = data_root / "hkfy8EJjsbHEgKp7bEqJ"
-register_filename = directory / "register.pkl"
+saves_directory = data_root / "D7PZfTzDhXxA9DWWYkKj"
+register_filename = saves_directory / "register.pkl"
 
-with register_filename.open("rb") as fh:
-    register = Pickle_Register(directory, pkl.load(fh))
+register = Pickle_Register.discover(saves_directory)
+# with register_filename.open("rb") as fh:
+#     register = Pickle_Register(saves_directory, pkl.load(fh))
 
-# register_filename = Path.home() / "beta_expansions" / "register_find_close_orbit.pkl"
-#
+
 beta = Salem_Number(Polynomial((1,-10,-40,-59,-40,-10,1)), starting_dps)
 #
-logging.basicConfig(filename = "../logs/find_close_orbit.log", level = logging.INFO)
+logging.basicConfig(filename ="logs/find_close_orbit.log", level = logging.INFO)
 #
 # try:
 calc_period_ram_and_disk(
@@ -67,8 +65,6 @@ calc_period_ram_and_disk(
     max_restarts,
     starting_dps,
     save_period,
-    check_memory_period,
-    needed_bytes,
     register
 )
 # except KeyboardInterrupt:
@@ -79,8 +75,7 @@ calc_period_ram_and_disk(
 #     except SystemExit:
 #         os._exit(0)
 #
-# with register_filename.open("wb") as fh:
-#     pkl.dump(register.get_dump_data(), fh)
+
 
 # filename1 = Path("../output/several_smaller_orbits.txt")
 # filename2 = Path("../test/several_smaller_orbits.txt")

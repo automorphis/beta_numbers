@@ -14,8 +14,9 @@
 """
 
 from unittest import TestCase
-from src.boyd_data import _get_number_size, Number_Type, boyd
-from src.salem_numbers import Salem_Number, Not_Salem_Error
+
+from beta_numbers.boyd_data import _get_number_size, boyd, Number_Type
+from beta_numbers.salem_numbers import Salem_Number, Not_Salem_Error
 
 
 class Test_Boyd_Data(TestCase):

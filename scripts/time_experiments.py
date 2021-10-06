@@ -18,32 +18,55 @@ from pathlib import Path
 from mpmath import mp
 from numpy.polynomial.polynomial import Polynomial
 
-from src.beta_orbit import Beta_Orbit_Iter_Global, Beta_Orbit_Iter
+load("./lib/beta_orbits.pyx")
+
+from src.beta_orbit import Beta_Orbit_Iter
+# from lib.beta_orbit_iter import CBeta_Orbit_Iter
 from src.salem_numbers import Salem_Number
 
+import time
+import mpmath
+import numpy as np
+from numpy.polynomial.polynomial import Polynomial
 
-P = Polynomial((1, 0, -4, -7, -4, 0, 1))
-num_repeats = 50000
-f = Path("../output/time_experiments.txt")
-with f.open("a") as fh:
+num_times = 1000
+# times = np.empty(num_times)
+P_tuple = (1,-10,-40,-59,-40,-10,1)
+P = Polynomial(P_tuple)
+beta = Salem_Number(P,64)
 
-    for dps in [16, 32, 64, 128]:
-        start = time.time()
-        mp.dps = dps
-        beta = Salem_Number(P, dps)
-        for _ in range(num_repeats):
-            beta.beta0 = None
-            beta.calc_beta0_global()
-        fh.write("polyroots, global change, don't remember conjs: %d, %.5f\n" % (dps, time.time() - start))
+start = time.time()
+for _ in CBeta_Orbit_Iter(beta,num_times):pass
+elapsed = time.time() - start
+print(elapsed)
 
-    for dps in [16, 32, 64, 128]:
-        start = time.time()
-        mp.dps = dps
-        beta = Salem_Number(P, dps)
-        for _ in range(num_repeats):
-            beta.beta0 = None
-            beta.calc_beta0_global(False)
-        fh.write("polyroots, global change, don't remember conjs: %d, %.5f\n" % (dps, time.time() - start))
+start = time.time()
+for _ in Beta_Orbit_Iter(beta,num_times):pass
+elapsed = time.time() - start
+print(elapsed)
+
+# P = Polynomial((1, 0, -4, -7, -4, 0, 1))
+# num_repeats = 50000
+# f = Path("../output/time_experiments.txt")
+# with f.open("a") as fh:
+#
+#     for dps in [16, 32, 64, 128]:
+#         start = time.time()
+#         mp.dps = dps
+#         beta = Salem_Number(P, dps)
+#         for _ in range(num_repeats):
+#             beta.beta0 = None
+#             beta.calc_beta0_global()
+#         fh.write("polyroots, global change, don't remember conjs: %d, %.5f\n" % (dps, time.time() - start))
+#
+#     for dps in [16, 32, 64, 128]:
+#         start = time.time()
+#         mp.dps = dps
+#         beta = Salem_Number(P, dps)
+#         for _ in range(num_repeats):
+#             beta.beta0 = None
+#             beta.calc_beta0_global(False)
+#         fh.write("polyroots, global change, don't remember conjs: %d, %.5f\n" % (dps, time.time() - start))
 
     # for dps in [16, 32, 64, 128]:
     #     start = time.time()

@@ -12,11 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
+from mpmath import workdps, polyroots, im, re, almosteq
 
-from mpmath import workdps, polyroots, im, re, almosteq, log10, polyval
-from numpy.polynomial.polynomial import Polynomial
-
-from src.mpmath_helpers import convert_polynomial_format
+from beta_numbers.utilities.polynomials import Int_Polynomial
 
 
 class Salem_Number:
@@ -38,29 +36,29 @@ class Salem_Number:
         :param beta0: Default `None`. Can also be calculated with a call to `calc_beta0`.
         """
 
-        if not isinstance(min_poly, Polynomial):
-            self.min_poly = Polynomial(min_poly)
-        else:
-            self.min_poly = min_poly
+        self.min_poly = min_poly
         self.dps = dps
         self.beta0 = beta0
-        self.deg = self.min_poly.degree()
+        self.deg = self.min_poly.get_deg()
         self.conjs = None
 
     def __eq__(self, other):
         return self.min_poly == other.min_poly and self.dps == other.dps
 
     def __hash__(self):
-        return hash((tuple(self.min_poly.coef), self.dps))
+        return hash((self.min_poly, self.dps))
 
     def __str__(self):
         if self.beta0:
-            return "(%.9f, %s)" % (self.beta0, tuple(self.min_poly.coef))
+            return "(%.9f, %s)" % (self.beta0, self.min_poly)
         else:
-            return str(tuple(self.min_poly.coef))
+            return str(self.min_poly)
+
+    def __repr__(self):
+        return "Salem_Number(%s, %d)" % (repr(self.min_poly), self.dps)
 
     def get_trace(self):
-        return -self.min_poly.coef[1]
+        return -self.min_poly[1]
 
     def calc_beta0(self, remember_conjs = False):
         """Calculates the maximum modulus root of `self.min_poly` to within `self.dps` digits bits of precision.
@@ -70,11 +68,11 @@ class Salem_Number:
         :raises: `NotSalemError`, if `self.min_poly` is not the minimal polynomial of a Salem number.
         :return: `beta0`, for convenience. Also sets `self.beta0` to the return value.
         """
+        if self.deg < 4:
+            raise Not_Salem_Error(self)
         if not self.beta0 or (remember_conjs and not self.conjs):
             with workdps(self.dps):
-                if self.min_poly == Polynomial((0,)):
-                    raise Not_Salem_Error(self)
-                rts = polyroots( convert_polynomial_format(self.min_poly) )
+                rts = polyroots( self.min_poly.array_coefs(False) )
                 if len(rts) < 4 or len(rts) % 2 == 1:
                     raise Not_Salem_Error(self)
                 rts = sorted(rts, key=lambda z: abs(im(z)))
@@ -105,11 +103,14 @@ class Salem_Number:
             if not(self.conjs[1] < 1 < self.conjs[0] and all(almosteq(abs(conj), 1) for conj in self.conjs[2:])):
                 raise Not_Salem_Error(self)
 
+    def change_dps(self,dps):
+        return Salem_Number(self.min_poly,dps)
+
     def verify_calculated_beta0(self):
         if self.beta0:
             with workdps(self.dps):
                 return almosteq(
-                    polyval( convert_polynomial_format(self.min_poly), self.beta0 ),
+                    self.min_poly.eval(self.beta0),
                     0
                 )
         else:
@@ -117,16 +118,16 @@ class Salem_Number:
 
 
 def _is_salem_6poly(a, b, c, dps):
-    U = Polynomial((c - 2 * a, b - 3, a, 1))
-    if U(2) >= 0 or U(-2) >= 0:
+    U = Int_Polynomial([c - 2 * a, b - 3, a, 1], dps)
+    if U.eval(2) >= 0 or U.eval(-2) >= 0:
         return False
     for n in range(-1, max(abs(a), abs(b - 3), abs(c - 2 * a))+2):
-        if U(n) == 0:
+        if U.eval(n) == 0:
             return False
-    if U(-1) > 0 or U(0) > 0 or U(1) > 0:
+    if U.eval(-1) > 0 or U.eval(0) > 0 or U.eval(1) > 0:
         return True
     else:
-        P = Polynomial((1,a,b,c,b,a,1))
+        P = Int_Polynomial([1,a,b,c,b,a,1], dps)
         try:
             Salem_Number(P,dps).check_salem()
             return True
@@ -142,7 +143,7 @@ def salem_iter(deg, min_trace, max_trace, dps):
         for b in range(-b_max, b_max + 1):
             for c in range(-c_max, c_max + 1):
                 if _is_salem_6poly(a, b, c, dps):
-                    P = Polynomial((1, a, b, c, b, a, 1))
+                    P = Int_Polynomial([1, a, b, c, b, a, 1], dps)
                     beta = Salem_Number(P, dps)
                     beta.calc_beta0()
                     yield beta

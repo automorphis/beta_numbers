@@ -17,8 +17,8 @@ from unittest import TestCase
 
 from mpmath import workdps, almosteq
 
-from src.salem_numbers import Salem_Number, salem_iter, Not_Salem_Error
-from src.utility import eval_code_in_file
+from beta_numbers.salem_numbers import Salem_Number, Not_Salem_Error, salem_iter
+from beta_numbers.utilities import eval_code_in_file
 
 
 class Test_Salem_Number(TestCase):
@@ -27,9 +27,9 @@ class Test_Salem_Number(TestCase):
 
         # correct to 256 decimal places
         self.data_dps = 256
-        self.salems = eval_code_in_file("../several_salem_numbers.txt", self.data_dps)
-        self.non_salems = eval_code_in_file("../several_nonsalem_min_polys.txt", self.data_dps)
-        self.incorrect_salems = eval_code_in_file("../several_incorrect_salem_numbers.txt", self.data_dps)
+        self.salems = eval_code_in_file("data/several_salem_numbers.txt", self.data_dps)
+        self.non_salems = eval_code_in_file("data/several_nonsalem_min_polys.txt", self.data_dps)
+        self.incorrect_salems = eval_code_in_file("data/several_incorrect_salem_numbers.txt", self.data_dps)
 
 
     def test_calc_beta0(self):

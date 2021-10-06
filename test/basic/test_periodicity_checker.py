@@ -16,7 +16,7 @@
 
 from unittest import TestCase
 
-from src.periodicity_checker import _get_divisors
+from beta_numbers.utilities import get_divisors
 
 
 class Test_Periodicity_Checker(TestCase):
@@ -35,7 +35,7 @@ class Test_Periodicity_Checker(TestCase):
             (10, [1, 2, 5, 10])
         ]
         for n, divisors in divisorss:
-            self.assertEqual(divisors, list(_get_divisors(n)))
+            self.assertEqual(divisors, list(get_divisors(n)))
 
     def test_check_periodicity_ram_only(self):
         pass

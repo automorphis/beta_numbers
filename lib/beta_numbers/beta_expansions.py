@@ -12,9 +12,10 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
+import numpy as np
+from mpmath import power, workdps
 
-
-from mpmath import power, workdps, polyval
+from beta_numbers.utilities.polynomials import Int_Polynomial
 
 
 def check_parry_criterion():pass
@@ -42,7 +43,6 @@ def calc_beta_expansion(beta,cs,n):
     :return: The approximated beta.
     """
     beta0 = beta.calc_beta0()
-    _cs = tuple(reversed(list(cs[:n])))
-    with workdps(beta.dps):
-        return polyval(_cs, 1/beta0)
+    poly = Int_Polynomial(np.array(list(cs[:n]), dtype = np.longlong), beta.dps)
+    return poly.eval(1/beta0)
 

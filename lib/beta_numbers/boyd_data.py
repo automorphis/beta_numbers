@@ -15,7 +15,7 @@
 
 from enum import Enum
 
-from numpy.polynomial.polynomial import Polynomial
+from beta_numbers.utilities.polynomials import Int_Polynomial
 
 _boyd = [
     ( (1,   0,  -4,  -7,  -4,   0, 1), (       1,       60) ),
@@ -243,7 +243,7 @@ boyd = [{
     "m_label": _get_number_size(datum, Number_Type.M),
     "m": datum[1][0] if datum[1][0] > 0 else None,
     "p": datum[1][1] if datum[1][1] > 0 else None,
-    "poly": Polynomial(datum[0])
+    "poly": Int_Polynomial(datum[0], 16)
 } for datum in _boyd]
 
 def filter_by_size(data, label, size):

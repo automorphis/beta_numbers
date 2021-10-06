@@ -1,0 +1,8 @@
+[
+    Int_Polynomial((0,1), 256),
+    Int_Polynomial((1,), 256),
+    Int_Polynomial((0,), 256),
+    Int_Polynomial((1, 0, -4, -7, -4, 1, 1), 256),
+    Int_Polynomial((-1, -1, 1), 256),
+    Int_Polynomial((Polynomial((1, 0, -4, -7, -4, 0, 1)) * Polynomial((1, 0, -2, -3, -2, 0, 1))).coef.astype(np.longlong), 256)
+]
