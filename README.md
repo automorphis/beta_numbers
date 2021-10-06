@@ -15,7 +15,7 @@ This project has two aims:
 
 | Salem number       | Minimal polynomial              | Number of calculated coefficients | Periodicity |
 | -------------------|-------------------------------- | --------------------------------- | ----------- |
-| 13.345638433018787 | (1, -10, -40, -59, -40, -10, 1) | 104 million                       | unknown     |
+| 13.345638433018787 | (1, -10, -40, -59, -40, -10, 1) | 2 billion                         | unknown     |
 
 ## To do
 
