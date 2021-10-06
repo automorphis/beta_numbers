@@ -291,3 +291,4 @@ class Save_States_Iter:
 class Save_State_Type(Enum):
     BS = 0
     CS = 1
+    AS = 2

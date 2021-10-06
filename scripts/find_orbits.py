@@ -23,20 +23,17 @@ from mpmath import mpf
 from numpy import poly1d
 
 from mpmath import workdps
-from numpy.polynomial.polynomial import Polynomial
-
-from src.beta_orbit import calc_period_ram_only, calc_period_ram_and_disk
-from src.boyd_data import boyd, filter_by_size
-from src.salem_numbers import Salem_Number
-from src.save_states import Pickle_Register
 
 # register = Pickle_Register.discover(Path.home() / "beta_expansions")
-from src.utility import random_filename, BYTES_PER_KB
 
 # with (Path.home() / "beta_expansions" / "register.pkl").open("rb") as fh:
 #     register = Pickle_Register(Path.home() / "beta_expansions",pkl.load(fh))
 
 # print(register.list_orbits_calculated())
+from beta_numbers.calc_periods import calc_period
+from beta_numbers.data import Pickle_Register
+from beta_numbers.salem_numbers import Salem_Number
+from beta_numbers.utilities import Int_Polynomial
 
 start_n = 1000000000
 max_n = 2 * 10 ** 9
@@ -53,12 +50,12 @@ register = Pickle_Register.discover(saves_directory)
 #     register = Pickle_Register(saves_directory, pkl.load(fh))
 
 
-beta = Salem_Number(Polynomial((1,-10,-40,-59,-40,-10,1)), starting_dps)
+beta = Salem_Number(Int_Polynomial((1,-10,-40,-59,-40,-10,1), starting_dps))
 #
 logging.basicConfig(filename ="logs/find_close_orbit.log", level = logging.INFO)
 #
 # try:
-calc_period_ram_and_disk(
+calc_period(
     beta,
     start_n,
     max_n,

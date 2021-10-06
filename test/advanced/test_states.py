@@ -169,14 +169,6 @@ class Test_Disk_Data(TestCase):
 
             save_state1 = copy.copy(save_state)
             save_state2 = copy.copy(save_state)
-            save_state1.beta.dps = 32
-            save_state2.beta = copy.copy(save_state1.beta)
-            save_state2.beta.dps = 64
-            with self.subTest():
-                self.assertNotEqual(hash(save_state1), hash(save_state2), "dps should be different")
-
-            save_state1 = copy.copy(save_state)
-            save_state2 = copy.copy(save_state)
             save_state1.start_n = 1
             save_state2.start_n = 2
             with self.subTest():

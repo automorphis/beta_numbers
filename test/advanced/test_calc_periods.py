@@ -31,7 +31,7 @@ class Test_Calc_Periods(TestCase):
     def setUp(self):
         self.several_smaller_orbits = eval_code_in_file("data/several_smaller_orbits.txt", 256)
         self.tmp_dir = Path.home() / "tmp_saves"
-        self.beta_nearly_hits_integer = Salem_Number(Int_Polynomial((1, -10, -40, -59, -40, -10, 1), 32), 32)
+        self.beta_nearly_hits_integer = Salem_Number(Int_Polynomial((1, -10, -40, -59, -40, -10, 1), 32))
         if Path.is_dir(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
 
@@ -57,7 +57,7 @@ class Test_Calc_Periods(TestCase):
 
             for min_poly, _, actual_Bs, actual_cs, p, m in self.several_smaller_orbits[:5]:
 
-                beta = Salem_Number(min_poly, starting_dps)
+                beta = Salem_Number(min_poly)
                 actual_Bs = Periodic_List(actual_Bs, p, m)
                 actual_cs = Periodic_List(actual_cs, p, m)
 

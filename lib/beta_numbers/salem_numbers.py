@@ -14,7 +14,7 @@
 """
 from mpmath import workdps, polyroots, im, re, almosteq
 
-from beta_numbers.utilities.polynomials import Int_Polynomial
+from beta_numbers.utilities import Int_Polynomial
 
 
 class Salem_Number:
@@ -26,7 +26,7 @@ class Salem_Number:
         * the non-real roots of p all have modulus exactly 1.
     """
 
-    def __init__(self, min_poly, dps, beta0 = None):
+    def __init__(self, min_poly, beta0 = None):
         """
 
         :param min_poly: Type `numpy.poly1d`. Should be checked to actually be the minimal polynomial of a Salem number
@@ -37,7 +37,7 @@ class Salem_Number:
         """
 
         self.min_poly = min_poly
-        self.dps = dps
+        self.dps = self.min_poly.get_dps()
         self.beta0 = beta0
         self.deg = self.min_poly.get_deg()
         self.conjs = None
@@ -46,7 +46,7 @@ class Salem_Number:
         return self.min_poly == other.min_poly and self.dps == other.dps
 
     def __hash__(self):
-        return hash((self.min_poly, self.dps))
+        return hash(self.min_poly)
 
     def __str__(self):
         if self.beta0:
@@ -55,13 +55,13 @@ class Salem_Number:
             return str(self.min_poly)
 
     def __repr__(self):
-        return "Salem_Number(%s, %d)" % (repr(self.min_poly), self.dps)
+        return "Salem_Number(%s)" % (repr(self.min_poly))
 
     def get_trace(self):
         return -self.min_poly[1]
 
     def calc_beta0(self, remember_conjs = False):
-        """Calculates the maximum modulus root of `self.min_poly` to within `self.dps` digits bits of precision.
+        """Calculates the maximum modulus root of `self.min_poly` to within `self.min_poly.get_dps()` digits bits of precision.
 
         :param remember_conjs: Default `False`. Set to `True` and access the conjugate roots via `self.conjs`. The number
         `self.conjs[0]` is the Salem number, `self.conjs[1]` is its reciprocal, and `self.conjs[2:]` have modulus 1.

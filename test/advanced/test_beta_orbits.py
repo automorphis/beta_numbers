@@ -32,7 +32,7 @@ class Test_Beta_Orbit_Iter(TestCase):
 
     def test___init__(self):
         for min_poly, _, Bs, cs, p, m in self.several_smaller_orbits:
-            beta = Salem_Number(min_poly, 256)
+            beta = Salem_Number(min_poly)
             with self.assertRaises(ValueError):
                 Beta_Orbit_Iter(beta, -1)
             try:
@@ -42,7 +42,7 @@ class Test_Beta_Orbit_Iter(TestCase):
 
     def test_set_start_info(self):
         for min_poly, _, Bs, cs, p, m in self.several_smaller_orbits:
-            beta = Salem_Number(min_poly, 256)
+            beta = Salem_Number(min_poly)
             with self.assertRaises(ValueError):
                 Beta_Orbit_Iter(beta,1).set_start_info(Bs[2], 2)
             try:
@@ -55,7 +55,7 @@ class Test_Beta_Orbit_Iter(TestCase):
         start_ns = [0, 1, 2, 10, 100]
         max_ns = [0, 1, 2, 10, 100, 400]
         for min_poly, beta0, Bs, cs, p, m in self.several_smaller_orbits[:6]:
-            beta = Salem_Number(min_poly, dps, beta0)
+            beta = Salem_Number(min_poly, beta0)
             Bs = Periodic_List(Bs, p, m)
             cs = Periodic_List(cs, p, m)
             for start_n, max_n in product(start_ns, max_ns):

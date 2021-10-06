@@ -381,7 +381,7 @@ class Pickle_Register(Register):
                 beta0 = mpf(save_state.beta0)
             dps = save_state.dps
             min_poly = Int_Polynomial(save_state.min_poly, dps, beta0)
-            save_state.beta = Salem_Number(min_poly, dps, beta0)
+            save_state.beta = Salem_Number(min_poly, beta0)
             del save_state.min_poly, save_state.dps, save_state.beta0
             if save_state.type == Save_State_Type.BS:
                 decoded_data = np.empty(len(save_state), dtype = object)

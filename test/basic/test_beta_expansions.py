@@ -34,7 +34,7 @@ class Test_Beta_Expansions(TestCase):
         num_iterates = 100
         with workdps(self.data_dps//2):
             for min_poly, mostly_exact_beta0, _, cs, p, m in self.several_smaller_orbits:
-                beta = Salem_Number(min_poly,self.data_dps)
+                beta = Salem_Number(min_poly)
                 cs = Periodic_List(cs,p,m)
                 for partial in calc_beta_expansion_partials(beta,cs,1,num_iterates+1): pass
                 correct = partial
@@ -53,7 +53,7 @@ class Test_Beta_Expansions(TestCase):
         num_iterates = 100
         with workdps(self.data_dps):
             for min_poly, mostly_exact_beta0, _, cs, p, m in self.several_smaller_orbits:
-                beta = Salem_Number(min_poly,self.data_dps)
+                beta = Salem_Number(min_poly)
                 cs = Periodic_List(cs,p,m)
                 beta0_pow = mpf(1.0)
                 for partial in calc_beta_expansion_partials(beta,cs,1,num_iterates+1):

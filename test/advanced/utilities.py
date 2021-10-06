@@ -34,9 +34,7 @@ def set_up_save_states(obj):
     )[0]
 
     obj.dps = 32
-    obj.beta = Salem_Number(
-        medium_m_smaller_p_boyd["poly"], 32
-    )
+    obj.beta = Salem_Number(medium_m_smaller_p_boyd["poly"])
     _, obj.Bs, obj.cs = calc_short_period(obj.beta, 3000, 2, 32)
 
     obj.p, obj.m = obj.Bs.p, obj.Bs.m

@@ -220,7 +220,7 @@ def calc_period(beta, start_n, max_n, max_restarts, starting_dps, save_period, r
             logging.warning("Deleting bad orbit from disk.")
             register.clear(Save_State_Type.BS, beta)
             mp.dps *= 2
-            beta = Salem_Number(beta.min_poly, mp.dps)
+            beta = Salem_Number(beta.min_poly)
 
     logging.warning("Did not find period for beta = %s." % beta)
     logging.warning("The maximum allowable precision (%d digits) was reached." % (mp.dps // 2))

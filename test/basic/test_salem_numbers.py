@@ -37,11 +37,11 @@ class Test_Salem_Number(TestCase):
         num_times_increase_dps = 3
         for _ in range(num_times_increase_dps):
             for min_poly, salem in self.salems:
-                beta0 = Salem_Number(min_poly, dps).calc_beta0()
+                beta0 = Salem_Number(min_poly).calc_beta0()
                 with workdps(dps):
                     self.assertTrue(almosteq(salem,beta0))
             for min_poly, incorrect_salem in self.incorrect_salems:
-                beta0 = Salem_Number(min_poly, dps).calc_beta0()
+                beta0 = Salem_Number(min_poly).calc_beta0()
                 with workdps(dps):
                     self.assertFalse(almosteq(incorrect_salem, beta0))
             dps *= 2
@@ -52,14 +52,14 @@ class Test_Salem_Number(TestCase):
         num_times_increase_dps = 5
         for _ in range(num_times_increase_dps+1):
             for min_poly, _ in self.salems:
-                beta = Salem_Number(min_poly, dps)
+                beta = Salem_Number(min_poly)
                 try:
                     beta.check_salem()
-                except Salem_Number:
+                except Not_Salem_Error:
                     self.fail("`beta` is a Salem number, but `beta.check_salem()` threw a `Not_Salem_Error`: %s" % beta)
             dps *= 2
             for min_poly in self.non_salems:
-                beta = Salem_Number(min_poly, dps)
+                beta = Salem_Number(min_poly)
                 with self.assertRaises(Not_Salem_Error):
                     beta.check_salem()
 
