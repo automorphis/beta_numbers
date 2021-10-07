@@ -200,6 +200,23 @@ cdef class Int_Polynomial:
                 return FALSE
         return TRUE
 
+    def __getstate__(self):
+        return {
+            "_coefs": self.array_coefs(cpb(self._is_natural), True),
+            "_dps": self.get_dps(),
+            "_is_natural": cpb(self._is_natural)
+        }
+
+    def __setstate__(self, state):
+        self._coefs = state["_coefs"]
+        self._deg = len(state["_coefs"]) - 1
+        self._max_deg = self._deg
+        self._dps = state["_dps"]
+        self._is_natural = pcb(state["_is_natural"])
+        self._start_index = 0
+        self.trim()
+
+
     def __ne__(self, other):
         return not(self == other)
 

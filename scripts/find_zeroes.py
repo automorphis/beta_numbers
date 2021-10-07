@@ -16,8 +16,7 @@ import random
 
 from mpmath import re, im, workdps, power
 
-from src.boyd_data import boyd
-from src.salem_numbers import Salem_Number
+from beta_numbers.boyd_data import boyd
 
 
 def _salem_root(rts):

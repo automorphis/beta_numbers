@@ -38,7 +38,6 @@ class Register(ABC):
         Path.mkdir( self.saves_directory, parents = True, exist_ok = True )
 
         self.ram_datas = []
-        self.metadatas_utd = True
         self.metadatas = {}
 
     #################################
@@ -318,7 +317,7 @@ class Pickle_Register(Register):
     """
 
 
-    def __init__(self, saves_directory, dump_data = None):
+    def __init__(self, saves_directory):
         """
         :param saves_directory: Where to put the saves.
         :param dump_data: Optional. Construct a register based off the return of the method `get_dump_data` from another
@@ -328,12 +327,6 @@ class Pickle_Register(Register):
         super().__init__(saves_directory)
 
         self.sub_register_filenames = []
-
-        if dump_data:
-            self.metadatas = {
-                metadata: Path(filename) for metadata,filename in dump_data[0].items()
-            }
-            self.sub_register_filenames = [Path(filename) for filename in dump_data[1]]
 
     @staticmethod
     def discover(saves_directory):
@@ -375,7 +368,14 @@ class Pickle_Register(Register):
     @staticmethod
     def load_save_state(filename, decode = True):
         with filename.open("rb") as fh:
-            save_state = pkl.load(fh)
+            try:
+                save_state = pkl.load(fh)
+            except ModuleNotFoundError as m:
+                logging.warning(str(m))
+                return None
+            except AttributeError as m:
+                logging.warning(str(m))
+                return None
         if decode:
             with workdps(save_state.dps):
                 beta0 = mpf(save_state.beta0)
@@ -395,7 +395,10 @@ class Pickle_Register(Register):
         return save_state
 
     def __copy__(self):
-        return self.__setstate__(self.__getstate__())
+        register = Pickle_Register(self.saves_directory)
+        for filename in self.sub_register_filenames:
+            register.add_sub_register(filename)
+        return register
 
     def remove_disk_data(self, metadata):
         Path.unlink(self.metadatas[metadata])
@@ -404,7 +407,7 @@ class Pickle_Register(Register):
     def load_sub_registers(self):
         for register_filename in self.sub_register_filenames:
             with register_filename.open("rb") as fh:
-                yield Pickle_Register(register_filename.parents[0], pkl.load(fh))
+                yield pkl.load(fh)
 
     def add_sub_register(self, register):
         filename = random_unique_filename(self.saves_directory, PICKLE_EXT)
@@ -420,7 +423,6 @@ class Pickle_Register(Register):
         :raises ValueError: if the `Save_State` is empty.
         :raises FileExistsError: if the `Save_State` has already been added (ignores `is_complete`)
         """
-
         if len(save_state) == 0:
             raise ValueError("save state cannot be empty")
 
@@ -464,15 +466,15 @@ class Pickle_Register(Register):
                 self.add_disk_metadata(metadata, filename)
                 Pickle_Register.dump_save_state(save_state, filename)
 
-    def __getstate__(self):
-        return (
-            {metadata: str(filename) for metadata, filename in self.metadatas.items()},
-            [str(Path.resolve(filename)) for filename in self.sub_register_filenames],
-            self.saves_directory
-        )
-
-    def __setstate__(self, state):
-        return Pickle_Register(state[2], state)
+    # def __getstate__(self):
+    #     return (
+    #         {metadata: str(filename) for metadata, filename in self.metadatas.items()},
+    #         [str(Path.resolve(filename)) for filename in self.sub_register_filenames],
+    #         self.saves_directory
+    #     )
+    #
+    # def __setstate__(self, state):
+    #     return Pickle_Register(state[2], state)
 
 class Ram_Only_Register(Register):
 

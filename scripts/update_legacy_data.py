@@ -21,23 +21,45 @@ import numpy as np
 from mpmath import workdps
 
 from beta_numbers.data.registers import Pickle_Register
-from beta_numbers.utilities import eval_code_in_file
+from beta_numbers.utilities import eval_code_in_file, random_unique_filename
 from beta_numbers.utilities.polynomials import Int_Polynomial
 
 
 def convert_native_data_to_current_format(read_register, write_directory):
     for metadata,filename in read_register.metadatas.items():
-        save_state = Pickle_Register.load_save_state(filename,True)
-        Pickle_Register.dump_save_state(save_state, write_directory / filename.name)
+        save_state = Pickle_Register.load_save_state(filename,False)
 
-old_filename = Path("../test/several_salem_numbers.txt")
-new_filename = Path("../test/several_salem_numbers2.txt")
+        Pickle_Register.dump_save_state(save_state, write_directory / filename.name, False)
 
-old_several_salem_numbers = eval_code_in_file(old_filename, 256)
-new_several_salem_numbers = []
+data_root = Path("D:/beta_expansions")
+saves_directory = data_root / "D7PZfTzDhXxA9DWWYkKj"
+register_filename = saves_directory / "register.pkl"
 
-for min_poly, beta0 in old_several_salem_numbers:
-    new_several_salem_numbers.append((Int_Polynomial(min_poly.coef.astype(np.longlong), 256), beta0))
+# if register_filename.is_file():
+#     register_filename.unlink()
+#
+# register = Pickle_Register.discover(saves_directory)
+#
+# with register_filename.open("wb") as fh:
+#     pkl.dump(register, fh)
+
+write_directory = random_unique_filename(data_root)
+
+Path.mkdir(write_directory)
+
+with register_filename.open("rb") as fh:
+    read_register = pkl.load(fh)
+
+convert_native_data_to_current_format(read_register, write_directory)
+
+# old_filename = Path("../test/several_salem_numbers.txt")
+# new_filename = Path("../test/several_salem_numbers2.txt")
+#
+# old_several_salem_numbers = eval_code_in_file(old_filename, 256)
+# new_several_salem_numbers = []
+#
+# for min_poly, beta0 in old_several_salem_numbers:
+#     new_several_salem_numbers.append((Int_Polynomial(min_poly.coef.astype(np.longlong), 256), beta0))
 
 #
 # old_several_smaller_orbits = eval_code_in_file(old_filename, 256)
@@ -52,12 +74,12 @@ for min_poly, beta0 in old_several_salem_numbers:
 #         m
 #     ))
 
-with workdps(256):
-    with new_filename.open("w") as fh:
-        fh.write("[\n")
-        for t in new_several_salem_numbers:
-            fh.write("\t" + str(t) + ",\n")
-        fh.write("]")
+# with workdps(256):
+#     with new_filename.open("w") as fh:
+#         fh.write("[\n")
+#         for t in new_several_salem_numbers:
+#             fh.write("\t" + str(t) + ",\n")
+#         fh.write("]")
 
 # data_root = Path.home() / "beta_expansions"
 #
