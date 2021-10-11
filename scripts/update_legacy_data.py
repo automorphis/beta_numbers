@@ -12,45 +12,54 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
+import copy
 import logging
 import pickle as pkl
+import time
 
 from pathlib import Path
 
 import numpy as np
-from mpmath import workdps
+from mpmath import workdps, mpf
 
 from beta_numbers.data.registers import Pickle_Register
+from beta_numbers.data.states import Save_State_Type
+from beta_numbers.salem_numbers import Salem_Number
 from beta_numbers.utilities import eval_code_in_file, random_unique_filename
 from beta_numbers.utilities.polynomials import Int_Polynomial
 
 
-def convert_native_data_to_current_format(read_register, write_directory):
-    for metadata,filename in read_register.metadatas.items():
-        save_state = Pickle_Register.load_save_state(filename,False)
-
-        Pickle_Register.dump_save_state(save_state, write_directory / filename.name, False)
-
 data_root = Path("D:/beta_expansions")
-saves_directory = data_root / "D7PZfTzDhXxA9DWWYkKj"
-register_filename = saves_directory / "register.pkl"
+read_directory = data_root / "D7PZfTzDhXxA9DWWYkKj"
+register_filename = read_directory / "register.pkl"
 
-# if register_filename.is_file():
-#     register_filename.unlink()
-#
-# register = Pickle_Register.discover(saves_directory)
-#
-# with register_filename.open("wb") as fh:
-#     pkl.dump(register, fh)
+
+logging.basicConfig(filename ="logs/update_legacy_data.log", level = logging.INFO)
+
+logging.info("Loading register from %s" % register_filename)
+try:
+    with register_filename.open("rb") as fh:
+        read_register = pkl.load(fh)
+except FileNotFoundError:
+    logging.warning("Could not find register... discovering....")
+    read_register = Pickle_Register.discover(read_directory)
+    with register_filename.open("wb") as fh:
+        pkl.dump(read_register, fh)
+logging.info("Register loaded.")
 
 write_directory = random_unique_filename(data_root)
 
 Path.mkdir(write_directory)
 
-with register_filename.open("rb") as fh:
-    read_register = pkl.load(fh)
+logging.info("len = %d" % len(read_register.metadatas))
 
-convert_native_data_to_current_format(read_register, write_directory)
+for metadata, filename in read_register.metadatas.items():
+    save_state = Pickle_Register.load_save_state(filename, False).get_good_version()
+    del save_state.beta
+    with (write_directory / filename.name).open("wb") as fh:
+        pkl.dump(save_state, fh)
+    logging.info("wrote to %s" % (write_directory / filename.name))
+
 
 # old_filename = Path("../test/several_salem_numbers.txt")
 # new_filename = Path("../test/several_salem_numbers2.txt")

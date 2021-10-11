@@ -24,7 +24,6 @@ from numpy import poly1d
 
 from mpmath import workdps
 
-# register = Pickle_Register.discover(Path.home() / "beta_expansions")
 
 # with (Path.home() / "beta_expansions" / "register.pkl").open("rb") as fh:
 #     register = Pickle_Register(Path.home() / "beta_expansions",pkl.load(fh))
@@ -35,13 +34,42 @@ from beta_numbers.data.registers import Pickle_Register
 from beta_numbers.salem_numbers import Salem_Number
 from beta_numbers.utilities import Int_Polynomial
 
-start_n = 1000000000
-max_n = 2 * 10 ** 9
+start_n = 2 * 10 ** 9
+max_n = 2 * 10 ** 9 + 10 ** 6
 max_restarts = 4
 starting_dps = 64
 save_period = 100000
 
+data_root = Path("D:/beta_expansions")
+saves_directory = data_root / "4LqjzzfBuZyDhiseJYak"
+register_filename = saves_directory / "register.pkl"
 
+logging.basicConfig(filename ="logs/find_close_orbit.log", level = logging.INFO)
+
+logging.info("Loading register from %s" % register_filename)
+try:
+    with register_filename.open("rb") as fh:
+        register = pkl.load(fh)
+except FileNotFoundError:
+    logging.warning("Could not find register... discovering....")
+    register = Pickle_Register.discover(saves_directory)
+    with register_filename.open("wb") as fh:
+        pkl.dump(register, fh)
+logging.info("Register loaded.")
+
+
+
+beta = Salem_Number(Int_Polynomial((1,-10,-40,-59,-40,-10,1), starting_dps))
+
+calc_period(
+    beta,
+    start_n,
+    max_n,
+    max_restarts,
+    starting_dps,
+    save_period,
+    register
+)
 # print("hello")
 # with register_filename.open("rb") as fh:
 #     register = pkl.load(fh)
@@ -55,20 +83,9 @@ save_period = 100000
 #     pkl.dump(poly, fh)
 # with (Path.home() / "test.pkl").open("rb") as fh:
 #     poly2 = pkl.load(fh)
-# beta = Salem_Number(Int_Polynomial((1,-10,-40,-59,-40,-10,1), starting_dps))
 # #
-# logging.basicConfig(filename ="logs/find_close_orbit.log", level = logging.INFO)
 # #
 # # try:
-# calc_period(
-#     beta,
-#     start_n,
-#     max_n,
-#     max_restarts,
-#     starting_dps,
-#     save_period,
-#     register
-# )
 # except KeyboardInterrupt:
 #     with register_filename.open("wb") as fh:
 #         pkl.dump(register.get_dump_data(), fh)
