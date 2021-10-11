@@ -13,6 +13,8 @@ This project has two aims:
 
 ## Calculations so far
 
+Each iterate takes ~ 85 microseconds on my machine. 
+
 | Salem number       | Minimal polynomial              | Number of calculated coefficients | Periodicity |
 | -------------------|-------------------------------- | --------------------------------- | ----------- |
 | 13.345638433018787 | (1, -10, -40, -59, -40, -10, 1) | 2 billion                         | unknown     |
@@ -27,6 +29,8 @@ This project has two aims:
 4. ~~Cythonize `beta_orbit.Beta_Orbit_Iter`.~~
 5. Publish a package for this project.
 6. Publish a package for `Int_Polynomial`.
+7. Cythonize `mpmath.polyroots`
+8. Create a new, faster, more portable `Register`. Currently looking at LevelDB and the Plyvel module.
 
 ### Known bugs
 
