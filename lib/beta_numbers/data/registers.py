@@ -26,22 +26,33 @@ from beta_numbers.data import Data_Not_Found_Error
 from beta_numbers.data.states import Save_State_Type, Save_States_Iter, Disk_Data
 from beta_numbers.salem_numbers import Salem_Number
 from beta_numbers.utilities import intervals_overlap, random_unique_filename, PICKLE_EXT
-from beta_numbers.utilities.periodic_list import has_redundancies
-from beta_numbers.utilities.polynomials import Int_Polynomial
+from beta_numbers.utilities.periodic_lists import has_redundancies
+from beta_numbers.utilities.polynomials import Int_Polynomial, Int_Polynomial_Array
 
 
 class Register(ABC):
     def __init__(self, saves_directory):
-        self.saves_directory = Path.resolve( Path(saves_directory) )
-
-        # make directory if it's not already there
-        Path.mkdir( self.saves_directory, parents = True, exist_ok = True )
+        self.saves_directory = Path(saves_directory)
 
         self.ram_datas = []
         self.metadatas = {}
 
+
     #################################
-    #       CONVENIENCE METHODS     #
+    #       REGISTER METHODS        #
+
+    @abstractmethod
+    def __copy__(self):pass
+
+    @classmethod
+    def discover(cls, saves_directory):
+        register = Pickle_Register(saves_directory)
+        for i, f in enumerate(saves_directory.iterdir()):
+            if f.is_file():
+                save_state = cls.load_disk_data(f, False)
+                if isinstance(save_state, Disk_Data):
+                    register.add_disk_metadata(save_state, f)
+        return register
 
     def list_orbits_calculated(self):
         betas = list(set(metadata.get_beta() for metadata in self.metadatas))
@@ -68,9 +79,6 @@ class Register(ABC):
                         intervals_reduced.append(int1)
                 ret[(typee, beta)] = intervals_reduced
         return ret
-
-    @abstractmethod
-    def __copy__(self):pass
 
     #################################
     #      SUB REGISTER METHODS     #
@@ -109,21 +117,39 @@ class Register(ABC):
     #################################
     #       DISK DATA METHODS       #
 
+    @classmethod
     @abstractmethod
-    def add_disk_data(self, disk_data): pass
+    def load_disk_data(cls, filename, decode = True):pass
 
+    @classmethod
     @abstractmethod
-    def remove_disk_data(self, metadata): pass
+    def dump_disk_data(cls, disk_data, filename, encode = True):pass
 
-    @abstractmethod
-    def _cleanup_disk_redundancies(self, typee, beta):pass
+    def add_disk_data(self, save_state, num_attempts=10):
+        """Let a `Save_State` be known to this `Register` and save the `Save_State` to disk.
 
-    @abstractmethod
-    def _get_save_state_from_disk(self, typee, beta, n):pass
+        :param save_state: Type `Save_State`.
+        :param num_attempts: Default 10.
+        :raises ValueError: if the `Save_State` is empty.
+        :raises FileExistsError: if the `Save_State` has already been added (ignores `is_complete`)
+        """
+        if len(save_state) == 0:
+            raise ValueError("save state cannot be empty")
 
-    @abstractmethod
-    def _mark_disk_data_complete(self, typee, beta, p, m):pass
+        if (
+            save_state in self.metadatas or
+            any(metadata.eq_except_complete(save_state) for metadata in self.metadatas) > 0
+        ):
+            raise FileExistsError("the passed `Save_State` has already been added to this register.")
 
+        filename = random_unique_filename(self.saves_directory, PICKLE_EXT)
+        self.add_disk_metadata(save_state.get_metadata(), filename)
+
+        type(self).dump_disk_data(save_state, filename)
+
+    def remove_disk_data(self, metadata):
+        Path.unlink(self.metadatas[metadata])
+        self.remove_disk_metadata(metadata)
 
     #################################
     #       RAM DATA METHODS        #
@@ -177,7 +203,17 @@ class Register(ABC):
                         new_ram_data.append(ram_data.get_slice(start_n, p + m))
         self.ram_datas = new_ram_data
 
-        self._cleanup_disk_redundancies(typee,beta)
+        for metadata, filename in self.slice_disk_metadatas(typee, beta).items():
+            if metadata.is_complete:
+                start_n, p, m = metadata.start_n, metadata.p, metadata.m
+                if has_redundancies(start_n, len(metadata), p, m):
+                    if has_redundancies(start_n, 1, p, m):
+                        self.remove_disk_data(metadata)
+                    else:
+                        save_state = type(self).load_disk_data(filename)
+                        self.remove_disk_data(metadata)
+                        sliced = save_state.get_slice(start_n, p + m)
+                        self.add_disk_data(sliced)
 
         for register in self.load_sub_registers():
             register.cleanup_redundancies(typee,beta)
@@ -192,15 +228,18 @@ class Register(ABC):
 
         if n < 0:
             raise ValueError("n is not positive or 0, passed value: %d" % n)
+
         for ram_data in self.slice_ram_datas(typee, beta):
             if n in ram_data:
                 return ram_data
-        try:
-            return self._get_save_state_from_disk(typee,beta,n)
-        except Data_Not_Found_Error:
-            pass
+
+        for metadata, filename in self.slice_disk_metadatas(typee, beta).items():
+            if n in metadata:
+                return type(self).load_disk_data(filename)
+
         for register in self.load_sub_registers():
             return register.get_save_state(typee, beta, n)
+
         raise Data_Not_Found_Error(typee,beta,n)
 
     def get_n(self, typee, beta, n):
@@ -260,7 +299,14 @@ class Register(ABC):
         for ram_data in self.slice_ram_datas(typee, beta):
             ram_data.mark_complete(p,m)
 
-        self._mark_disk_data_complete(typee, beta, p, m)
+        for metadata, filename in self.slice_disk_metadatas(typee, beta).items():
+            if not (metadata.is_complete and metadata.p == p and metadata.m == m):
+                save_state = type(self).load_disk_data(filename)
+                save_state.mark_complete(p, m)
+                self.remove_disk_metadata(metadata)
+                metadata.mark_complete(p, m)
+                self.add_disk_metadata(metadata, filename)
+                type(self).dump_disk_data(save_state, filename)
 
         for register in self.load_sub_registers():
             register.mark_complete(typee,beta,p,m)
@@ -326,47 +372,36 @@ class Pickle_Register(Register):
 
         super().__init__(saves_directory)
 
+        Path.mkdir(saves_directory, exist_ok=True, parents=True)
+
         self.sub_register_filenames = []
 
-    @staticmethod
-    def discover(saves_directory):
-        register = Pickle_Register(saves_directory)
-        for f in saves_directory.iterdir():
-            if f.is_file():
-                try:
-                    save_state = Pickle_Register.load_save_state(f, False)
-                    if isinstance(save_state, Disk_Data):
-                        register.add_disk_metadata(save_state, f)
-                except pkl.UnpicklingError and EOFError:
-                    logging.warning("Pickled data at %s is corrupted" % f)
-        return register
-
-    @staticmethod
-    def dump_save_state(save_state, filename, encode = True):
+    @classmethod
+    def dump_disk_data(cls, save_state, filename, encode = True):
+        beta = save_state.get_beta()
+        encoded_save_state = copy.copy(save_state)
+        encoded_save_state.beta = None
+        encoded_save_state.dps = beta.dps
+        with workdps(beta.dps):
+            encoded_save_state.beta0 = str(beta.beta0)
+        encoded_save_state.min_poly = list(beta.min_poly.ndarray_coefs(True, True))
         if encode:
-            beta = save_state.get_beta()
-            encoded_save_state = copy.copy(save_state)
-            encoded_save_state.beta = None
-            encoded_save_state.dps = beta.dps
-            with workdps(beta.dps):
-                encoded_save_state.beta0 = str(beta.beta0)
-            encoded_save_state.min_poly = beta.min_poly.array_coefs(True,True)
             if save_state.type == Save_State_Type.BS:
-                encoded_data = np.zeros((len(save_state), beta.deg), dtype=np.longlong)
-                for i in range(save_state.data.shape[0]):
-                    coefs = save_state.data[i].array_coefs(True,True)
-                    encoded_data[i,:] = coefs
+                try:
+                    encoded_data = save_state.data.get_ndarray()
+                except AttributeError:
+                    x=1
             elif save_state.type == Save_State_Type.CS:
                 encoded_data = save_state.data
             else:
                 raise NotImplementedError
             encoded_save_state.data = encoded_data
-            save_state = encoded_save_state
+        save_state = encoded_save_state
         with filename.open("wb") as fh:
             pkl.dump(save_state,fh)
 
-    @staticmethod
-    def load_save_state(filename, decode = True):
+    @classmethod
+    def load_disk_data(cls, filename, decode = True):
         with filename.open("rb") as fh:
             try:
                 save_state = pkl.load(fh)
@@ -376,17 +411,18 @@ class Pickle_Register(Register):
             except AttributeError as m:
                 logging.warning(str(m))
                 return None
+        with workdps(save_state.dps):
+            beta0 = mpf(save_state.beta0)
+        dps = save_state.dps
+        min_poly = Int_Polynomial(save_state.min_poly, dps, beta0)
+        save_state.beta = Salem_Number(min_poly, beta0)
+        del save_state.min_poly, save_state.dps, save_state.beta0
         if decode:
-            with workdps(save_state.dps):
-                beta0 = mpf(save_state.beta0)
-            dps = save_state.dps
-            min_poly = Int_Polynomial(save_state.min_poly, dps, beta0)
-            save_state.beta = Salem_Number(min_poly, beta0)
-            del save_state.min_poly, save_state.dps, save_state.beta0
             if save_state.type == Save_State_Type.BS:
-                decoded_data = np.empty(len(save_state), dtype = object)
+                decoded_data = Int_Polynomial_Array(5, dps)
+                decoded_data.init_empty(len(save_state))
                 for i in range(save_state.data.shape[0]):
-                    decoded_data[i] = Int_Polynomial(save_state.data[i,:].astype(np.longlong), save_state.get_beta().dps)
+                    decoded_data.append(Int_Polynomial(save_state.data[i,:].astype(np.longlong), dps))
             elif save_state.type == Save_State_Type.CS:
                 decoded_data = save_state.data
             else:
@@ -398,11 +434,9 @@ class Pickle_Register(Register):
         register = Pickle_Register(self.saves_directory)
         for filename in self.sub_register_filenames:
             register.add_sub_register(filename)
+        for metadata,filename in self.metadatas.items():
+            register.add_disk_metadata(metadata,filename)
         return register
-
-    def remove_disk_data(self, metadata):
-        Path.unlink(self.metadatas[metadata])
-        self.remove_disk_metadata(metadata)
 
     def load_sub_registers(self):
         for register_filename in self.sub_register_filenames:
@@ -414,57 +448,6 @@ class Pickle_Register(Register):
         with filename.open("wb") as fh:
             pkl.dump(register, fh)
         self.sub_register_filenames.append(filename)
-
-    def add_disk_data(self, save_state, num_attempts=10):
-        """Let a `Save_State` be known to this `Register` and save the `Save_State` to disk.
-
-        :param save_state: Type `Save_State`.
-        :param num_attempts: Default 10.
-        :raises ValueError: if the `Save_State` is empty.
-        :raises FileExistsError: if the `Save_State` has already been added (ignores `is_complete`)
-        """
-        if len(save_state) == 0:
-            raise ValueError("save state cannot be empty")
-
-        if (
-            save_state in self.metadatas or
-            sum(metadata.eq_except_complete(save_state) for metadata in self.metadatas) > 0
-        ):
-            raise FileExistsError("the passed `Save_State` has already been added to this register.")
-
-        filename = random_unique_filename(self.saves_directory, PICKLE_EXT)
-        self.add_disk_metadata(save_state.get_metadata(), filename)
-
-        Pickle_Register.dump_save_state(save_state, filename)
-
-    def _cleanup_disk_redundancies(self, typee, beta):
-        for metadata,filename in self.slice_disk_metadatas(typee, beta).items():
-            if metadata.is_complete:
-                start_n, p, m = metadata.start_n, metadata.p, metadata.m
-                if has_redundancies(start_n, len(metadata), p, m):
-                    if has_redundancies(start_n, 1, p, m):
-                        self.remove_disk_data(metadata)
-                    else:
-                        save_state = Pickle_Register.load_save_state(filename)
-                        self.remove_disk_data(metadata)
-                        sliced = save_state.get_slice(start_n, p + m)
-                        self.add_disk_data(sliced)
-
-    def _get_save_state_from_disk(self, typee, beta, n):
-        for metadata, filename in self.slice_disk_metadatas(typee, beta).items():
-            if n in metadata:
-                return Pickle_Register.load_save_state(filename)
-        raise Data_Not_Found_Error(typee,beta,n)
-
-    def _mark_disk_data_complete(self, typee, beta, p, m):
-        for metadata,filename in self.slice_disk_metadatas(typee, beta).items():
-            if not (metadata.is_complete and metadata.p == p and metadata.m == m):
-                save_state = Pickle_Register.load_save_state(filename)
-                save_state.mark_complete(p,m)
-                self.remove_disk_metadata(metadata)
-                metadata.mark_complete(p,m)
-                self.add_disk_metadata(metadata, filename)
-                Pickle_Register.dump_save_state(save_state, filename)
 
     # def __getstate__(self):
     #     return (
@@ -481,6 +464,14 @@ class Ram_Only_Register(Register):
     def __init__(self):
         super().__init__("loltmp")
 
+    @classmethod
+    def load_disk_data(cls, filename, decode=True):
+        pass
+
+    @classmethod
+    def dump_disk_data(cls, disk_data, filename, encode=True):
+        pass
+
     def __copy__(self):
         register = Ram_Only_Register()
         register.ram_datas = copy.copy(self.ram_datas)
@@ -492,17 +483,8 @@ class Ram_Only_Register(Register):
     def add_sub_register(self, register):
         pass
 
-    def add_disk_data(self, disk_data):
+    def add_disk_data(self, disk_data, num_attempts=10):
         raise NotImplementedError
 
     def remove_disk_data(self, metadata):
         raise NotImplementedError
-
-    def _cleanup_disk_redundancies(self, typee, beta):
-        pass
-
-    def _get_save_state_from_disk(self, typee, beta, n):
-        pass
-
-    def _mark_disk_data_complete(self, typee, beta, p, m):
-        pass

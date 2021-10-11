@@ -15,6 +15,7 @@
 
 import logging
 import time
+import pickle as pkl
 
 import psutil
 from mpmath import mp
@@ -24,31 +25,39 @@ from beta_numbers.data.registers import Ram_Only_Register
 from beta_numbers.data.states import Save_State_Type, Ram_Data
 from beta_numbers.salem_numbers import Salem_Number
 from beta_numbers.utilities import BYTES_PER_MB, get_divisors, Accuracy_Error
-from beta_numbers.utilities.periodic_list import has_redundancies, Periodic_List
+from beta_numbers.utilities.periodic_lists import has_redundancies, Periodic_List
 
 
 def _dump_data(n_lower, n_upper, Bs, cs, register, p = None, m = None):
 
     if n_upper >= n_lower:
+
         Bs = Bs.get_slice(n_lower, n_upper+1).make_disk_data()
         cs = cs.get_slice(n_lower, n_upper+1).make_disk_data()
+
         beta = Bs.get_beta()
 
         for save_state in [Bs, cs]:
             if p and m:
                 save_state.mark_complete(p,m)
-                save_state.remove_redundancies()
+                # save_state.remove_redundancies()
             if len(save_state) > 0:
                 register.add_disk_data(save_state)
         if p and m:
             for typee in Save_State_Type:
                 register.mark_complete(typee,beta,p,m)
-                register.cleanup_redundancies(typee,beta)
+                # register.cleanup_redundancies(typee,beta)
+
+        # with (register.saves_directory / "register.pkl").open("wb") as fh:
+        #     pkl.dump(register, fh)
+        #     logging.info("register dump: %.4f" % time.time())
 
 def _dump_data_log(n_lower, n_upper, last_save_time):
     if n_upper >= n_lower:
         logging.info("Saving iterates %d to %d to disk" % (n_lower, n_upper))
+        # logging.info("Saving register to disk.")
         logging.info("Elapsed time since last save: %.3f s" % (time.time() - last_save_time))
+
     else:
         logging.warning("Invalid range: Attempted to save iterates %d to %d to disk; continuing." % (n_lower, n_upper))
     return time.time()
@@ -70,7 +79,6 @@ def _get_Bk_iter(beta, n, register):
     if n > 0:
         k = (n - 1) // 2
         B1_iter = register.get_n_range(Save_State_Type.BS, beta, k)
-        Bk = register.get_n(Save_State_Type.BS, beta, k)
         if n % 2 == 0:
             B1 = B1_iter.__next__()
         else:
@@ -141,6 +149,9 @@ def calc_period(beta, start_n, max_n, max_restarts, starting_dps, save_period, r
     :return: None; everything is saved to disk and access information is encoded in `register`.
     """
 
+
+    start_time = time.time()
+
     mp.dps = starting_dps
 
     logging.info("Finding period for Salem number: %s" % beta)
@@ -152,7 +163,6 @@ def calc_period(beta, start_n, max_n, max_restarts, starting_dps, save_period, r
         beta.calc_beta0()
 
         try:
-            start_time = time.time()
             start_n_this_save = start_n
 
             cs = Ram_Data(Save_State_Type.CS, beta, [], start_n, save_period)
@@ -180,7 +190,6 @@ def calc_period(beta, start_n, max_n, max_restarts, starting_dps, save_period, r
 
                 cs.append(c)
                 Bs.append(B)
-
 
                 if n % 2 == 1:
                     B1 = B1_iter.__next__()

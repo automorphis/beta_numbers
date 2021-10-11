@@ -20,7 +20,8 @@ from enum import Enum
 import numpy as np
 
 from beta_numbers.data import Data_Not_Found_Error
-from beta_numbers.utilities.periodic_list import calc_beginning_index_of_redundant_data
+from beta_numbers.utilities.periodic_lists import calc_beginning_index_of_redundant_data
+from beta_numbers.utilities.polynomials import Int_Polynomial_Array
 
 
 class Save_State(ABC):
@@ -195,11 +196,16 @@ class Ram_Data(Save_State):
 
     def __init__(self, typee, beta, data, start_n, init_data_size, growth_factor=2):
         super().__init__(typee,beta,data,start_n)
+
+        if len(data) > init_data_size:
+            raise ValueError("len(data) (%d) must be at most init_data_size (%d)" % (len(data), init_data_size))
+
         self.init_data_size = init_data_size
         self._init_data(data, self.init_data_size)
         self.growth_factor = growth_factor
 
     def _init_data(self, data, init_size):
+
         if self.type == Save_State_Type.CS:
             if len(data) > 0:
                 self.data = np.array(data, dtype=int)
@@ -207,16 +213,34 @@ class Ram_Data(Save_State):
             else:
                 self.data = np.empty(init_size, dtype=int)
                 self._length = 0
-        else:
+
+            if len(self.data) < init_size:
+                pad_size = init_size - len(self.data)
+                self.data = np.pad(self.data, (0, pad_size), mode="empty")
+
+
+        elif self.type == Save_State_Type.BS:
+            beta_deg = self.beta.deg
+            dps = self.beta.min_poly.get_dps()
             if len(data)>0:
-                self.data = np.array(data, dtype=object)
+                self.data = Int_Polynomial_Array(beta_deg-1, dps)
+                self.data.init_empty(len(data))
+                for datum in data:
+                    self.data.append(datum)
                 self._length = len(self.data)
+
             else:
-                self.data = np.empty(init_size, dtype=object)
+                self.data = Int_Polynomial_Array(beta_deg-1, dps)
+                self.data.init_empty(init_size)
                 self._length = 0
-        if len(self.data) < init_size:
-            pad_size = init_size - len(self.data)
-            self.data = np.pad(self.data, (0, pad_size), mode="empty")
+
+            if len(self.data) < init_size:
+                pad_size = init_size - len(self.data)
+                self.data.pad(pad_size)
+
+
+        else:
+            raise NotImplementedError
 
     def __copy__(self):
         ram_data = Ram_Data(self.type, self.beta, self.data, self.start_n, self.init_data_size, self.growth_factor)
@@ -226,8 +250,16 @@ class Ram_Data(Save_State):
 
     def append(self, datum):
         if len(self) < len(self.data):
-            self.data[len(self)] = datum
+            if self.type == Save_State_Type.CS:
+                self.data[len(self)] = datum
+
+            elif self.type == Save_State_Type.BS:
+                self.data.append(datum)
+
+            else:
+                raise NotImplementedError
             self._length += 1
+
         else:
             self._init_data(
                 self.data,
@@ -237,13 +269,6 @@ class Ram_Data(Save_State):
                 )
             )
             self.append(datum)
-
-    def trim_initial(self, n):
-        if n > len(self):
-            raise ValueError("Trimmed more than the length of the data. n: %d, length: %d" % (n, len(self)))
-        self.data = np.delete(self.data, np.s_[:n])
-        self._length -= n
-        self.set_start_n(n)
 
     def set_start_n(self,start_n):
         self.start_n = start_n
@@ -285,6 +310,7 @@ class Save_States_Iter:
                 else:
                     raise Data_Not_Found_Error(self.type, self.beta, self.curr_n)
         ret = self.curr_save_state[self.curr_n]
+
         self.curr_n+=1
         return ret
 

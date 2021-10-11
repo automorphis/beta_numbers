@@ -72,7 +72,7 @@ class Salem_Number:
             raise Not_Salem_Error(self)
         if not self.beta0 or (remember_conjs and not self.conjs):
             with workdps(self.dps):
-                rts = polyroots( self.min_poly.array_coefs(False) )
+                rts = polyroots(list(map(int, list(self.min_poly.ndarray_coefs(False)))))
                 if len(rts) < 4 or len(rts) % 2 == 1:
                     raise Not_Salem_Error(self)
                 rts = sorted(rts, key=lambda z: abs(im(z)))

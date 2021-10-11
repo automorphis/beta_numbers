@@ -20,7 +20,7 @@ import numpy as np
 from mpmath import workdps, almosteq, mpf
 from numpy.polynomial import Polynomial
 
-from beta_numbers.utilities.polynomials import Int_Polynomial
+from beta_numbers.utilities.polynomials import Int_Polynomial, Int_Polynomial_Array
 
 BYTES_PER_KB = 1024
 BYTES_PER_MB = 1024**2
