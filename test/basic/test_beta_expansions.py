@@ -21,7 +21,7 @@ from mpmath import workdps, almosteq, mpf, fabs
 from beta_numbers.beta_expansions import calc_beta_expansion_partials, calc_beta_expansion
 from beta_numbers.salem_numbers import Salem_Number
 from beta_numbers.utilities import eval_code_in_file, inequal_dps
-from beta_numbers.utilities.periodic_list import Periodic_List
+from beta_numbers.utilities.periodic_lists import Periodic_List
 
 
 class Test_Beta_Expansions(TestCase):

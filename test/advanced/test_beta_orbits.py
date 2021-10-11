@@ -21,7 +21,7 @@ from mpmath import workdps, almosteq, polyval
 from beta_numbers.beta_orbits import Beta_Orbit_Iter
 from beta_numbers.salem_numbers import Salem_Number
 from beta_numbers.utilities import eval_code_in_file, inequal_dps
-from beta_numbers.utilities.periodic_list import Periodic_List
+from beta_numbers.utilities.periodic_lists import Periodic_List
 from beta_numbers.utilities.polynomials import instantiate_int_poly
 
 
@@ -70,7 +70,7 @@ class Test_Beta_Orbit_Iter(TestCase):
                         with self.subTest():
                             self.assertEqual(c, cs[n])
                         with workdps(dps):
-                            correct_xi = beta.beta0 * polyval(list(B.array_coefs(False)), beta.beta0)
+                            correct_xi = beta.beta0 * polyval(list(B.ndarray_coefs(False)), beta.beta0)
                         with workdps(dps):
                             are_almosteq = almosteq(calculated_xi, correct_xi)
                             if not are_almosteq:

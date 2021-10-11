@@ -20,7 +20,7 @@ import numpy as np
 from advanced.utilities import set_up_save_states, iter_over_all, iter_over_completes, iter_over_incompletes
 from beta_numbers.data.states import Save_State_Type, Disk_Data
 from beta_numbers.utilities import Int_Polynomial
-from beta_numbers.utilities.periodic_list import calc_beginning_index_of_redundant_data
+from beta_numbers.utilities.periodic_lists import calc_beginning_index_of_redundant_data
 
 
 class Test_Disk_Data(TestCase):

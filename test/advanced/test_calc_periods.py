@@ -22,7 +22,7 @@ from beta_numbers.data.registers import Pickle_Register
 from beta_numbers.data.states import Save_State_Type
 from beta_numbers.salem_numbers import Salem_Number
 from beta_numbers.utilities import eval_code_in_file
-from beta_numbers.utilities.periodic_list import Periodic_List
+from beta_numbers.utilities.periodic_lists import Periodic_List
 from beta_numbers.utilities.polynomials import Int_Polynomial
 
 

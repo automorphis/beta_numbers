@@ -24,6 +24,7 @@ from beta_numbers.calc_periods import calc_short_period
 from beta_numbers.data.registers import Pickle_Register
 from beta_numbers.data.states import Save_State_Type, Ram_Data, Disk_Data
 from beta_numbers.salem_numbers import Salem_Number
+from beta_numbers.utilities import Int_Polynomial_Array
 
 
 def set_up_save_states(obj):
@@ -39,25 +40,33 @@ def set_up_save_states(obj):
 
     obj.p, obj.m = obj.Bs.p, obj.Bs.m
 
+    Bs_array = Int_Polynomial_Array(5, obj.dps)
+    Bs_array.init_empty(obj.p + obj.m)
+    for B in obj.Bs:
+        Bs_array.append(B)
+
+    cs_array = list(obj.cs[:obj.p + obj.m])
+
     obj.lengths = [1, 2, 3, 5, 7, 11, 10, 100, 1000]
     obj.save_statess_Bs_incomplete = {
         length: [
             Disk_Data(
                 Save_State_Type.BS,
                 obj.beta,
-                np.array(list(obj.Bs[i * length: (i + 1) * length]), dtype = object),
+                Bs_array[i * length: (i + 1) * length],
                 i * length
             )
             for i in range(int(ceil((obj.p + obj.m) / length)))
         ]
         for length in obj.lengths
     }
+
     obj.save_statess_cs_incomplete = {
         length: [
             Disk_Data(
                 Save_State_Type.CS,
                 obj.beta,
-                np.array(list(obj.cs[i * length: (i + 1) * length]), dtype=int),
+                np.array(cs_array[i * length: (i + 1) * length], dtype=int),
                 i * length
             )
             for i in range(int(ceil((obj.p + obj.m) / length)))
@@ -91,7 +100,10 @@ def iter_over_all(obj):
 def populate_disk_register(saves_directory, save_states):
     register = Pickle_Register(saves_directory)
     for save_state in save_states:
-        register.add_disk_data(save_state)
+        try:
+            register.add_disk_data(save_state)
+        except FileExistsError:
+            pass
     return register
 
 
@@ -99,7 +111,10 @@ def populate_ram_and_disk_register(saves_directory, save_states, save_period):
     register = Pickle_Register(saves_directory)
     for save_state in save_states:
         if random.randint(0,1) == 0:
-            register.add_disk_data(save_state)
+            try:
+                register.add_disk_data(save_state)
+            except FileExistsError:
+                pass
         else:
             register.add_ram_data( Ram_Data(save_state.type, save_state.get_beta(), save_state.data, save_state.start_n, save_period) )
     return register

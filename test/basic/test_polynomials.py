@@ -20,8 +20,7 @@ from unittest import TestCase
 import numpy as np
 from mpmath import mp, mpf, almosteq
 
-from beta_numbers.utilities import Int_Polynomial, inequal_dps
-
+from beta_numbers.utilities import Int_Polynomial, Int_Polynomial_Array, inequal_dps, eval_code_in_file
 
 class Test_Int_Polynomial(TestCase):
 
@@ -345,10 +344,10 @@ class Test_Int_Polynomial(TestCase):
 
     def test_array_coefs(self):
         for args, lst in zip(self.good_polys["poly1_args"], self.good_polys["array_natural"]):
-            self.assertTrue(np.all(Int_Polynomial(*args).array_coefs() == lst))
-            self.assertTrue(Int_Polynomial(*args).array_coefs().dtype == np.longlong)
+            self.assertTrue(np.all(Int_Polynomial(*args).ndarray_coefs() == lst))
+            self.assertTrue(Int_Polynomial(*args).ndarray_coefs().dtype == np.longlong)
         for args, lst in zip(self.good_polys["poly1_args"], self.good_polys["array_unnatural"]):
-            self.assertTrue(np.all(Int_Polynomial(*args).array_coefs(False) == lst))
+            self.assertTrue(np.all(Int_Polynomial(*args).ndarray_coefs(False) == lst))
 
     def test___eq__(self):
         for args1, args2 in zip(self.good_polys["poly1_args"], self.good_polys["poly2_args"]):
@@ -504,3 +503,184 @@ class Test_Int_Polynomial(TestCase):
                 poly = Int_Polynomial(*args)
                 for i in range(deg + 1):
                     self.assertEqual(poly[i], coefs[i])
+
+class Test_Int_Polynomial_Array(TestCase):
+
+    def setUp(self):
+        self.several_smaller_orbits = eval_code_in_file("data/several_smaller_orbits.txt")
+        self.arrays = []
+        for _, _, Bs, _, _, _ in self.several_smaller_orbits:
+            array = Int_Polynomial_Array(5, 256)
+            array.init_empty(len(Bs))
+            self.arrays.append(array)
+            for B in Bs:
+                array.append(B)
+
+    def test_init_empty(self):
+        with self.assertRaises(ValueError):
+            Int_Polynomial_Array(5, 256).init_empty(-1)
+        try:
+            Int_Polynomial_Array(5, 256).init_empty(0)
+        except ValueError:
+            self.fail("Int_Polynomial_Array constructor can take init_size = 0")
+
+    def test_append(self):
+        for t, array in zip(self.several_smaller_orbits, self.arrays):
+            Bs = t[2]
+            with self.assertRaises(IndexError):
+                array.append(Bs[-1])
+
+    def test___len__(self):
+        for _, _, Bs, _, _, _ in self.several_smaller_orbits:
+            array = Int_Polynomial_Array(5, 256)
+            array.init_empty(len(Bs))
+            self.assertEqual(len(array), len(Bs))
+            for i, B in enumerate(Bs):
+                array.append(B)
+                self.assertEqual(len(array), len(Bs))
+
+    def test_get_poly(self):
+        for t, array in zip(self.several_smaller_orbits, self.arrays):
+            Bs = t[2]
+            for i, B in enumerate(Bs):
+                self.assertEqual(B, array.get_poly(i))
+            with self.assertRaises(IndexError):
+                array.get_poly(-1)
+            with self.assertRaises(IndexError):
+                array.get_poly(len(Bs))
+        for _, _, Bs, _, _, _ in self.several_smaller_orbits:
+            array = Int_Polynomial_Array(5, 256)
+            array.init_empty(len(Bs))
+            with self.assertRaises(IndexError):
+                array.get_poly(0)
+            for i, B in enumerate(Bs):
+                array.append(B)
+                with self.assertRaises(IndexError):
+                    array.get_poly(i+1)
+
+    def test_get_ndarray(self):
+        for _, _, Bs, _, _, _ in self.several_smaller_orbits:
+            array = Int_Polynomial_Array(5, 256)
+            array.init_empty(len(Bs))
+            self.assertEqual(type(array.get_ndarray()), np.ndarray)
+            self.assertEqual(array.get_ndarray().shape, (0,6))
+            for i, B in enumerate(Bs):
+                array.append(B)
+                self.assertEqual(type(array.get_ndarray()), np.ndarray)
+                self.assertEqual(array.get_ndarray().shape, (i+1, 6))
+                self.assertEqual(B, Int_Polynomial(array.get_ndarray()[i,:], 256))
+
+    def test___getitem__(self):
+        for t, array in zip(self.several_smaller_orbits, self.arrays):
+            Bs = t[2]
+            for i, B in enumerate(Bs):
+                self.assertEqual(B, array[i])
+
+        for _, _, Bs, _, _, _ in self.several_smaller_orbits:
+            array = Int_Polynomial_Array(5, 256)
+            array.init_empty(len(Bs))
+            with self.assertRaises(IndexError):
+                array[0]
+            for i, B in enumerate(Bs):
+                array.append(B)
+                with self.assertRaises(IndexError):
+                    array[i+1]
+
+        for t, array in zip(self.several_smaller_orbits, self.arrays):
+            Bs = t[2]
+            starts_stops = [
+                (None, None),
+                (None, 1), (None, 2), (None, -2), (None, len(Bs)-2), (None, -1), (None, len(Bs)-1), (None, len(Bs)),
+                (0, 1), (0, 2), (0, -2), (0, len(Bs)-2), (0, -1), (0, len(Bs)-1), (0, None), (0, len(Bs)),
+                (1, 1), (1, 2), (1, -2), (1, len(Bs)-2), (1, -1), (1, len(Bs)-1), (0, None), (1, len(Bs)),
+                (-2, -2), (-2, len(Bs)-2), (-2, -1), (-2, len(Bs)-1), (-2, None), (-2, len(Bs)),
+                (len(Bs)-2, -2), (len(Bs)-2, len(Bs)-2), (len(Bs)-2, -1), (len(Bs)-2, len(Bs)-1), (len(Bs)-2, None), (-2, len(Bs)),
+                (-1, -1), (-1, len(Bs)-1), (-1, None), (-1, len(Bs)),
+                (len(Bs)-1, -1), (len(Bs)-1, len(Bs)-1), (len(Bs)-1, None), (-1, len(Bs)),
+                (None, len(Bs)+1), (0, len(Bs)+1), (1, len(Bs)+1), (-2, len(Bs)+1), (-1, len(Bs)+1)
+            ]
+            steps = [None, 1, 2, 3, 4, 5]
+            for step, (start, stop) in product(steps, starts_stops):
+                subarray = array[slice(start, stop, step)]
+                self.assertEqual(type(subarray), Int_Polynomial_Array)
+                if start is None:
+                    start_res = 0
+                elif start < 0:
+                    start_res = len(Bs) + start
+                else:
+                    start_res = start
+                if stop is None:
+                    stop_res = len(Bs)
+                elif stop < 0:
+                    stop_res = len(Bs) + stop
+                elif stop > len(Bs):
+                    stop_res = len(Bs)
+                else:
+                    stop_res = stop
+                step_res = step if step else 1
+                actual_len = (stop_res - start_res) // step_res
+                if (stop_res - start_res) % step_res != 0:
+                    actual_len += 1
+                self.assertEqual(len(subarray), actual_len, "start = %s, stop = %s, step = %s" % (start, stop, step))
+                for i, j in enumerate(range(start_res, stop_res, step_res)):
+                    self.assertEqual(Bs[j], subarray.get_poly(i),  "start = %s, stop = %s, step = %s" % (start, stop, step))
+
+    def test___eq__(self):
+        for t, array1 in zip(self.several_smaller_orbits, self.arrays):
+            Bs = t[2]
+            array2 = Int_Polynomial_Array(5,32)
+            array2.init_empty(len(Bs))
+            for B in Bs:
+                array2.append(B)
+            self.assertEqual(array1, array2, "dps differing should not matter")
+            array2 = copy.copy(array1)
+            self.assertEqual(
+                array1,
+                array2,
+                ("\nlen(array1) = %d\n" % len(array1)) +
+                ("len(array2) = %d\n" % len(array2))
+            )
+            array2 = Int_Polynomial_Array(5, 256)
+            array2.init_empty(len(Bs))
+            for B in Bs[:-1]:
+                array2.append(B)
+            self.assertNotEqual(array1, array2)
+            array2 = Int_Polynomial_Array(5, 256)
+            array2.init_empty(len(Bs))
+            for i, B in enumerate(Bs):
+                if i == 0:
+                    B[0] = B[0] + 1
+                array2.append(B)
+            self.assertNotEqual(array1, array2)
+
+    def test_pad(self):
+        for t, array1 in zip(self.several_smaller_orbits, self.arrays):
+            Bs = t[2]
+            array2 = copy.copy(array1)
+            with self.assertRaises(ValueError):
+                array2.pad(-1)
+            array2 = copy.copy(array1)
+            array2.pad(10)
+            self.assertNotEqual(array1, array2, "\n" + str(array1.get_ndarray()) + "\n" + str(array2.get_ndarray()))
+            array2.append(Bs[-1])
+            self.assertNotEqual(array1, array2)
+            for _ in range(9):
+                array2.append(Bs[-1])
+            with self.assertRaises(IndexError):
+                array2.append(Bs[-1])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
