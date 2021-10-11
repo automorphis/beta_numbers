@@ -13,7 +13,7 @@ This project has two aims:
 
 ## Calculations so far
 
-Each iterate currently takes ~ 85 microseconds on my machine. Before I used Cython, before creating the extension types `Int_Polynomial` and `Int_Polynomial_Array`, each iterate took ~ 450 microseconds.
+Each iterate currently takes ~ 85 microseconds on my machine. Before I used Cython, before creating the extension types `Beta_Orbit_Iter`, Int_Polynomial`, and `Int_Polynomial_Array`, each iterate took ~ 450 microseconds.
 
 | Salem number       | Minimal polynomial              | Number of calculated coefficients | Periodicity |
 | -------------------|-------------------------------- | --------------------------------- | ----------- |
