@@ -31,4 +31,4 @@ This project has two aims:
 ### Known bugs
 
 1. ~~.`calc_orbit.calc_period_ram_and_disk` still has a few bugs~~
-
+2. Repeatedly instantiating and dereferencing moderately sized NumPy arrays (~100,000 entries) with `dtype = object` will sometimes cause Sage to hang. I do not know why this behavior occurs. I have not been able to localize it, nor do I know if it is unique to Sage or if it also occurs in a standard Python virtualenv. [This AskSage question](https://ask.sagemath.org/question/53245/why-is-numpy-slower-inside-of-a-sage-notebook/) could provide some insight. Best practice is to just avoid using NumPy arrays with `dtype = object` altogether; either create an extension type (as in the case of `Int_Polynomial_Array`) or use a `list`.
