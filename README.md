@@ -18,7 +18,7 @@ Each iterate currently takes ~ 85 microseconds on my machine. Before I used Cyth
 | Salem number       | Minimal polynomial              | Precision        | Number of calculated coefficients | Status                    |
 | -------------------|---------------------------------|------------------|---------------------------------- | ------------------------- |
 | 13.345638433018787 | (1, -10, -40, -59, -40, -10, 1) | 10<sup>-64</sup> | 2.04 billion                      | orbit ran into an integer |
-| ditto              | ditto                           | 10<sup>-128</sup>| 0                                 | periodicity unknown       |
+| ditto              | ditto                           | 10<sup>-128</sup>| 314 million                       | periodicity unknown       |
 
 ## To do
 
@@ -28,10 +28,9 @@ Each iterate currently takes ~ 85 microseconds on my machine. Before I used Cyth
 2. ~~Edit `calc_orbit.calc_period_ram_and_disk` to pick up where a previous calculation left off.~~
 3. Implement multiprocessing for calculating orbits.
 4. ~~Cythonize `beta_orbit.Beta_Orbit_Iter`.~~
-5. Publish a package for this project.
-6. Publish a package for `Int_Polynomial`.
-7. Cythonize `mpmath.polyroots`
-8. Create a new, faster, more portable `Register`. Currently looking at LevelDB and the Plyvel module.
+5. Create a release for this project.
+6. Cythonize `mpmath.polyroots`
+7. Create a new, faster, lighter, more portable `Register` to replace `Pickle_Register`. Currently looking at LevelDB and the Plyvel module.
 
 ### Known bugs
 
