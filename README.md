@@ -15,10 +15,10 @@ This project has two aims:
 
 Each iterate currently takes ~ 85 microseconds on my machine. Before I used Cython, before creating the extension types `Beta_Orbit_Iter`, `Int_Polynomial`, and `Int_Polynomial_Array`, each iterate took ~ 450 microseconds.
 
-| Salem number       | Minimal polynomial              | Precision        | Number of calculated coefficients | Status                    |
-| -------------------|---------------------------------|------------------|---------------------------------- | ------------------------- |
-| 13.345638433018787 | (1, -10, -40, -59, -40, -10, 1) | 10<sup>-64</sup> | 2.04 billion                      | orbit ran into an integer |
-| ditto              | ditto                           | 10<sup>-128</sup>| 314 million                       | periodicity unknown       |
+| Salem number       | Minimal polynomial                                                                                          | Precision        | Number of calculated coefficients | Status                    |
+| -------------------|-------------------------------------------------------------------------------------------------------------|------------------|---------------------------------- | ------------------------- |
+| 13.345638433018787 | *x*<sup>6</sup> - 10*x*<sup>5</sup> - 40*x*<sup>4</sup> - 59*x*<sup>3</sup> - 40*x*<sup>2</sup> - 10*x* + 1 | 10<sup>-64</sup> | 2.04 billion                      | orbit ran into an integer |
+| ditto              | ditto                                                                                                       | 10<sup>-128</sup>| 314 million                       | periodicity unknown       |
 
 ## To do
 
