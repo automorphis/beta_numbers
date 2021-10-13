@@ -18,7 +18,7 @@ Each coefficient currently takes ~ 85 microseconds to calculate on my machine. B
 | Salem number       | Minimal polynomial                                                                                          | Precision        | Number of calculated coefficients | Status                    |
 | -------------------|-------------------------------------------------------------------------------------------------------------|------------------|---------------------------------- | ------------------------- |
 | 13.345638433018787 | *x*<sup>6</sup> - 10*x*<sup>5</sup> - 40*x*<sup>4</sup> - 59*x*<sup>3</sup> - 40*x*<sup>2</sup> - 10*x* + 1 | 10<sup>-64</sup> | 2.04 billion                      | orbit ran into an integer |
-| ditto              | ditto                                                                                                       | 10<sup>-128</sup>| 795 million                       | periodicity unknown       |
+| ditto              | ditto                                                                                                       | 10<sup>-128</sup>| 1.75 billion                      | periodicity unknown       |
 
 ## To do
 
@@ -30,7 +30,7 @@ Each coefficient currently takes ~ 85 microseconds to calculate on my machine. B
 4. ~~Cythonize `beta_orbit.Beta_Orbit_Iter`.~~
 5. Create a release for this project.
 6. Cythonize `mpmath.polyroots`
-7. Create a new, faster, lighter, more portable `Register` to replace `Pickle_Register`. Currently looking at LevelDB and the Plyvel module.
+7. Create a new, faster, lighter, more secure, more portable `Register` to replace `Pickle_Register`. Currently looking at LevelDB and the Plyvel module.
 
 ### Known bugs
 
