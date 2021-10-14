@@ -18,7 +18,7 @@ cimport cython
 from beta_numbers.utilities.polynomials cimport Int_Polynomial
 
 import numpy as np
-from mpmath import workdps, power, frac, floor
+from mpmath import workdps, power, frac, floor, fabs
 
 from beta_numbers.utilities import Accuracy_Error
 from beta_numbers.utilities.polynomials import Int_Polynomial, instantiate_int_poly
@@ -98,8 +98,9 @@ cdef class Beta_Orbit_Iter:
             self.curr_B = self._calc_next_iterate()
             self._set_xi()
             eta = self._calc_eta()
-            if frac(self.xi) <= eta:
-                raise Accuracy_Error(self.dps)
+            with workdps(self.dps):
+                if frac(self.xi) <= eta:
+                    raise Accuracy_Error(self.dps)
             self._set_c()
             self.n += 1
         return 0
@@ -118,7 +119,7 @@ cdef class Beta_Orbit_Iter:
         curr_B_eval = self.curr_B.last_eval
         curr_B_eval_deriv = self.curr_B.last_eval_deriv
         with workdps(self.dps):
-            return self._eps * (curr_B_eval + x * curr_B_eval_deriv)
+            return fabs(self._eps * (curr_B_eval + x * curr_B_eval_deriv))
 
 
     @cython.boundscheck(False)

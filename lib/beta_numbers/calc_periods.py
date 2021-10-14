@@ -226,8 +226,8 @@ def calc_period(beta, start_n, max_n, max_restarts, starting_dps, save_period, r
 
         except Accuracy_Error:
             logging.warning("Orbit ran into an integer. Restarting with dps = %d" % (mp.dps * 2))
-            logging.warning("Deleting bad orbit from disk.")
-            register.clear(Save_State_Type.BS, beta)
+            # logging.warning("Deleting bad orbit from disk.")
+            # register.clear(Save_State_Type.BS, beta)
             mp.dps *= 2
             beta = Salem_Number(beta.min_poly)
 

@@ -87,6 +87,7 @@ cdef class Int_Polynomial:
 
         cdef DEG_t less = 0
         cdef DEG_t deg = self.get_deg()
+        cdef DEG_t i
 
         if deg < 0:
             return self
@@ -296,7 +297,13 @@ cdef class Int_Polynomial_Array:
         return array
 
     def __deepcopy__(self, memo):
-        return self.__copy__()
+        cdef Int_Polynomial_Array array = Int_Polynomial_Array(self.get_max_deg(), self._dps)
+        cdef INDEX_t i
+        array.init_empty(self._max_size)
+        for i in range(self.get_curr_index()):
+            array.append(self.get_poly(i))
+        return array
+
 
     def __getitem__(self, item):
         cdef Int_Polynomial_Array ret_array
@@ -356,7 +363,7 @@ cdef class Int_Polynomial_Array:
             return FALSE
         if self.get_max_deg() != other.get_max_deg():
             return FALSE
-        for i in range(self.get_len()):
+        for i in range(self.get_curr_index()):
             if self.get_poly(i) != other.get_poly(i):
                 return FALSE
         return TRUE
