@@ -18,7 +18,7 @@ cimport cython
 from beta_numbers.utilities.polynomials cimport Int_Polynomial
 
 import numpy as np
-from mpmath import workdps, power, frac, floor, fabs
+from mpmath import workdps, power, frac, floor
 
 from beta_numbers.utilities import Accuracy_Error
 from beta_numbers.utilities.polynomials import Int_Polynomial, instantiate_int_poly
@@ -119,7 +119,7 @@ cdef class Beta_Orbit_Iter:
         curr_B_eval = self.curr_B.last_eval
         curr_B_eval_deriv = self.curr_B.last_eval_deriv
         with workdps(self.dps):
-            return fabs(self._eps * (curr_B_eval + x * curr_B_eval_deriv))
+            return abs(self._eps * (curr_B_eval + x * curr_B_eval_deriv))
 
 
     @cython.boundscheck(False)
