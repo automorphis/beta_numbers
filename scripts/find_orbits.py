@@ -32,16 +32,16 @@ from mpmath import workdps
 from beta_numbers.calc_periods import calc_period
 from beta_numbers.data.registers import Pickle_Register
 from beta_numbers.salem_numbers import Salem_Number
-from beta_numbers.utilities import Int_Polynomial
+from beta_numbers.utilities import Int_Polynomial, random_unique_filename
 
-start_n = 2 * 10 ** 9
-max_n = 2 * 10 ** 9 + 10 ** 6
+start_n = 2315900000
+max_n = 5 * 10 ** 9 - 1
 max_restarts = 4
-starting_dps = 64
+starting_dps = 128
 save_period = 100000
 
 data_root = Path("D:/beta_expansions")
-saves_directory = data_root / "4LqjzzfBuZyDhiseJYak"
+saves_directory = data_root / "ivU4QAnanCq3ms2bdmBx"
 register_filename = saves_directory / "register.pkl"
 
 logging.basicConfig(filename ="logs/find_close_orbit.log", level = logging.INFO)
