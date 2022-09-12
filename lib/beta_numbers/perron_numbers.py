@@ -12,110 +12,129 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
-from mpmath import workdps, polyroots, im, re, almosteq
+from mpmath import almosteq, mp, mpf
+from intpolynomials import Int_Polynomial
 
-from beta_numbers.utilities import Int_Polynomial
+class Not_Salem_Error(RuntimeError):pass
 
+class Not_Perron_Error(RuntimeError):pass
 
-class Salem_Number:
-    """A class representing a Salem number.
+class Not_Pisot_Error(RuntimeError):pass
 
-    A minimal polynomial p over Z with the following properties uniquely characterizes a Salem number:
-        * p is reciprocal and has even degree
-        * p has two positive real roots, one of norm more than 1 and the other of norm less than 1
-        * the non-real roots of p all have modulus exactly 1.
+class Perron_Number:
+    """A class representing a Perron number.
+
+    Please see https://en.wikipedia.org/wiki/Perron_number.
     """
 
     def __init__(self, min_poly, beta0 = None):
         """
 
-        :param min_poly: Type `numpy.poly1d`. Should be checked to actually be the minimal polynomial of a Salem number
+        :param min_poly: Type `Int_Polynomial`. Should be checked to actually be the minimal polynomial of a Perron number
         before calling this method.
-        :param dps: Guaranteed number of correct digits of `beta0` from the mathematically correct maximum modulus root of
-        `min_poly`.
         :param beta0: Default `None`. Can also be calculated with a call to `calc_beta0`.
         """
 
         self.min_poly = min_poly
-        self.dps = self.min_poly.get_dps()
         self.beta0 = beta0
-        self.deg = self.min_poly.get_deg()
-        self.conjs = None
+        self.deg = self.min_poly.deg()
+        self._last_calc_roots_dps = None
+        self.conjs_mods_mults = None
 
     def __eq__(self, other):
-        return self.min_poly == other.min_poly and self.dps == other.dps
+        return self.min_poly == other.min_poly
 
     def __hash__(self):
         return hash(self.min_poly)
 
     def __str__(self):
+
         if self.beta0:
-            return "(%.9f, %s)" % (self.beta0, self.min_poly)
+            return f"({str(self.min_poly)}, {str(self.beta0)})"
+
         else:
             return str(self.min_poly)
 
     def __repr__(self):
-        return "Salem_Number(%s)" % (repr(self.min_poly))
+        return f"Perron_Number({repr(self.min_poly)})"
+
+    def calc_roots(self):
+        """Calculates the maximum modulus root of `self.min_poly` to within `mp.dps` digits bits of precision.
+
+        :raises Not_Perron_Error: If `self.min_poly` is not the minimal polynomial of a Perron number.
+        :return: (type `mpf`) `beta0`. Also sets `self.beta0` to this value.
+        :return: (type `list` of 2-`tuple` of `mpf`) Conjugates and their moduli, ordered by decreasing modulus.
+        """
+
+        if (self.beta0 is None or self.conjs_mods_mults is None or self._last_calc_roots_dps is None or
+            self._last_calc_roots_dps != mp.dps):
+
+            self._last_calc_roots_dps = mp.dps
+            self.conjs_mods_mults = self.min_poly.roots(ret_abs = True)
+            self.conjs_mods_mults.sort(key = lambda t : -t[1])
+            self.beta0 = self.conjs_mods_mults[0][0]
+            self.verify()
+            self.beta0 = self.beta0.real
+
+        return self.beta0, self.conjs_mods_mults
 
     def get_trace(self):
         return -self.min_poly[1]
 
-    def calc_beta0(self, remember_conjs = False):
-        """Calculates the maximum modulus root of `self.min_poly` to within `self.min_poly.get_dps()` digits bits of precision.
+    def verify(self):
+        """Check that this object actually encodes a Perron number as promised. Raises `Not_Perron_Error` if not."""
 
-        :param remember_conjs: Default `False`. Set to `True` and access the conjugate roots via `self.conjs`. The number
-        `self.conjs[0]` is the Salem number, `self.conjs[1]` is its reciprocal, and `self.conjs[2:]` have modulus 1.
-        :raises: `NotSalemError`, if `self.min_poly` is not the minimal polynomial of a Salem number.
-        :return: `beta0`, for convenience. Also sets `self.beta0` to the return value.
-        """
-        if self.deg < 4:
-            raise Not_Salem_Error(self)
-        if not self.beta0 or (remember_conjs and not self.conjs):
-            with workdps(self.dps):
-                rts = polyroots(list(map(int, list(self.min_poly.ndarray_coefs(False)))))
-                if len(rts) < 4 or len(rts) % 2 == 1:
-                    raise Not_Salem_Error(self)
-                rts = sorted(rts, key=lambda z: abs(im(z)))
-                self.beta0 = re(max(rts[:2], key=re))
-                if remember_conjs:
-                    beta0_recip = re(min(rts[:2], key=re))
-                    self.conjs = [self.beta0, beta0_recip] + rts[2:]
-        return self.beta0
-
-    # def calc_beta0_global(self, remember_conjs = False):
-    #     if not self.beta0 or (remember_conjs and not self.conjs):
-    #         if self.min_poly == Polynomial((0,)):
-    #             raise Not_Salem_Error(self)
-    #         rts = polyroots( convert_polynomial_format(self.min_poly) )
-    #         if len(rts) < 4 or len(rts) % 2 == 1:
-    #             raise Not_Salem_Error(self)
-    #         rts = sorted(rts, key=lambda z: abs(im(z)))
-    #         self.beta0 = re(max(rts[:2], key=re))
-    #         if remember_conjs:
-    #             beta0_recip = re(min(rts[:2], key=re))
-    #             self.conjs = [self.beta0, beta0_recip] + rts[2:]
-    #     return self.beta0
-
-    def check_salem(self):
-        """Check that this object actually encodes a Salem number as promised. Raises `Not_Salem_Error` if not."""
-        self.calc_beta0(True)
-        with workdps(self.dps):
-            if not(self.conjs[1] < 1 < self.conjs[0] and all(almosteq(abs(conj), 1) for conj in self.conjs[2:])):
-                raise Not_Salem_Error(self)
-
-    def change_dps(self,dps):
-        return Salem_Number(self.min_poly,dps)
-
-    def verify_calculated_beta0(self):
-        if self.beta0:
-            with workdps(self.dps):
-                return almosteq(
-                    self.min_poly.eval(self.beta0),
-                    0
+        if (
+            self.min_poly.deg() <= 0 or
+            not almosteq(self.beta0.imag, 0.) or
+            self.min_poly[self.min_poly.deg()] != 1 or
+            self.beta0.real < 1 or (
+                self.min_poly.deg() >= 2 and (
+                    self.conjs_mods_mults[0][2] > 1 or
+                    almosteq(self.beta0, self.conjs_mods_mults[1][1])
                 )
-        else:
-            return None
+            )
+        ):
+            raise Not_Perron_Error()
 
+class Salem_Number(Perron_Number):
+    """A class representing a Salem number.
+
+    Please see https://en.wikipedia.org/wiki/Salem_number.
+
+    A minimal polynomial p over Z with the following properties uniquely characterizes a Salem number:
+        * p is reciprocal and has even degree
+        * p has two positive real roots, one of norm more than 1 and the other of norm less than 1
+        * the non-real roots of p all have modulus exactly 1.
+
+    """
+
+    def verify(self):
+        """Check that this object actually encodes a Salem number as promised. Raises `Not_Salem_Error` if not."""
+
+        super().verify()
+
+        if (
+            self.min_poly.deg() % 2 != 0 or
+            any(not almosteq(mod, mp.one) for _, mod,_ in self.conjs_mods_mults[1:-1]) or
+            not isinstance(self.conjs_mods_mults[-1][0], mpf) or
+            not(0 < self.conjs_mods_mults[-1][0] < 1)
+        ):
+            raise Not_Salem_Error()
+
+class Pisot_Number(Perron_Number):
+    """A class representing a Pisot number.
+
+    Please see https://en.wikipedia.org/wiki/Pisot_number.
+    """
+
+    def verify(self):
+        """Check that this object actually encodes a Salem number as promised. Raises `Not_Pisot_Error` if not."""
+
+        super().verify()
+
+        if any(mod >= 1 for _, mod, _ in self.conjs_mods_mults[1:]):
+            raise Not_Pisot_Error
 
 def _is_salem_6poly(a, b, c, dps):
     U = Int_Polynomial([c - 2 * a, b - 3, a, 1], dps)
@@ -145,12 +164,9 @@ def salem_iter(deg, min_trace, max_trace, dps):
                 if _is_salem_6poly(a, b, c, dps):
                     P = Int_Polynomial([1, a, b, c, b, a, 1], dps)
                     beta = Salem_Number(P, dps)
-                    beta.calc_beta0()
+                    beta.calc_roots()
                     yield beta
 
-class Not_Salem_Error(RuntimeError):
-    def __init__(self,beta):
-        super().__init__("Not a Salem number. min_poly = %s" % beta.min_poly)
 
 # class Salem_Iter:
 #     """Iterates over a finite list of `Salem_Numbers` satisfying certain given parameters. Currently only implemented for

@@ -15,7 +15,7 @@
 
 from enum import Enum
 
-from beta_numbers.utilities.polynomials import Int_Polynomial
+from intpolynomials import Int_Polynomial
 
 _boyd = [
     ( (1,   0,  -4,  -7,  -4,   0, 1), (       1,       60) ),

@@ -24,13 +24,13 @@ from mpmath import workdps, mpf
 
 from beta_numbers.data.registers import Pickle_Register
 from beta_numbers.data.states import Save_State_Type
-from beta_numbers.salem_numbers import Salem_Number
+from beta_numbers.perron_numbers import Salem_Number
 from beta_numbers.utilities import eval_code_in_file, random_unique_filename
 from beta_numbers.utilities.polynomials import Int_Polynomial
-
+from cornifer import Apri_Info, Numpy_Register, Block
 
 data_root = Path("D:/beta_expansions")
-read_directory = data_root / "D7PZfTzDhXxA9DWWYkKj"
+read_directory = data_root / "FVVBtze2rSTGzS2qxkv6"
 register_filename = read_directory / "register.pkl"
 
 
@@ -53,12 +53,28 @@ Path.mkdir(write_directory)
 
 logging.info("len = %d" % len(read_register.metadatas))
 
+saves_dir = Path("D:/beta_expansions")
+
+reg = Numpy_Register(saves_dir, "beta expansions")
+
 for metadata, filename in read_register.metadatas.items():
-    save_state = Pickle_Register.load_save_state(filename, False).get_good_version()
-    del save_state.beta
-    with (write_directory / filename.name).open("wb") as fh:
-        pkl.dump(save_state, fh)
-    logging.info("wrote to %s" % (write_directory / filename.name))
+    save_state = Pickle_Register.load_disk_data(filename, False)
+    apri = Apri_Info(
+        name="beta expansion Bs",
+        min_poly=tuple(save_state.beta.min_poly),
+        dps=save_state.dps
+    )
+    seg = save_state.data
+    start_n = save_state.start_n
+    blk = Block(seg, apri, start_n)
+    reg.add_disk_block(blk)
+
+# for metadata, filename in read_register.metadatas.items():
+#     save_state = Pickle_Register.load_save_state(filename, False).get_good_version()
+#     del save_state.beta
+#     with (write_directory / filename.name).open("wb") as fh:
+#         pkl.dump(save_state, fh)
+#     logging.info("wrote to %s" % (write_directory / filename.name))
 
 
 # old_filename = Path("../test/several_salem_numbers.txt")

@@ -12,35 +12,62 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
-
-from setuptools import setup, Extension
-
-import numpy as np
+from setuptools import setup, Extension, dist
 
 build_cython = True
+
+try:
+    import numpy as np
+
+except ModuleNotFoundError:
+
+    # bootstrap numpy install
+    dist.Distribution().fetch_build_eggs(['oldest_supported_numpy'])
+    import numpy as np
+
+if build_cython:
+
+    try:
+        from Cython.Build import cythonize
+
+    except ModuleNotFoundError:
+
+        # bootstrap Cython install
+
+        dist.Distribution().fetch_build_eggs(['Cython>=0.25'])
+
+        from Cython.Build import cythonize
+
+try:
+    import intpolynomials
+
+except ModuleNotFoundError:
+
+    # bootstrap intpolynomials install
+
+    dist.Distribution().fetch_build_eggs(['intpolynomials'])
+
+    import intpolynomials
 
 ext = ".pyx" if build_cython else ".c"
 
 extensions = [
+
     Extension(
         "beta_numbers.beta_orbits",
         ["lib/beta_numbers/beta_orbits" + ext],
-        include_dirs = [np.get_include()]
-    ),
-    Extension(
-        "beta_numbers.utilities.polynomials",
-        ["lib/beta_numbers/utilities/polynomials" + ext],
         include_dirs = [np.get_include()]
     )
 ]
 
 if build_cython:
-    from Cython.Build import cythonize
+
     extensions = cythonize(
         extensions,
         compiler_directives = {"language_level" : "3"},
         include_path = [
-            "lib/beta_numbers/utilities/*.pxd"
+            intpolynomials.get_include(),
+            "lib/beta_numbers/beta_orbits.pxd"
         ]
     )
 
@@ -50,14 +77,21 @@ setup(
     version = '0.1',
     description = "Calculating orbits of Salem numbers under the beta transformation",
     author = "Michael P. Lane",
-    author_email = "lane.662@osu.edu",
+    author_email = "mlanetheta@gmail.com",
     url = "https://github.com/automorphis/Beta_Expansions_of_Salem_Numbers",
     package_dir = {"": "lib"},
     packages = [
         "beta_numbers",
-        "beta_numbers.data",
         "beta_numbers.utilities"
     ],
     zip_safe=False,
     ext_modules = extensions,
+    python_requires = ">=3.5",
+    install_requires = [
+        'Cython>=0.23',
+        'mpmath>=1.2.1',
+        'intpolynomials',
+        'cornifer>=0.4',
+        'psutil'
+    ]
 )

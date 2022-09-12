@@ -1,4 +1,0 @@
-numpy~=1.21.2
-mpmath~=1.2.1
-psutil~=5.8.0
-Cython~=0.29.24

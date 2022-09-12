@@ -22,7 +22,7 @@ def check_parry_criterion():pass
 
 def calc_beta_expansion_partials(beta, cs, n_lower, n_upper):
     partial = calc_beta_expansion(beta,cs,n_lower)
-    beta0 = beta.calc_beta0()
+    beta0 = beta.calc_roots()
     yield partial
     if n_lower + 1 < n_upper:
         with workdps(beta.dps):
@@ -31,7 +31,6 @@ def calc_beta_expansion_partials(beta, cs, n_lower, n_upper):
                 partial += beta0_pow*c
                 beta0_pow /= beta0
                 yield partial
-
 
 def calc_beta_expansion(beta,cs,n):
     """Calculate the beta expansion of a given coeffient list to a specified precision, namely the decimal
@@ -42,7 +41,7 @@ def calc_beta_expansion(beta,cs,n):
     :param n: (positive int) The number of terms in the sum.
     :return: The approximated beta.
     """
-    beta0 = beta.calc_beta0()
+    beta0 = beta.calc_roots()
     poly = Int_Polynomial(np.array(list(cs[:n]), dtype = np.longlong), beta.dps)
     return poly.eval(1/beta0)
 
