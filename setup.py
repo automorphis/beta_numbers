@@ -68,5 +68,6 @@ setup(
         'cornifer>=0.8.1',
         'numpy>=1.21.6',
         'psutil'
-    ]
+    ],
+    test_suite = "tests"
 )
