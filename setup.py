@@ -65,7 +65,8 @@ setup(
         'Cython>=0.23',
         'mpmath>=1.2.1',
         'intpolynomials',
-        'cornifer>=0.4',
+        'cornifer>=0.8.1',
+        'numpy>=1.21.6'
         'psutil'
     ]
 )
