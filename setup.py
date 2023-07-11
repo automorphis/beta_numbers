@@ -16,38 +16,12 @@ from setuptools import setup, Extension, dist
 
 build_cython = True
 
-try:
-    import numpy as np
-
-except ModuleNotFoundError:
-
-    # bootstrap numpy install
-    dist.Distribution().fetch_build_eggs(['oldest_supported_numpy'])
-    import numpy as np
+import numpy as np
 
 if build_cython:
+    from Cython.Build import cythonize
 
-    try:
-        from Cython.Build import cythonize
-
-    except ModuleNotFoundError:
-
-        # bootstrap Cython install
-
-        dist.Distribution().fetch_build_eggs(['Cython>=0.25'])
-
-        from Cython.Build import cythonize
-
-try:
-    import intpolynomials
-
-except ModuleNotFoundError:
-
-    # bootstrap intpolynomials install
-
-    dist.Distribution().fetch_build_eggs(['intpolynomials'])
-
-    import intpolynomials
+import intpolynomials
 
 ext = ".pyx" if build_cython else ".c"
 
