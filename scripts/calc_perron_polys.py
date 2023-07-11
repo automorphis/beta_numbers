@@ -79,7 +79,7 @@ def calc_perron_polys(worker, numWorkers, timeout, poly_reg, beta0_reg, max_perr
 
                             try:
 
-                                if not poly_reg.get_apos_info(min_poly_apri).complete:
+                                if not poly_reg.get_apos_info(min_poly_apri).complete_to_max_orbit_len:
                                     partial = True
 
                                 else:
@@ -260,15 +260,15 @@ if __name__ == "__main__":
         load(saves_directory / "8UDU")
     ]
 
-    # for reg in poly_regs + beta0_regs:
+    # for orbit_reg in poly_regs + beta0_regs:
     #
-    #     with reg.open() as reg:
+    #     with orbit_reg.open() as orbit_reg:
     #
-    #         print(reg._db_map_size, str(reg))
+    #         print(orbit_reg._db_map_size, str(orbit_reg))
     #
-    #         reg.increase_register_size(50 * BYTES_PER_MB)
+    #         orbit_reg.increase_register_size(50 * BYTES_PER_MB)
     #
-    #         print(reg._db_map_size, str(reg))
+    #         print(orbit_reg._db_map_size, str(orbit_reg))
 
     exclude_iter = iter(itertools.cycle(range(numWorkers)))
     exclude_start = None

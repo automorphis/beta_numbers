@@ -12,8 +12,10 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 """
+import math
+
 from mpmath import almosteq, mp, mpf
-from intpolynomials import Int_Polynomial
+from intpolynomials import IntPolynomial
 
 class Not_Salem_Error(RuntimeError):pass
 
@@ -30,7 +32,7 @@ class Perron_Number:
     def __init__(self, min_poly, beta0 = None):
         """
 
-        :param min_poly: Type `Int_Polynomial`. Should be checked to actually be the minimal polynomial of a Perron number
+        :param min_poly: Type `IntPolynomial`. Should be checked to actually be the minimal polynomial of a Perron number
         before calling this method.
         :param beta0: Default `None`. Can also be calculated with a call to `calc_beta0`.
         """
@@ -40,6 +42,7 @@ class Perron_Number:
         self.deg = self.min_poly.deg()
         self._last_calc_roots_dps = None
         self.conjs_mods_mults = None
+        self.extradps = None
 
     def __eq__(self, other):
         return self.min_poly == other.min_poly
@@ -70,7 +73,7 @@ class Perron_Number:
             self._last_calc_roots_dps != mp.dps):
 
             self._last_calc_roots_dps = mp.dps
-            self.conjs_mods_mults = self.min_poly.roots(ret_abs = True)
+            self.conjs_mods_mults = self.min_poly.roots()
             self.conjs_mods_mults.sort(key = lambda t : -t[1])
             self.beta0 = self.conjs_mods_mults[0][0]
             self.verify()
@@ -95,7 +98,18 @@ class Perron_Number:
                 )
             )
         ):
-            raise Not_Perron_Error()
+            raise Not_Perron_Error
+
+    def extraprec(self):
+
+        if self.beta0 is None:
+            raise ValueError("Call `calc_roots` first.")
+
+        return (
+            math.ceil(math.log(self.deg, 2)) +
+            math.ceil(math.log(self.min_poly.max_abs_coef(), 2)) +
+            math.ceil((self.deg - 1) * math.log(self.beta0, 2))
+        )
 
 class Salem_Number(Perron_Number):
     """A class representing a Salem number.
@@ -116,11 +130,11 @@ class Salem_Number(Perron_Number):
 
         if (
             self.min_poly.deg() % 2 != 0 or
-            any(not almosteq(mod, mp.one) for _, mod,_ in self.conjs_mods_mults[1:-1]) or
-            not isinstance(self.conjs_mods_mults[-1][0], mpf) or
-            not(0 < self.conjs_mods_mults[-1][0] < 1)
+            any(not almosteq(mod, mp.one) for _, mod, _ in self.conjs_mods_mults[1:-1]) or
+            not almosteq(self.conjs_mods_mults[-1][0].imag, 0.) or
+            not(0 < self.conjs_mods_mults[-1][0].real < 1)
         ):
-            raise Not_Salem_Error()
+            raise Not_Salem_Error
 
 class Pisot_Number(Perron_Number):
     """A class representing a Pisot number.
@@ -137,7 +151,7 @@ class Pisot_Number(Perron_Number):
             raise Not_Pisot_Error
 
 def _is_salem_6poly(a, b, c, dps):
-    U = Int_Polynomial([c - 2 * a, b - 3, a, 1], dps)
+    U = IntPolynomial([c - 2 * a, b - 3, a, 1], dps)
     if U.eval(2) >= 0 or U.eval(-2) >= 0:
         return False
     for n in range(-1, max(abs(a), abs(b - 3), abs(c - 2 * a))+2):
@@ -146,7 +160,7 @@ def _is_salem_6poly(a, b, c, dps):
     if U.eval(-1) > 0 or U.eval(0) > 0 or U.eval(1) > 0:
         return True
     else:
-        P = Int_Polynomial([1,a,b,c,b,a,1], dps)
+        P = IntPolynomial([1,a,b,c,b,a,1], dps)
         try:
             Salem_Number(P,dps).check_salem()
             return True
@@ -162,7 +176,7 @@ def salem_iter(deg, min_trace, max_trace, dps):
         for b in range(-b_max, b_max + 1):
             for c in range(-c_max, c_max + 1):
                 if _is_salem_6poly(a, b, c, dps):
-                    P = Int_Polynomial([1, a, b, c, b, a, 1], dps)
+                    P = IntPolynomial([1, a, b, c, b, a, 1], dps)
                     beta = Salem_Number(P, dps)
                     beta.calc_roots()
                     yield beta

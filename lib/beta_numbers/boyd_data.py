@@ -15,9 +15,7 @@
 
 from enum import Enum
 
-from intpolynomials import Int_Polynomial
-
-_boyd = [
+boyd = [
     ( (1,   0,  -4,  -7,  -4,   0, 1), (       1,       60) ),
     ( (1,   0,  -2,  -3,  -2,   0, 1), (       1,        7) ),
     ( (1,   0,  -1,  -1,  -1,   0, 1), (       1,        7) ),
@@ -237,14 +235,14 @@ def _get_number_size(datum, number_type):
         if number_type == Number_Type.P and size >= datum[1][1]:
             return label
 
-boyd = [{
-    "D_label": _get_number_size(datum, Number_Type.D),
-    "p_label": _get_number_size(datum, Number_Type.P),
-    "m_label": _get_number_size(datum, Number_Type.M),
-    "m": datum[1][0] if datum[1][0] > 0 else None,
-    "p": datum[1][1] if datum[1][1] > 0 else None,
-    "poly": Int_Polynomial(datum[0], 16)
-} for datum in _boyd]
+# boyd = [{
+#     "D_label": _get_number_size(datum, Number_Type.D),
+#     "p_label": _get_number_size(datum, Number_Type.P),
+#     "m_label": _get_number_size(datum, Number_Type.M),
+#     "m": datum[1][0] if datum[1][0] > 0 else None,
+#     "p": datum[1][1] if datum[1][1] > 0 else None,
+#     "poly": Int_Polynomial(datum[0], 16)
+# } for datum in boyd]
 
 def filter_by_size(data, label, size):
     return list(filter(lambda datum: datum[label] == size, data))
