@@ -7,7 +7,7 @@ import numpy as np
 from beta_numbers.perron_numbers import Perron_Number
 from beta_numbers.beta_orbits import MPFRegister, setprec, setdps
 from intpolynomials import IntPolynomial, IntPolynomialRegister, IntPolynomialArray
-from cornifer import NumpyRegister, ApriInfo, DataNotFoundError, Block, open_regs, AposInfo
+from cornifer import NumpyRegister, ApriInfo, DataNotFoundError, Block, openregs, AposInfo
 from cornifer._utilities import random_unique_filename
 from mpmath import mp, almosteq, mpf, extradps, log, extraprec
 from dagtimers import Timers
@@ -202,7 +202,7 @@ class TestBetaOrbits(TestCase):
             "`perron_polys_reg`."
         )
 
-        with open_regs(cls.perron_nums_reg, cls.perron_polys_reg):
+        with openregs(cls.perron_nums_reg, cls.perron_polys_reg):
             cls.perron_nums_reg.add_subreg(cls.perron_polys_reg)
 
         cls.exp_coef_orbit_reg = NumpyRegister(
@@ -232,7 +232,7 @@ class TestBetaOrbits(TestCase):
 
             with timers.time("adding polys"):
 
-                with open_regs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
+                with openregs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
 
                     add_boyd_phi_r(1, 100)
                     add_boyd_psi_r(1, 100)
@@ -241,7 +241,7 @@ class TestBetaOrbits(TestCase):
 
             with timers.time("checking"):
 
-                with open_regs(cls.perron_polys_reg, cls.perron_nums_reg):
+                with openregs(cls.perron_polys_reg, cls.perron_nums_reg):
 
                     self.assertEqual(
                         len(list(cls.perron_polys_reg.apris())),
@@ -297,7 +297,7 @@ class TestBetaOrbits(TestCase):
 
             with timers.time("add polys"):
 
-                with open_regs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
+                with openregs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
 
                     add_boyd_phi_r(1, 100)
                     add_boyd_psi_r(1, 100)
@@ -324,7 +324,7 @@ class TestBetaOrbits(TestCase):
 
                     with timers.time("unittest checking calc_orbits_setup"):
 
-                        with open_regs(poly_orbit_reg, coef_orbit_reg) as (poly_orbit_reg, coef_orbit_reg):
+                        with openregs(poly_orbit_reg, coef_orbit_reg) as (poly_orbit_reg, coef_orbit_reg):
                             # check that `poly_orbit_reg` and `coef_orbit_reg` do not contain any apri
                             for _ in poly_orbit_reg:
                                 self.fail("`poly_orbit_reg` should not contain apri!")
@@ -332,7 +332,7 @@ class TestBetaOrbits(TestCase):
                             for _ in coef_orbit_reg:
                                 self.fail("`coef_orbit_Reg` should not contain apri!")
 
-                        with open_regs(
+                        with openregs(
                             cls.perron_polys_reg, status_reg, periodic_reg, readonlys = (True,)*3
                         ) as (cls.perron_polys_reg, status_reg, periodic_reg):
                             # check that `status_reg` and `periodic_reg` contain the correct apri, apos, and blocks
@@ -407,7 +407,7 @@ class TestBetaOrbits(TestCase):
                         with timers.time("unittest checking calc_obits"):
                             # print("\t\t\tunittest checking")
                             # check that everything is correct up to `max_poly_orbit_len`
-                            with open_regs(
+                            with openregs(
                                 cls.perron_polys_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg,
                                 cls.exp_coef_orbit_reg, cls.exp_periodic_reg
                             ):
