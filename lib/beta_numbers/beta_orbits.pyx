@@ -20,7 +20,7 @@ from intpolynomials.intpolynomials cimport IntPolynomial, IntPolynomialArray, BO
 import numpy as np
 import math
 import mpmath
-from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, open_regs, open_blks
+from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, openregs, open_blks
 from cornifer._utilities import check_type, check_return_int, check_Path
 from intpolynomials.registers import IntPolynomialRegister
 
@@ -141,8 +141,8 @@ def calc_orbits(
             _update_status_reg_apos(status_reg, timers)
 
         with timers.time_cm(
-            "calc_orbits open_regs cm",
-            open_regs(
+            "calc_orbits openregs cm",
+            openregs(
                 perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg,
                 readonlys = (True, True, False, False, False, False)
             )
@@ -298,7 +298,7 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
         if verbose:
             print("Making `periodic_reg` directory...")
 
-        with open_regs(perron_polys_reg, periodic_reg, readonlys = (True, False)) as (perron_polys_reg, periodic_reg):
+        with openregs(perron_polys_reg, periodic_reg, readonlys = (True, False)) as (perron_polys_reg, periodic_reg):
 
             if verbose:
                 print("... success!")
@@ -318,7 +318,7 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
             print("... success!")
             print("Setting up subregister relation...")
 
-        with open_regs(
+        with openregs(
             poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg
         ) as (poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg):
 
@@ -355,7 +355,7 @@ def calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose = False):
         if verbose and create_status_reg:
             print("Making `status_reg` directory...")
 
-        with open_regs(perron_polys_reg, status_reg, readonlys = (True, False)) as (perron_polys_reg, status_reg):
+        with openregs(perron_polys_reg, status_reg, readonlys = (True, False)) as (perron_polys_reg, status_reg):
 
             if verbose and create_status_reg:
                 print("... success!")
