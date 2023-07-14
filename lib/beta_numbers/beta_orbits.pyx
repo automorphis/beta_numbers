@@ -20,7 +20,7 @@ from intpolynomials.intpolynomials cimport IntPolynomial, IntPolynomialArray, BO
 import numpy as np
 import math
 import mpmath
-from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, openregs, open_blks
+from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, openregs, openblks
 from cornifer._utilities import check_type, check_return_int, check_Path
 from intpolynomials.registers import IntPolynomialRegister
 
@@ -186,7 +186,7 @@ def calc_orbits(
 
                                         with timers.time_cm(
                                             "opening perron_poly_blk, perron_num_blk",
-                                            open_blks(
+                                            openblks(
                                                 perron_polys_reg.blk(poly_apri, startn, length),
                                                 perron_nums_reg.blk(num_apri, startn, length)
                                             )
@@ -518,7 +518,7 @@ cdef _single_orbit(
 
         with timers.time("_single_orbit main portion"):
 
-            with timers.time_cm("_single_orbit main portion open coef and poly blks", open_blks(coef_blk, poly_blk)):
+            with timers.time_cm("_single_orbit main portion open coef and poly blks", openblks(coef_blk, poly_blk)):
 
                 try:
                     # try clause followed by a finally clause that removes all RAM blocks from poly_orbit_reg
