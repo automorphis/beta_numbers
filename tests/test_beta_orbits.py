@@ -309,11 +309,11 @@ class TestBetaOrbits(TestCase):
             # we will iterate over several values for both `max_blk_len` and `slurm_array_task_mask` and reset
             # the calculation before each one. Later we will change the values of `max_blk_len` and
             # `slurm_array_task_max` without resetting.
-            for max_blk_len in [100]:
+            for max_blk_len in [1, 5, 100]:
 
                 print(f"max_blk_len = {max_blk_len}")
 
-                for slurm_array_task_max in [1]:
+                for slurm_array_task_max in [1, 5]:
 
                     print(f"\tslurm_array_task_max = {slurm_array_task_max}")
 
@@ -380,7 +380,7 @@ class TestBetaOrbits(TestCase):
                                     AposInfo(min_len = 0)
                                 )
 
-                    for max_poly_orbit_len in [1000]:
+                    for max_poly_orbit_len in [1, 50,1000]:
 
                         print(f"\t\tmax_poly_orbit_len = {max_poly_orbit_len}")
 
