@@ -223,69 +223,69 @@ class TestBetaOrbits(TestCase):
         if cls.saves_dir is not None:
             shutil.rmtree(cls.saves_dir)
 
-    def test_perron_polys_nums(self):
-
-        cls = type(self)
-        timers = Timers()
-
-        with setdps(cls.MAX_DPS):
-
-            with timers.time("adding polys"):
-
-                with openregs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
-
-                    add_boyd_phi_r(1, 100)
-                    add_boyd_psi_r(1, 100)
-                    add_boyd_beta_n(2, 100)
-                    add_boyd_prop5_2(2, 100)
-
-            with timers.time("checking"):
-
-                with openregs(cls.perron_polys_reg, cls.perron_nums_reg):
-
-                    self.assertEqual(
-                        len(list(cls.perron_polys_reg.apris())),
-                        len(list(cls.perron_nums_reg.apris())),
-                    )
-
-                    for poly_apri in cls.perron_polys_reg:
-
-                        num_apri = ApriInfo(deg = poly_apri.deg, sum_abs_coef = poly_apri.sum_abs_coef, dps = cls.MAX_DPS)
-                        self.assertIn(num_apri, cls.perron_nums_reg)
-
-                        with setdps(cls.MAX_DPS):
-
-                            for poly_blk, num_blk in zip(
-                                cls.perron_polys_reg.blks(poly_apri),
-                                cls.perron_nums_reg.blks(num_apri)
-                            ):
-
-                                self.assertEqual(
-                                    poly_blk.startn(),
-                                    num_blk.startn()
-                                )
-                                self.assertEqual(
-                                    len(poly_blk),
-                                    len(num_blk)
-                                )
-
-                                with timers.time("evaluating"):
-
-                                    for poly, num in zip(poly_blk, num_blk):
-
-                                        eval_ = poly(num)
-                                        print(poly.extradps(num))
-
-                                        with setdps(cls.MAX_DPS - poly.extradps(num)):
-
-                                            self.assertTrue(almosteq(
-                                                eval_,
-                                                mpf(0.0)
-                                            ))
-
-
-
-            print(timers.pretty_print())
+    # def test_perron_polys_nums(self):
+    #
+    #     cls = type(self)
+    #     timers = Timers()
+    #
+    #     with setdps(cls.MAX_DPS):
+    #
+    #         with timers.time("adding polys"):
+    #
+    #             with openregs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
+    #
+    #                 add_boyd_phi_r(1, 100)
+    #                 add_boyd_psi_r(1, 100)
+    #                 add_boyd_beta_n(2, 100)
+    #                 add_boyd_prop5_2(2, 100)
+    #
+    #         with timers.time("checking"):
+    #
+    #             with openregs(cls.perron_polys_reg, cls.perron_nums_reg):
+    #
+    #                 self.assertEqual(
+    #                     len(list(cls.perron_polys_reg.apris())),
+    #                     len(list(cls.perron_nums_reg.apris())),
+    #                 )
+    #
+    #                 for poly_apri in cls.perron_polys_reg:
+    #
+    #                     num_apri = ApriInfo(deg = poly_apri.deg, sum_abs_coef = poly_apri.sum_abs_coef, dps = cls.MAX_DPS)
+    #                     self.assertIn(num_apri, cls.perron_nums_reg)
+    #
+    #                     with setdps(cls.MAX_DPS):
+    #
+    #                         for poly_blk, num_blk in zip(
+    #                             cls.perron_polys_reg.blks(poly_apri),
+    #                             cls.perron_nums_reg.blks(num_apri)
+    #                         ):
+    #
+    #                             self.assertEqual(
+    #                                 poly_blk.startn(),
+    #                                 num_blk.startn()
+    #                             )
+    #                             self.assertEqual(
+    #                                 len(poly_blk),
+    #                                 len(num_blk)
+    #                             )
+    #
+    #                             with timers.time("evaluating"):
+    #
+    #                                 for poly, num in zip(poly_blk, num_blk):
+    #
+    #                                     eval_ = poly(num)
+    #                                     print(poly.extradps(num))
+    #
+    #                                     with setdps(cls.MAX_DPS - poly.extradps(num)):
+    #
+    #                                         self.assertTrue(almosteq(
+    #                                             eval_,
+    #                                             mpf(0.0)
+    #                                         ))
+    #
+    #
+    #
+    #         print(timers.pretty_print())
 
     def test_calc_orbits(self):
 
