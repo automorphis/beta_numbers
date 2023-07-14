@@ -582,6 +582,22 @@ cdef _single_orbit(
 
                                         status_reg[poly_apri, orbit_apri.index] = np.array([n-1, -1, n])
 
+                                with timers.time("print reg info"):
+
+                                    print(f"len(poly_orbit_reg.apris()) = {len(poly_orbit_reg.apris())}")
+                                    print(
+                                        f"sum(poly_orbit_reg.num_blks(apri) for apri in poly_orbit_reg) = "
+                                        f"{sum(poly_orbit_reg.num_blks(apri) for apri in poly_orbit_reg)}"
+                                    )
+                                    print(f"poly_orbit_reg._db.info() = {poly_orbit_reg._db.info()}")
+                                    print(f"len(coef_orbit_reg.apris()) = {len(coef_orbit_reg.apris())}")
+                                    print(
+                                        f"sum(coef_orbit_reg.num_blks(apri) for apri in coef_orbit_reg) = "
+                                        f"{sum(coef_orbit_reg.num_blks(apri) for apri in coef_orbit_reg)}"
+                                    )
+                                    print(f"coef_orbit_reg._db.info() = {coef_orbit_reg._db.info()}")
+
+
                             with timers.time("_single orbit next iterate loop"):
 
                                 while do_while:
