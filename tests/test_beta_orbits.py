@@ -14,6 +14,8 @@ from dagtimers import Timers
 
 from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup, calc_orbits_resetup
 
+NUM_BYTES_PER_TERABYTE = 2 ** 40
+
 def add_boyd_psi_r(min_r, max_r):
     # See message of `perron_polys_reg`
 
@@ -193,13 +195,15 @@ class TestBetaOrbits(TestCase):
             "Boyd 1996, 'On Beta Expansions for Pisot Numbers'. The simple beta numbers Phi_r and Psi_r have minimal "
             "polynomials found on p 845 of that paper; the simple beta numbers beta_n have minimal polynomial and orbit "
             "defined on p 847, equation 3.2; and the final, unnamed class of minimal polynomials and orbits are defined "
-            "on p 854, Prop 5.2."
+            "on p 854, Prop 5.2.",
+            NUM_BYTES_PER_TERABYTE
         )
         cls.perron_nums_reg = MPFRegister(
             cls.saves_dir,
             "perron_nums_reg",
             "Respective decimal approximations of Perron numbers whose minimal polynomials are given by "
-            "`perron_polys_reg`."
+            "`perron_polys_reg`.",
+            NUM_BYTES_PER_TERABYTE
         )
 
         with openregs(cls.perron_nums_reg, cls.perron_polys_reg):
@@ -209,11 +213,14 @@ class TestBetaOrbits(TestCase):
             cls.saves_dir,
             "exp_coef_orbit_reg",
             "Correct coefficient orbits of beta numbers used for Beta orbit test cases.",
+            NUM_BYTES_PER_TERABYTE
+
         )
         cls.exp_periodic_reg = NumpyRegister(
             cls.saves_dir,
             "exp_periodic_reg",
-            "Correct periodic data of beta numbers used for beta orbit test cases."
+            "Correct periodic data of beta numbers used for beta orbit test cases.",
+            NUM_BYTES_PER_TERABYTE
         )
         super().setUpClass()
 
