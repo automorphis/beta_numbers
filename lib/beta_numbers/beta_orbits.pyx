@@ -415,7 +415,7 @@ def _update_status_reg_apos(status_reg, timers):
 
                 for j, apri in enumerate(status_reg):
 
-                    print("HI! 2", j, status_reg._db.readers().count("\n"), status_reg._db.readers().count("-"))
+                    print("HI! 2", j, status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
 
                     try:
                         apos_min_len = status_reg.apos(apri)
@@ -423,7 +423,7 @@ def _update_status_reg_apos(status_reg, timers):
                     except DataNotFoundError:
                         apos_min_len = None
 
-                    print("HI! 3", j, status_reg._db.readers().count("\n"), status_reg._db.readers().count("-"))
+                    print("HI! 3", j, status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
                     min_orbit_len_this_apri = None
 
                     for status_blk in status_reg.blks(apri):
