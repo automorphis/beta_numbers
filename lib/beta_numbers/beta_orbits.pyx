@@ -409,7 +409,7 @@ def _update_status_reg_apos(status_reg, timers):
         # itself. (We do not update concurrently because both registers are opened in readonly mode.)
         with timers.time("searching for apos_updates"):
 
-            with status_reg.open(True) as status_reg:
+            with status_reg.open(readonly = True) as status_reg:
 
                 for apri in status_reg:
 
