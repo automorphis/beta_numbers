@@ -411,9 +411,11 @@ def _update_status_reg_apos(status_reg, timers):
 
             with status_reg.open(readonly = True) as status_reg:
 
-                print("HI!", status_reg._db.readers())
+                print("HI! 1", status_reg._db.readers())
 
-                for apri in status_reg:
+                for j, apri in enumerate(status_reg):
+
+                    print("HI! 2", j, status_reg._db.readers())
 
                     try:
                         apos_min_len = status_reg.apos(apri)
