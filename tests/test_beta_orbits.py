@@ -302,14 +302,14 @@ class TestBetaOrbits(TestCase):
 
         with timers.time("test_calc_orbits callee"):
 
-            # with timers.time("add polys"):
-            #
-            #     with openregs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
-            #
-            #         add_boyd_phi_r(1, 100)
-            #         add_boyd_psi_r(1, 100)
-            #         add_boyd_beta_n(2, 100)
-            #         add_boyd_prop5_2(2, 100)
+            with timers.time("add polys"):
+
+                with openregs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
+
+                    add_boyd_phi_r(1, 100)
+                    add_boyd_psi_r(1, 100)
+                    add_boyd_beta_n(2, 100)
+                    add_boyd_prop5_2(2, 100)
 
             initial_max_blk_len = 10000
             # first start with high starting DPS and enough increases, so we can be sure that no precision errors occur
