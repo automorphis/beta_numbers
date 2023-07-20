@@ -411,6 +411,8 @@ def _update_status_reg_apos(status_reg, timers):
 
             with status_reg.open(readonly = True) as status_reg:
 
+                print("HI!", status_reg._db.readers())
+
                 for apri in status_reg:
 
                     try:
