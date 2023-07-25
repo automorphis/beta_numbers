@@ -411,7 +411,7 @@ def _update_status_reg_apos(status_reg, timers):
 
             with status_reg.open(readonly = True) as status_reg:
 
-                print("HI! 1", status_reg._db.readers().count("\n"), status_reg._db.readers().count("-"))
+                print("HI! 1", status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
 
                 for j, apri in enumerate(status_reg):
 
@@ -428,7 +428,7 @@ def _update_status_reg_apos(status_reg, timers):
 
                     for status_blk in status_reg.blks(apri):
                         # Ignore orbit lengths listed as -1 as those orbits are complete.
-                        print("HI! 4", j, status_reg._db.readers().count("\n"), status_reg._db.readers().count("-"))
+                        print("HI! 4", j, status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
                         orbit_lengths = status_blk.segment()[:, 0]
                         nonneg_orbit_lengths = orbit_lengths[orbit_lengths >= 0]
 
