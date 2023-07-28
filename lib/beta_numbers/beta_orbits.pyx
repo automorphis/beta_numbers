@@ -442,6 +442,8 @@ def _update_status_reg_apos(status_reg, timers):
                             else:
                                 min_orbit_len_this_apri = min(min_orbit_len_this_apri, min_orbit_len_this_blk)
 
+                    print("HI! 5", j, status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
+
                     if min_orbit_len_this_apri is None:
                         # Only possible if all orbit lengths are listed as -1.
                         apos_updates[apri] = (True, AposInfo(min_len = -1))
