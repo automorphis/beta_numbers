@@ -32,6 +32,7 @@ COEF_DTYPE = np.int64
 cdef BOOL_t FALSE = 0
 cdef BOOL_t TRUE = 1
 cdef float LOG_2_10 = 3.32193
+NUM_BYTES_PER_TERABYTE = 2 ** 40
 
 def calc_orbits(
     perron_polys_reg,
@@ -103,6 +104,18 @@ def calc_orbits(
     # In light of points 2 and 3 above, when we reference the "orbit length" we always mean the poly orbit length,
     # and we always explictly say the poly orbit length; likewise, we always mean and explicitly say the poly pre-
     # period orbit length.
+
+    bad_coefs = [
+        -1, 1, -1, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2,
+        2, -2,
+        2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2,
+        -2,
+        2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2,
+        -2,
+        2, -2, 1, -2, 1
+    ]
+    bad_poly = IntPolynomial(len(bad_coefs) - 1)
+    bad_poly.set(bad_coefs)
 
     with timers.time("calc_orbits callee"):
 
@@ -201,6 +214,8 @@ def calc_orbits(
                                                     beta0 = perron_num_blk[index]
                                                     beta = Perron_Number(p, beta0 = beta0)
 
+                                                # if p == bad_poly:
+
                                                 _single_orbit(
                                                     beta,
                                                     orbit_apri,
@@ -258,13 +273,15 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
             "Polynomial orbits of Perron numbers under the beta transformation. The 0-index term is the coefficient of "
             "the 0-degree term, etc. The apri have two keys, first \"resp\" an `ApriInfo`, which are apri of the "
             "subreg \"perron_polys_reg\", second \"index\" a non-negative `int`. Each orbit gets its own apri and the "
-            "respective minimal polynomial is given by `perron_polys_reg[resp, index]`."
+            "respective minimal polynomial is given by `perron_polys_reg[resp, index]`.",
+            NUM_BYTES_PER_TERABYTE
         )
         coef_orbit_reg = NumpyRegister(
             saves_dir,
             "coef_orbit_reg",
             "Coefficient orbits of Perron numbers under the beta transformation. The apri are the same as "
-            "\"poly_orbit_reg\". See `str(poly_orbit_reg)` for more information on the apri."
+            "\"poly_orbit_reg\". See `str(poly_orbit_reg)` for more information on the apri.",
+            NUM_BYTES_PER_TERABYTE
         )
         periodic_reg = NumpyRegister(
             saves_dir,
@@ -274,6 +291,7 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
             "   0. The pre-period length of the poly orbit (always one less than that of the coef orbit).\n"
             "   1. The period length (always the same as that of the coef orbit).\n"
             "Assuming that those data have been determined. (If not, then each is listed as -1.)",
+            NUM_BYTES_PER_TERABYTE
         )
         status_reg = NumpyRegister(
             saves_dir,
@@ -291,7 +309,8 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
             "attribute, \"min_len\" a non-negative `int`, the minimum calculated poly orbit length among all orbits "
             "of polynomials corresponding to the apri; therefore, at the beginning of the calculation, this value "
             "should be 0 for all apri. \"min_len\" is merely a convenience, as its value can be inferred from the "
-            "block data. If all orbits for the apri are periodic, then \"min_len\" is -1."
+            "block data. If all orbits for the apri are periodic, then \"min_len\" is -1.",
+            NUM_BYTES_PER_TERABYTE
         )
         calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose)
 
@@ -319,8 +338,9 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
             print("Setting up subregister relation...")
 
         with openregs(
-            poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg
-        ) as (poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg):
+            poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg, perron_nums_reg, perron_polys_reg,
+            readonlys = (False, False, False, False, True, True)
+        ) as (poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg, perron_nums_reg, perron_polys_reg):
 
             status_reg.add_subreg(poly_orbit_reg)
             status_reg.add_subreg(perron_nums_reg)
@@ -404,6 +424,7 @@ def _update_status_reg_apos(status_reg, timers):
     with timers.time("_update_status_reg_apos callee"):
 
         apos_updates = {}
+        hyphens = newlines = 0
         # keys of `apos_updates` are apris of `perron_polys_reg`. vals are 2-tuples. The 0-th val is `bool`, whether
         # or not the apos for the corresponding apri should be updated. The 1-st val is `AposInfo`, the update
         # itself. (We do not update concurrently because both registers are opened in readonly mode.)
@@ -411,11 +432,7 @@ def _update_status_reg_apos(status_reg, timers):
 
             with status_reg.open(readonly = True) as status_reg:
 
-                print("HI! 1", status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
-
                 for j, apri in enumerate(status_reg):
-
-                    print("HI! 2", j, status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
 
                     try:
                         apos_min_len = status_reg.apos(apri)
@@ -423,12 +440,10 @@ def _update_status_reg_apos(status_reg, timers):
                     except DataNotFoundError:
                         apos_min_len = None
 
-                    print("HI! 3", j, status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
                     min_orbit_len_this_apri = None
 
                     for status_blk in status_reg.blks(apri):
                         # Ignore orbit lengths listed as -1 as those orbits are complete.
-                        print("HI! 4", j, status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
                         orbit_lengths = status_blk.segment()[:, 0]
                         nonneg_orbit_lengths = orbit_lengths[orbit_lengths >= 0]
 
@@ -441,8 +456,6 @@ def _update_status_reg_apos(status_reg, timers):
 
                             else:
                                 min_orbit_len_this_apri = min(min_orbit_len_this_apri, min_orbit_len_this_blk)
-
-                    print("HI! 5", j, status_reg._db.readers().count("\n") - 1, status_reg._db.readers().count("-"))
 
                     if min_orbit_len_this_apri is None:
                         # Only possible if all orbit lengths are listed as -1.
@@ -463,7 +476,7 @@ def _update_status_reg_apos(status_reg, timers):
                     for perron_apri, (to_update, apos) in apos_updates.items():
 
                         if to_update:
-                            status_reg.set_apos(perron_apri, apos)
+                            status_reg.set_apos(perron_apri, apos, exists_ok = True)
 
 cdef _single_orbit(
     object beta,
@@ -490,12 +503,25 @@ cdef _single_orbit(
     cdef DPS_t PREC_INCREASE_FACTOR = 2
     cdef max_prec = int(max_dps * LOG_2_10)
 
+    bad_coefs = [
+        -1, 1, -1, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2,
+        2, -2,
+        2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2,
+        -2,
+        2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2,
+        -2,
+        2, -2, 1, -2, 1
+    ]
+    bad_poly = IntPolynomial(len(bad_coefs) - 1)
+    bad_poly.set(bad_coefs)
+
     with timers.time("_single_orbit callee"):
 
         # setprec max_prec only for boilerplate
         with timers.time("_single_orbit boilerplate"):
 
             min_poly = beta.min_poly
+            is_bad_poly = False
             debug = False
             beta0 = beta.beta0
             max_max_abs_coef = 2 ** 61
@@ -518,6 +544,10 @@ cdef _single_orbit(
             with timers.time("_single_orbit boilerplate final"):
 
                 startn = last_poly_orbit_len + 1
+
+                if is_bad_poly:
+                    print(f"startn = {startn}")
+
                 coef_seg = []
                 poly_seg = IntPolynomialArray(min_poly.deg() - 1)
                 poly_seg.empty(max_blk_len)
@@ -550,6 +580,10 @@ cdef _single_orbit(
                             Bn_1.c_set_coef(0, 1)
                             Bk_iter = poly_orbit_reg[orbit_apri, 1:]
 
+                        if is_bad_poly:
+                            print(f"Bn_1 = {Bn_1}")
+                            print(f"k = {k}")
+
                     with timers.time("find base_y_prec"):
 
                         with setprec(max_dps):
@@ -575,7 +609,10 @@ cdef _single_orbit(
 
                                 k = n // 2
                                 n_even = TRUE if 2 * k == n else FALSE
-                                # print(f"\t\t\t\t\tn  = {n}")
+
+                                if is_bad_poly:
+                                    print(f"\tn  = {n}")
+
                                 do_while = TRUE
 
                                 with timers.time("_single_orbit main loop max coef found"):
@@ -590,20 +627,20 @@ cdef _single_orbit(
 
                                         status_reg[poly_apri, orbit_apri.index] = np.array([n-1, -1, n])
 
-                                with timers.time("print reg info"):
-
-                                    print(f"len(poly_orbit_reg.apris()) = {len(poly_orbit_reg.apris())}")
-                                    print(
-                                        f"sum(poly_orbit_reg.num_blks(apri) for apri in poly_orbit_reg) = "
-                                        f"{sum(poly_orbit_reg.num_blks(apri) for apri in poly_orbit_reg)}"
-                                    )
-                                    print(f"poly_orbit_reg._db.info() = {poly_orbit_reg._db.info()}")
-                                    print(f"len(coef_orbit_reg.apris()) = {len(coef_orbit_reg.apris())}")
-                                    print(
-                                        f"sum(coef_orbit_reg.num_blks(apri) for apri in coef_orbit_reg) = "
-                                        f"{sum(coef_orbit_reg.num_blks(apri) for apri in coef_orbit_reg)}"
-                                    )
-                                    print(f"coef_orbit_reg._db.info() = {coef_orbit_reg._db.info()}")
+                                # with timers.time("print reg info"):
+                                #
+                                #     print(f"len(poly_orbit_reg.apris()) = {sum(1 for _ in poly_orbit_reg.apris())}")
+                                #     print(
+                                #         f"sum(poly_orbit_reg.num_blks(apri) for apri in poly_orbit_reg) = "
+                                #         f"{sum(poly_orbit_reg.num_blks(apri) for apri in poly_orbit_reg)}"
+                                #     )
+                                #     print(f"poly_orbit_reg._db.info() = {poly_orbit_reg._db.info()}")
+                                #     print(f"len(coef_orbit_reg.apris()) = {sum(1 for _ in coef_orbit_reg.apris())}")
+                                #     print(
+                                #         f"sum(coef_orbit_reg.num_blks(apri) for apri in coef_orbit_reg) = "
+                                #         f"{sum(coef_orbit_reg.num_blks(apri) for apri in coef_orbit_reg)}"
+                                #     )
+                                #     print(f"coef_orbit_reg._db.info() = {coef_orbit_reg._db.info()}")
 
 
                             with timers.time("_single orbit next iterate loop"):
@@ -614,13 +651,15 @@ cdef _single_orbit(
 
                                         with timers.time("calc bin"):
                                             bin_ = math.floor(math.log2(current_x_prec))
-                                        # print(f"\t\t\t\t\t\tcurrent_x_prec = {mpmath.mp.prec}")
-                                        # print(f"\t\t\t\t\t\tcurrent_y_prec = {current_y_prec}")
+                                        # if is_bad_poly:
+                                        #     print(f"\t\tcurrent_x_prec = {mpmath.mp.prec}")
+                                        #     print(f"\t\tcurrent_y_prec = {current_y_prec}")
                                         with timers.time(f"eval 2 ** {bin_}"):
                                             Bn_1.c_eval(beta0, FALSE)
                                         with timers.time(f"set xi 2 ** {bin_}"):
                                             xi = beta0 * Bn_1.last_eval
-                                        # print(f"\t\t\t\t\t\txi             = {xi}")
+                                        if is_bad_poly:
+                                            print(f"\t\txi             = {xi}")
 
                                         with timers.time_cm("_single_orbit next iterate setprec", setprec(current_y_prec)):
 
@@ -633,7 +672,8 @@ cdef _single_orbit(
 
                                         if do_while == TRUE:
                                             # precision error encountered
-                                            # print("\t\t\t\t\t\tprecision error")
+                                            # if is_bad_poly:
+                                            #     print("\t\tprecision error")
 
                                             if current_x_prec < max_prec:
                                                 # increase prec if we haven't hit max_prec, reset
@@ -650,8 +690,9 @@ cdef _single_orbit(
                                                 cn = _round(xi)
                                                 Bn = IntPolynomial(min_poly._deg - 1)
                                                 _calc_Bn(Bn_1, cn, min_poly, Bn)
-                                                # print(f"\t\t\t\t\tcn = {cn}")
-                                                # print(f"\t\t\t\t\tBn = {Bn}")
+                                                if is_bad_poly:
+                                                    print(f"\t\tcn = {cn}")
+                                                    print(f"\t\tBn = {Bn}")
 
                                                 for j in range(min_poly._deg):
                                                     # confirm simple Parry
@@ -728,9 +769,9 @@ cdef _single_orbit(
                                 Bn = IntPolynomial(min_poly._deg - 1)
                                 _calc_Bn(Bn_1, cn, min_poly, Bn)
                                 # print(f"\t\t\t\t\t\tBn                = {Bn}")
-                                # if debug:
-                                #     print("cn,  ", cn)
-                                #     print("Bn,  ", Bn)
+                                if is_bad_poly:
+                                    print(f"\t\tcn = {cn}")
+                                    print(f"\t\tBn = {Bn}")
                                 coef_seg.append(cn)
                                 poly_seg.append(Bn)
                                 Bn_1 = Bn
@@ -738,16 +779,18 @@ cdef _single_orbit(
                             with timers.time("_single_orbit even check"):
 
                                 if n_even == TRUE:
-                                    Bk = next(Bk_iter)
+                                    try:
+                                        Bk = next(Bk_iter)
+
+                                    except StopIteration:
+                                        print(poly_orbit_reg.total_len(orbit_apri))
+                                        print(poly_orbit_reg._ram_blks[orbit_apri])
+                                        print(list(poly_orbit_reg.intervals(orbit_apri)))
+                                        raise
 
                                 if n_even == TRUE and Bk.c_eq(Bn) == TRUE:
                                     # found period for non-simple Parry
-                                    try:
-                                        m, p = _calc_minimal_period(k, Bk, poly_orbit_reg, orbit_apri)
-
-                                    except RuntimeError:
-                                        print(list(poly_orbit_reg[orbit_apri, :]), n, k, Bk, Bn)
-                                        raise
+                                    m, p = _calc_minimal_period(k, Bk, poly_orbit_reg, orbit_apri)
 
                                     if p + m >= coef_blk.startn():
                                         coef_orbit_reg.append_disk_blk(coef_blk)
@@ -772,9 +815,26 @@ cdef _single_orbit(
                                     # dump blk and clear seg
                                     for reg, seg, blk in [(coef_orbit_reg, coef_seg, coef_blk), (poly_orbit_reg, poly_seg, poly_blk)]:
 
+                                        if is_bad_poly:
+                                            print("hi1", reg._ram_blks.get(orbit_apri))
+                                            try:
+                                                print("hi1", list(reg.intervals(orbit_apri, diskonly = True)))
+
+                                            except DataNotFoundError:
+                                                print("hi1 NO!")
+                                            print("hi1", blk)
+
                                         reg.append_disk_blk(blk)
                                         blk.set_startn(blk.startn() + len(blk))
                                         seg.clear()
+
+                                        if is_bad_poly:
+                                            print("hi2", reg._ram_blks.get(orbit_apri))
+                                            print("hi2", list(reg.intervals(orbit_apri, diskonly = True)))
+                                            print("hi2", blk)
+
+                                        if reg.maxn(orbit_apri) != n:
+                                            print("NOOOO!", n, min_poly)
 
                                     with timers.time("_single orbit dump blk status_reg.set"):
                                         status_reg.set(poly_apri, orbit_apri.index, [n, -1, -1], mmap_mode = "r+")
@@ -815,14 +875,25 @@ cdef (INDEX_t, INDEX_t) _calc_minimal_period(INDEX_t k, IntPolynomial Bk, object
 
             if Bk.c_eq(Bkp):
 
-                for m, (B1, B2) in enumerate(zip(poly_orbit_reg[B_apri, : k + 1], poly_orbit_reg[B_apri, p + 1: k + p + 1])):
-
-                    # print(m, B1, B2)
+                for m, (B1, B2) in enumerate(zip(poly_orbit_reg[B_apri, : k + 1], poly_orbit_reg[B_apri, p + 1 : k + p + 1])):
 
                     if B1.c_eq(B2):
                         break
 
                 else:
+
+                    print(k)
+                    print(p)
+                    print(Bk)
+                    print(Bkp)
+                    print(B_apri in poly_orbit_reg)
+                    print(poly_orbit_reg.total_len(B_apri))
+                    for i, poly in enumerate(poly_orbit_reg[B_apri, :, True]):
+                        print("i", i)
+                        print("poly", poly)
+                    for i in range(poly_orbit_reg.total_len(B_apri)):
+                        print("i", i)
+                        print(poly_orbit_reg[B_apri, i + 1, True])
                     raise RuntimeError
 
                 break

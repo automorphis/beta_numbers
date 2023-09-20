@@ -89,16 +89,21 @@ class Perron_Number:
 
         if (
             self.min_poly.deg() <= 0 or
-            not almosteq(self.beta0.imag, 0.) or
             self.min_poly[self.min_poly.deg()] != 1 or
             self.beta0.real < 1 or (
                 self.min_poly.deg() >= 2 and (
                     self.conjs_mods_mults[0][2] > 1 or
-                    almosteq(self.beta0, self.conjs_mods_mults[1][1])
+                    almosteq(self.beta0.real, self.conjs_mods_mults[1][1])
                 )
             )
         ):
-            raise Not_Perron_Error
+            raise Not_Perron_Error(
+                f"min_poly = {self.min_poly}\n"
+                f"min_poly.deg() = {self.min_poly.deg()}\n"
+                f"min_poly[self.min_poly.deg()] = {self.min_poly[self.min_poly.deg()]}\n"
+                f"beta0 = {self.beta0}\n"
+                f"conjs_mods_mults = {self.conjs_mods_mults}"
+            )
 
     def extraprec(self):
 

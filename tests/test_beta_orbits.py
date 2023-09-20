@@ -7,8 +7,9 @@ import numpy as np
 from beta_numbers.perron_numbers import Perron_Number
 from beta_numbers.beta_orbits import MPFRegister, setprec, setdps
 from intpolynomials import IntPolynomial, IntPolynomialRegister, IntPolynomialArray
-from cornifer import NumpyRegister, ApriInfo, DataNotFoundError, Block, openregs, AposInfo
+from cornifer import NumpyRegister, ApriInfo, DataNotFoundError, Block, openregs, AposInfo, load
 from cornifer._utilities import random_unique_filename
+from cornifer.registers import _CURR_ID_KEY
 from mpmath import mp, almosteq, mpf, extradps, log, extraprec
 from dagtimers import Timers
 
@@ -16,124 +17,102 @@ from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup, calc_orbits
 
 NUM_BYTES_PER_TERABYTE = 2 ** 40
 
-def add_boyd_psi_r(min_r, max_r):
-    # See message of `perron_polys_reg`
+def boyd_psi_r(r):
 
-    if not (0 < min_r <= max_r):
+    if r <= 0:
         raise ValueError
 
-    for r in range(min_r, max_r + 1):
+    return IntPolynomial(r + 1).set([-1] * (r + 1) + [1]), [1] * (r + 1) + [0], r, 1
 
-        TestBetaOrbits.add_known_coef_orbit(
-            IntPolynomial(r + 1).set([-1] * (r + 1) + [1]),
-            [1] * (r + 1) + [0],
-            r, 1
-        )
+def boyd_phi_r(r):
 
-def add_boyd_phi_r(min_r, max_r):
-    # See message of `test_poly_reg`
-
-    if not (0 < min_r <= max_r):
+    if r <= 0:
         raise ValueError
 
-    for r in range(min_r, max_r + 1):
+    poly = IntPolynomial(r + 1)
 
-        poly = IntPolynomial(r + 1)
+    if r == 1:
+        poly.set([-1, -1, 1])
 
-        if r == 1:
-            poly.set([-1, -1, 1])
+    else:
+        poly.set([-1, 1] + [0] * (r - 2) + [-2, 1])
 
-        else:
-            poly.set([-1, 1] + [0] * (r - 2) + [-2, 1])
+    return poly, [1] * r + [0] * (r - 1) + [1, 0], 2 * r - 1, 1
 
-        TestBetaOrbits.add_known_coef_orbit(
-            poly,
-            [1] * r + [0] * (r - 1) + [1, 0],
-            2 * r - 1, 1
-        )
+def boyd_beta_n(n):
 
-def add_boyd_beta_n(min_n, max_n):
-    # See message of `test_poly_reg`
-
-    if not (1 < min_n <= max_n):
+    if n <= 1:
         raise ValueError
 
-    xp1 = IntPolynomial(1).set([1,1])
+    xp1 = IntPolynomial(1).set([1, 1])
+    poly = IntPolynomial(n + 3)
 
-    for n in range(min_n, max_n + 1):
+    if n == 1:
+        poly.set([-1, -1, -1, 0, 1])
 
-        poly = IntPolynomial(n + 3)
+    elif n == 2:
+        poly.set([-1, 0, -1, 0, -1, 1])
 
-        if n == 1:
-            poly.set([-1, -1, -1, 0, 1])
+    elif n == 3:
+        poly.set([-1, 0, 0, 0, -1, -1, 1])
 
-        elif n == 2:
-            poly.set([-1, 0, -1, 0, -1, 1])
+    else:
+        poly.set([-1, 0, 0, 1] + [0] * (n - 4) + [-1, -1, -1, 1])
 
-        elif n == 3:
-            poly.set([-1, 0, 0, 0, -1, -1, 1])
+    if n % 2 == 1:
+        poly, _ = poly.divide(xp1)
 
-        else:
-            poly.set([-1, 0, 0, 1] + [0] * (n - 4) + [-1, -1, -1, 1])
+    k = (n - 1) // 3
 
-        if n % 2 == 1:
-            poly, _ = poly.divide(xp1)
+    if n == 3 * k + 1:
 
-        k = (n - 1) // 3
+        orbit = [1, 1, 0] * k + [0, 1, 1] + [0] * (n - 1) + [1, 0]
+        m = 2 * n + 1
 
-        if n == 3 * k + 1:
+    elif n == 3 * k + 2:
 
-            orbit = [1, 1, 0] * k + [0, 1, 1] + [0] * (n - 1) + [1, 0]
-            m = 2 * n + 1
+        orbit = [1, 1, 0] * k + [1, 0, 1] + [0] * (n - 1) + [1, 0]
+        m = 2 * n
 
-        elif n == 3 * k + 2:
+    else:
 
-            orbit = [1, 1, 0] * k + [1, 0, 1] + [0] * (n - 1) + [1, 0]
-            m = 2 * n
+        orbit = [1, 1, 0] * (k + 1) + [0] * (n - 1) + [1, 0]
+        m = 2 * n - 1
 
-        else:
+    return poly, orbit, m, 1
 
-            orbit = [1, 1, 0] * (k + 1) + [0] * (n - 1) + [1, 0]
-            m = 2 * n - 1
+def boyd_prop5_2(k):
 
-        TestBetaOrbits.add_known_coef_orbit(poly, orbit, m, 1)
-
-def add_boyd_prop5_2(min_k, max_k):
-    # See message of `test_poly_reg`
-
-    if not (1 < min_k <= max_k):
+    if k <= 1:
         raise ValueError
 
     xm1 = IntPolynomial(1).set([-1, 1])
     x2m1 = IntPolynomial(2).set([-1, 0, 1])
+    poly = np.zeros(2 * k + 2, dtype=np.longlong)
+    poly[0] = 1
+    poly[k - 1: k + 1] += np.array([1, -1])
+    poly[2 * k: 2 * k + 2] += np.array([-2, 1])
+    poly = IntPolynomial(2 * k + 1).set(poly)
 
-    for k in range(min_k, max_k + 1):
+    if k % 2 == 0:
+        poly, _ = poly.divide(xm1)
 
-        poly = np.zeros(2 * k + 2, dtype=np.longlong)
-        poly[0] = 1
-        poly[k - 1 : k + 1] += np.array([1, -1])
-        poly[2 * k : 2 * k + 2] += np.array([-2, 1])
-        poly = IntPolynomial(2 * k + 1).set(poly)
+    else:
+        poly, _ = poly.divide(x2m1)
 
-        if k % 2 == 0:
-            poly, _ = poly.divide(xm1)
+    if k == 3:
 
-        else:
-            poly, _ = poly.divide(x2m1)
+        orbit = [2, 0, 0, 0, 0, 1, 1, 0, 1]
+        m = 3
+        p = 5
 
-        if k == 3:
+    else:
 
-            orbit = [2, 0, 0, 0, 0, 1, 1, 0, 1]
-            m = 3
-            p = 5
+        orbit = [2] + [0] * (k + 1) + [1] * (k - 1) + [0] + [1] * (k - 2) + [0, 1, 1] + [0] * (k - 2) + [1]
+        m = k
+        p = 3 * k + 1
 
-        else:
-
-            orbit = [2] + [0] * (k + 1) + [1] * (k - 1) + [0] + [1] * (k - 2) + [0, 1, 1] + [0] * (k - 2) + [1]
-            m = k
-            p = 3 * k + 1
-
-        TestBetaOrbits.add_known_coef_orbit(poly, orbit, m, p)
+    return poly, orbit, m, p
 
 class TestBetaOrbits(TestCase):
 
@@ -143,6 +122,66 @@ class TestBetaOrbits(TestCase):
     exp_coef_orbit_reg = None
     exp_periodic_reg = None
     MAX_DPS = 1000
+    new = True
+    delete = False
+    # base_path = Path("/mnt/c/Users/mlane/beta_numbers_testcases")
+    base_path = Path("/mnt/d/beta_numbers_testcases")
+
+    @classmethod
+    def setup_readonly_registers(cls):
+
+        cls.perron_polys_reg = IntPolynomialRegister(
+            cls.saves_dir,
+            "perron_polys_reg",
+            "Several minimal polynomials of Beta numbers used for Beta orbit test cases. All polynomials are taken from "
+            "Boyd 1996, 'On Beta Expansions for Pisot Numbers'. The simple beta numbers Phi_r and Psi_r have minimal "
+            "polynomials found on p 845 of that paper; the simple beta numbers beta_n have minimal polynomial and orbit "
+            "defined on p 847, equation 3.2; and the final, unnamed class of minimal polynomials and orbits are defined "
+            "on p 854, Prop 5.2.",
+            NUM_BYTES_PER_TERABYTE
+        )
+        cls.perron_nums_reg = MPFRegister(
+            cls.saves_dir,
+            "perron_nums_reg",
+            "Respective decimal approximations of Perron numbers whose minimal polynomials are given by "
+            "`perron_polys_reg`.",
+            NUM_BYTES_PER_TERABYTE
+        )
+
+        with openregs(cls.perron_nums_reg, cls.perron_polys_reg):
+            cls.perron_nums_reg.add_subreg(cls.perron_polys_reg)
+
+        cls.exp_coef_orbit_reg = NumpyRegister(
+            cls.saves_dir,
+            "exp_coef_orbit_reg",
+            "Correct coefficient orbits of beta numbers used for Beta orbit test cases.",
+            NUM_BYTES_PER_TERABYTE
+
+        )
+        cls.exp_periodic_reg = NumpyRegister(
+            cls.saves_dir,
+            "exp_periodic_reg",
+            "Correct periodic data of beta numbers used for beta orbit test cases.",
+            NUM_BYTES_PER_TERABYTE
+        )
+
+        with openregs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
+
+            for r in range(1, 201):
+
+                TestBetaOrbits.add_known_coef_orbit(*boyd_phi_r(r))
+                TestBetaOrbits.add_known_coef_orbit(*boyd_psi_r(r))
+
+            for n in range(2, 201):
+
+                TestBetaOrbits.add_known_coef_orbit(*boyd_beta_n(n))
+                TestBetaOrbits.add_known_coef_orbit(*boyd_prop5_2(n))
+
+
+        print("perron_polys_reg", cls.perron_polys_reg.ident())
+        print("exp_coef_orbit_reg", cls.exp_coef_orbit_reg.ident())
+        print("exp_periodic_reg", cls.exp_periodic_reg.ident())
+        print("perron_nums_reg", cls.perron_nums_reg.ident())
 
     @classmethod
     def add_known_coef_orbit(cls, poly, orbit, m, p):
@@ -182,52 +221,51 @@ class TestBetaOrbits(TestCase):
     @classmethod
     def setUpClass(cls):
 
-        cls.saves_dir = random_unique_filename(Path.home())
+        if cls.new:
 
-        if cls.saves_dir.exists():
-            shutil.rmtree(cls.saves_dir)
+            cls.saves_dir = random_unique_filename(cls.base_path)
 
-        cls.saves_dir.mkdir()
-        cls.perron_polys_reg = IntPolynomialRegister(
-            cls.saves_dir,
-            "perron_polys_reg",
-            "Several minimal polynomials of Beta numbers used for Beta orbit test cases. All polynomials are taken from "
-            "Boyd 1996, 'On Beta Expansions for Pisot Numbers'. The simple beta numbers Phi_r and Psi_r have minimal "
-            "polynomials found on p 845 of that paper; the simple beta numbers beta_n have minimal polynomial and orbit "
-            "defined on p 847, equation 3.2; and the final, unnamed class of minimal polynomials and orbits are defined "
-            "on p 854, Prop 5.2.",
-            NUM_BYTES_PER_TERABYTE
-        )
-        cls.perron_nums_reg = MPFRegister(
-            cls.saves_dir,
-            "perron_nums_reg",
-            "Respective decimal approximations of Perron numbers whose minimal polynomials are given by "
-            "`perron_polys_reg`.",
-            NUM_BYTES_PER_TERABYTE
-        )
+            if cls.saves_dir.exists():
+                shutil.rmtree(cls.saves_dir)
 
-        with openregs(cls.perron_nums_reg, cls.perron_polys_reg):
-            cls.perron_nums_reg.add_subreg(cls.perron_polys_reg)
+            cls.saves_dir.mkdir(parents = True)
+            cls.setup_readonly_registers()
 
-        cls.exp_coef_orbit_reg = NumpyRegister(
-            cls.saves_dir,
-            "exp_coef_orbit_reg",
-            "Correct coefficient orbits of beta numbers used for Beta orbit test cases.",
-            NUM_BYTES_PER_TERABYTE
+        else:
+            # all four kinds with parameters from 1 or 2 - 100 each
+            cls.saves_dir = cls.base_path / "ia7VUj"
+            cls.perron_polys_reg = load(cls.saves_dir / "VpZf")
+            cls.exp_coef_orbit_reg = load(cls.saves_dir / "LCni")
+            cls.exp_periodic_reg = load(cls.saves_dir / "V2QB")
+            cls.perron_nums_reg = load(cls.saves_dir / "dtPX")
 
-        )
-        cls.exp_periodic_reg = NumpyRegister(
-            cls.saves_dir,
-            "exp_periodic_reg",
-            "Correct periodic data of beta numbers used for beta orbit test cases.",
-            NUM_BYTES_PER_TERABYTE
-        )
+            # only phi_74
+            # cls.saves_dir = cls.base_path / "iLLTYX"
+            # cls.perron_polys_reg = load(cls.saves_dir / "MyMx")
+            # cls.exp_coef_orbit_reg = load(cls.saves_dir / "bA3y")
+            # cls.exp_periodic_reg = load(cls.saves_dir / "Uerz")
+            # cls.perron_nums_reg = load(cls.saves_dir / "RXAJ")
+
+            # all four kinds with parameters from 1 or 2 - 20 each
+            # cls.saves_dir = cls.base_path / "PBNTNA"
+            # cls.perron_polys_reg = load(cls.saves_dir / "R3GA")
+            # cls.exp_coef_orbit_reg = load(cls.saves_dir / "sbPW")
+            # cls.exp_periodic_reg = load(cls.saves_dir / "ZxyW")
+            # cls.perron_nums_reg = load(cls.saves_dir / "CGqw")
+
+            # all four kinds with parameters from 50 to 100 each
+            # cls.saves_dir = cls.base_path / "uA7hbQ"
+            # cls.perron_polys_reg = load(cls.saves_dir / "NTsn")
+            # cls.exp_coef_orbit_reg = load(cls.saves_dir / "Pyjn")
+            # cls.exp_periodic_reg = load(cls.saves_dir / "WRXw")
+            # cls.perron_nums_reg = load(cls.saves_dir / "gp3v")
+
         super().setUpClass()
 
     @classmethod
     def tearDownClass(cls):
 
-        if cls.saves_dir is not None:
+        if cls.delete and cls.saves_dir is not None:
             shutil.rmtree(cls.saves_dir)
 
     # def test_perron_polys_nums(self):
@@ -296,20 +334,13 @@ class TestBetaOrbits(TestCase):
 
     def test_calc_orbits(self):
 
+        bad_polys = []
+        # bad_poly.set(bad_coefs)
         cls = type(self)
         # setup
         timers = Timers()
 
         with timers.time("test_calc_orbits callee"):
-
-            with timers.time("add polys"):
-
-                with openregs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
-
-                    add_boyd_phi_r(1, 100)
-                    add_boyd_psi_r(1, 100)
-                    add_boyd_beta_n(2, 100)
-                    add_boyd_prop5_2(2, 100)
 
             initial_max_blk_len = 10000
             # first start with high starting DPS and enough increases, so we can be sure that no precision errors occur
@@ -421,6 +452,9 @@ class TestBetaOrbits(TestCase):
 
                                 for perron_apri in cls.perron_polys_reg:
 
+                                    # if perron_apri != bad_poly:
+                                    #     continue
+
                                     self.assertIn(perron_apri, periodic_reg)
                                     self.assertIn(perron_apri, status_reg)
 
@@ -434,12 +468,7 @@ class TestBetaOrbits(TestCase):
                                         self.assertNotIn(poly_apri, status_reg)
                                         self.assertIn(poly_apri, poly_orbit_reg)
                                         self.assertIn(poly_apri, coef_orbit_reg)
-                                        calc_coefs = []
-
-                                        for blk in coef_orbit_reg.blks(poly_apri):
-                                            calc_coefs.extend(blk.segment())
-
-                                        calc_coefs = np.array(calc_coefs)
+                                        calc_coefs = np.array(list(coef_orbit_reg[poly_apri, :]))
 
                                         with cls.exp_coef_orbit_reg.blk(poly_apri) as exp_blk:
 
@@ -456,10 +485,43 @@ class TestBetaOrbits(TestCase):
 
                                             if max_poly_orbit_len < exp_coef_preperiod_len:
                                                 # no period found because has not calculated up to periodic portion
-                                                self.assertTrue(np.all(
-                                                    calc_coefs ==
-                                                    exp_preperiodic_coefs[ : max_poly_orbit_len]
-                                                ))
+
+                                                try:
+                                                    self.assertTrue(np.all(
+                                                        np.array(calc_coefs) ==
+                                                        np.array(exp_preperiodic_coefs)[ : max_poly_orbit_len]
+                                                    ))
+
+                                                except AssertionError:
+                                                    print(np.array(calc_coefs))
+                                                    print(np.array(exp_preperiodic_coefs[ : max_poly_orbit_len]))
+                                                    print(exp_simple_parry)
+                                                    print(max_poly_orbit_len)
+                                                    print(exp_coef_preperiod_len)
+                                                    print(cls.perron_polys_reg[perron_apri, index])
+                                                    print(cls.perron_polys_reg._approx_memory())
+                                                    with cls.perron_polys_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(poly_orbit_reg._approx_memory())
+                                                    with poly_orbit_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(coef_orbit_reg._approx_memory())
+                                                    with coef_orbit_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(periodic_reg._approx_memory())
+                                                    with periodic_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(status_reg._approx_memory())
+                                                    with status_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(cls.exp_coef_orbit_reg._approx_memory())
+                                                    with cls.exp_coef_orbit_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(cls.exp_periodic_reg._approx_memory())
+                                                    with cls.exp_periodic_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    raise
+
                                                 self.assertTrue(np.all(
                                                     [-1, -1] ==
                                                     periodic_reg.get(perron_apri, index, mmap_mode = "r")
@@ -477,6 +539,31 @@ class TestBetaOrbits(TestCase):
 
                                                     print(np.array(exp_coefs))
                                                     print(np.array(calc_coefs))
+                                                    print(exp_simple_parry)
+                                                    print(max_poly_orbit_len)
+                                                    print(exp_coef_preperiod_len)
+                                                    print(cls.perron_polys_reg[perron_apri, index])
+                                                    print(cls.perron_polys_reg._approx_memory())
+                                                    with cls.perron_polys_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(poly_orbit_reg._approx_memory())
+                                                    with poly_orbit_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(coef_orbit_reg._approx_memory())
+                                                    with coef_orbit_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(periodic_reg._approx_memory())
+                                                    with periodic_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(status_reg._approx_memory())
+                                                    with status_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(cls.exp_coef_orbit_reg._approx_memory())
+                                                    with cls.exp_coef_orbit_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(cls.exp_periodic_reg._approx_memory())
+                                                    with cls.exp_periodic_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
                                                     raise
 
                                                 self.assertTrue(np.all(
@@ -505,14 +592,39 @@ class TestBetaOrbits(TestCase):
                                                 # period calculated
                                                 try:
                                                     self.assertTrue(np.all(
-                                                        exp_coefs ==
-                                                        calc_coefs
+                                                        np.array(exp_coefs) ==
+                                                        np.array(calc_coefs)
                                                     ))
 
                                                 except AssertionError:
 
                                                     print(np.array(exp_coefs))
-                                                    print(calc_coefs)
+                                                    print(np.array(calc_coefs))
+                                                    print(exp_simple_parry)
+                                                    print(max_poly_orbit_len)
+                                                    print(exp_coef_preperiod_len)
+                                                    print(cls.perron_polys_reg[perron_apri, index])
+                                                    print(cls.perron_polys_reg._approx_memory())
+                                                    with cls.perron_polys_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(poly_orbit_reg._approx_memory())
+                                                    with poly_orbit_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(coef_orbit_reg._approx_memory())
+                                                    with coef_orbit_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(periodic_reg._approx_memory())
+                                                    with periodic_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(status_reg._approx_memory())
+                                                    with status_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(cls.exp_coef_orbit_reg._approx_memory())
+                                                    with cls.exp_coef_orbit_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(cls.exp_periodic_reg._approx_memory())
+                                                    with cls.exp_periodic_reg._db.begin() as ro_txn:
+                                                        print(ro_txn.get(_CURR_ID_KEY))
                                                     raise
 
                                                 self.assertTrue(np.all(
