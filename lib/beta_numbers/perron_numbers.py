@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """
     Beta Expansions of Salem Numbers, calculating periods thereof
     Copyright (C) 2021 Michael P. Lane
@@ -17,7 +18,6 @@ import math
 
 from dagtimers import Timers
 from cornifer import Block, openregs, ApriInfo, DataNotFoundError, openblks, AposInfo
-from cornifer._utilities.lmdb import to_str
 from mpmath import almosteq, mp
 from intpolynomials import IntPolynomial, IntPolynomialRegister, IntPolynomialArray, IntPolynomialIter
 
@@ -281,12 +281,20 @@ def calc_perron_nums(
                             )
                             logging.info("...polys...")
                             polys_done = nums_done = conjs_done = False
+
+                            try:
+                                startn = perron_polys_reg.maxn(apri) + 1
+
+                            except DataNotFoundError:
+                                startn = 0
+
                             length = len(polys_blk)
 
                             try:
 
                                 with timers.time("polys"):
                                     startn = perron_polys_reg.append_disk_blk(polys_blk)
+                                length = len(polys_blk)
                                 polys_done = True
                                 with timers.time("compress polys"):
                                     perron_polys_reg.compress(apri, startn, length, 9)
@@ -305,7 +313,7 @@ def calc_perron_nums(
                                 if _debug == 2 or (_debug == 5 and perron_nums_reg.num_blks(apri) > 0):
                                     raise KeyboardInterrupt
 
-                                nums_seg.clear()
+                                polys_seg.clear()
                                 logging.info("...conjs...")
                                 with timers.time("conjs"):
                                     perron_conjs_reg.append_disk_blk(conjs_blk)
@@ -316,15 +324,11 @@ def calc_perron_nums(
                                 if _debug == 3 or (_debug == 6 and perron_conjs_reg.num_blks(apri) > 0):
                                     raise KeyboardInterrupt
 
-                                conjs_seg.clear()
+                                polys_seg.clear()
                                 logging.info("...done.")
 
 
                             except BaseException:
-
-                                logging.error(to_str(perron_polys_reg._db))
-                                logging.error(to_str(perron_nums_reg._db))
-                                logging.error(to_str(perron_conjs_reg._db))
 
                                 if polys_done:
 
@@ -413,4 +417,4 @@ def calc_perron_nums(
                                 ))
 
                         else:
-                            perron_polys_reg.set_apos(apri, AposInfo(complete = True))
+                           perron_polys_reg.set_apos(apri, AposInfo(complete = True))

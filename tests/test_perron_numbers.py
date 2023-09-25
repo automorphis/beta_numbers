@@ -1,3 +1,4 @@
+
 import logging
 import shutil
 from pathlib import Path
@@ -10,8 +11,7 @@ from intpolynomials import IntPolynomialRegister
 from cornifer import openregs, AposInfo, ApriInfo, DataNotFoundError
 from dagtimers import Timers
 
-# saves_dir = Path("/mnt/d/perron_numbers_testcases")
-saves_dir = Path("/mnt/c/Users/mlane/perron_numbers_testcases")
+saves_dir = Path("/home/lane.662/perron_numbers_testcases")
 
 class TestCalcPerronNums(TestCase):
 
@@ -31,7 +31,7 @@ class TestCalcPerronNums(TestCase):
         logging.basicConfig(filename = saves_dir / "testing.txt", level = logging.INFO)
 
         for slurm_array_task_max in range(1, 10):
-
+            timers = Timers()
             perron_polys_reg, perron_nums_reg, perron_conjs_reg = calc_perron_nums_setup_regs(saves_dir)
             self.assertIsInstance(
                 perron_polys_reg,
@@ -47,7 +47,6 @@ class TestCalcPerronNums(TestCase):
             )
 
             for slurm_array_task_id in range(1, slurm_array_task_max + 1):
-                timers = Timers()
                 calc_perron_nums(
                     max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, slurm_array_task_max,
                     slurm_array_task_id, timers
@@ -87,8 +86,9 @@ class TestCalcPerronNums(TestCase):
 
                 for slurm_array_task_id in range(1, slurm_array_task_max + 1):
 
+                    timers = Timers()
+
                     with self.assertRaises(KeyboardInterrupt):
-                        timers = Timers()
                         calc_perron_nums(
                             max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg,
                             slurm_array_task_max, slurm_array_task_id, timers
@@ -123,9 +123,9 @@ class TestCalcPerronNums(TestCase):
 
                 for slurm_array_task_id in range(1, slurm_array_task_max + 1):
 
-                    print(slurm_array_task_max, debug, slurm_array_task_id)
+                    timers = Timers()
+
                     with self.assertRaises(KeyboardInterrupt):
-                        timers = Timers()
                         calc_perron_nums(
                             max_sum_abs_coef, 1, perron_polys_reg, perron_nums_reg, perron_conjs_reg,
                             slurm_array_task_max, slurm_array_task_id, timers
@@ -173,7 +173,6 @@ class TestCalcPerronNums(TestCase):
                                 perron_conjs_reg.num_blks(apri)
                             )
 
+
     def tearDown(self):
         shutil.rmtree(saves_dir)
-
-
