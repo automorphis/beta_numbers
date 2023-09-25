@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # import math
 # import shutil
 # from pathlib import Path
@@ -1338,3 +1339,4 @@
 #     #                             print(8, cReg.maxn(orbit_apri))
 #     #                             print(9, BReg.maxn(orbit_apri))
 #     #                             raise
+

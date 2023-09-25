@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """
     Beta Expansions of Salem Numbers, calculating periods thereof
     Copyright (C) 2021 Michael P. Lane
@@ -416,4 +417,4 @@ def calc_perron_nums(
                                 ))
 
                         else:
-                            perron_polys_reg.set_apos(apri, AposInfo(complete = True))
+                           perron_polys_reg.set_apos(apri, AposInfo(complete = True))
