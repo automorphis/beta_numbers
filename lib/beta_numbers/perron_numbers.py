@@ -1,4 +1,3 @@
-
 """
     Beta Expansions of Salem Numbers, calculating periods thereof
     Copyright (C) 2021 Michael P. Lane
