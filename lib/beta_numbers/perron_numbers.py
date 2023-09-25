@@ -312,7 +312,7 @@ def calc_perron_nums(
                                 if _debug == 2 or (_debug == 5 and perron_nums_reg.num_blks(apri) > 0):
                                     raise KeyboardInterrupt
 
-                                polys_seg.clear()
+                                nums_seg.clear()
                                 logging.info("...conjs...")
                                 with timers.time("conjs"):
                                     perron_conjs_reg.append_disk_blk(conjs_blk)
@@ -323,7 +323,7 @@ def calc_perron_nums(
                                 if _debug == 3 or (_debug == 6 and perron_conjs_reg.num_blks(apri) > 0):
                                     raise KeyboardInterrupt
 
-                                polys_seg.clear()
+                                conjs_seg.clear()
                                 logging.info("...done.")
 
 
