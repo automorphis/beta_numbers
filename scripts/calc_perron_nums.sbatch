@@ -11,5 +11,6 @@
 #SBATCH --error=/home/lane.662/calc_perron_nums_error.txt
 #SBATCH --output=/home/lane.662/calc_perron_nums_output.txt
 
-
-srun sage -python /home/lane.662/beta_numbers/scripts/calc_perron_nums.py ~/perron_nums THGF uREr yivv $SLURM_ARRAY_TASK_MAX $SLURM_ARRAY_TASK_ID 2 100 3 50 4 50
+rm -r ~/perron_nums
+sage -python ~/beta_numbers/scripts/calc_perron_nums_setup_regs.py ~/perron_nums
+srun sage -python /home/lane.662/beta_numbers/scripts/calc_perron_nums.py ~/perron_nums $SLURM_ARRAY_TASK_MAX $SLURM_ARRAY_TASK_ID 2 100 3 50 4 50
