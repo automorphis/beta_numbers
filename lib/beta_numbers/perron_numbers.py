@@ -280,13 +280,6 @@ def calc_perron_nums(
                             )
                             logging.info("...polys...")
                             polys_done = nums_done = conjs_done = False
-
-                            try:
-                                startn = perron_polys_reg.maxn(apri) + 1
-
-                            except DataNotFoundError:
-                                startn = 0
-
                             length = len(polys_blk)
 
                             try:
