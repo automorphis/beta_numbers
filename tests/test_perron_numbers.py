@@ -11,7 +11,7 @@ from intpolynomials import IntPolynomialRegister
 from cornifer import openregs, AposInfo, ApriInfo, DataNotFoundError
 from dagtimers import Timers
 
-saves_dir = Path("/home/lane.662/perron_numbers_testcases")
+saves_dir = Path("/mnt/d/perron_numbers_testcases")
 
 class TestCalcPerronNums(TestCase):
 
@@ -27,7 +27,7 @@ class TestCalcPerronNums(TestCase):
         max_sum_abs_coef = {2: 15, 3: 15, 4: 15, 5: 5, 6: 5, 7: 5, 8: 3, 9: 3, 10: 3, 11: 3, 12: 3}
         total_apri = sum(val - 1 for val in max_sum_abs_coef.values())
         total_apri_with_blocks = total_apri - len(max_sum_abs_coef)
-        blk_size = 10000
+        blk_size = 100
         logging.basicConfig(filename = saves_dir / "testing.txt", level = logging.INFO)
 
         for slurm_array_task_max in range(1, 10):

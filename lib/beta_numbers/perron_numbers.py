@@ -327,7 +327,7 @@ def calc_perron_nums(
                                 logging.info("...done.")
                                 perron_polys_reg.set_apos(apri, AposInfo(
                                     complete = False, last_poly = tuple(poly.get_ndarray().astype(int))
-                                ))
+                                ), exists_ok = True)
 
 
                             except BaseException:
@@ -397,4 +397,6 @@ def calc_perron_nums(
 
                     if len(polys_seg) > 0:
                         dump()
+
+                    perron_polys_reg.set_apos(apri, AposInfo(complete = True), exists_ok = True)
 
