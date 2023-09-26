@@ -325,6 +325,9 @@ def calc_perron_nums(
 
                                 conjs_seg.clear()
                                 logging.info("...done.")
+                                perron_polys_reg.set_apos(apri, AposInfo(
+                                    complete = False, last_poly = tuple(poly.get_ndarray().astype(int))
+                                ))
 
 
                             except BaseException:
@@ -359,61 +362,39 @@ def calc_perron_nums(
 
                         logging.info(timers.pretty_print())
 
-                    try:
+                    with timers.time("IntPolynomialIter"):
 
-                        with timers.time("IntPolynomialIter"):
+                        for poly in IntPolynomialIter(d, s, True, last_poly):
 
-                            for poly in IntPolynomialIter(d, s, True, last_poly):
+                            total_poly += 1
 
-                                total_poly += 1
+                            with timers.time("is_irreducible"):
+                                is_irreducible = poly.is_irreducible()
 
-                                with timers.time("is_irreducible"):
-                                    is_irreducible = poly.is_irreducible()
+                            if is_irreducible:
 
-                                if is_irreducible:
+                                total_irreducible += 1
+                                perron = Perron_Number(poly)
 
-                                    total_irreducible += 1
-                                    perron = Perron_Number(poly)
+                                try:
 
-                                    try:
+                                    with timers.time("roots"):
+                                        perron.calc_roots()
 
-                                        with timers.time("roots"):
-                                            perron.calc_roots()
+                                except Not_Perron_Error:
+                                    pass
 
-                                    except Not_Perron_Error:
-                                        pass
-    
-                                    else:
+                                else:
 
-                                        polys_seg.append(poly)
-                                        nums_seg.append(perron.beta0)
-                                        conjs_seg.append(perron.conjs_mods_mults[1:])
+                                    polys_seg.append(poly)
+                                    nums_seg.append(perron.beta0)
+                                    conjs_seg.append(perron.conjs_mods_mults[1:])
 
-                                        if len(polys_seg) >= blk_size:
+                                    if len(polys_seg) >= blk_size:
 
-                                            dump()
-                                            total_poly = total_irreducible = 0
-                                            last_poly = poly
+                                        dump()
+                                        total_poly = total_irreducible = 0
 
-                        if len(polys_seg) > 0:
-                            dump()
+                    if len(polys_seg) > 0:
+                        dump()
 
-                    except BaseException:
-
-                        errored_out = True
-                        raise
-
-                    else:
-                        errored_out = False
-
-                    finally:
-
-                        if errored_out:
-
-                            if last_poly is not None:
-                                perron_polys_reg.set_apos(apri, AposInfo(
-                                    complete = False, last_poly = tuple(last_poly.get_ndarray().astype(int))
-                                ))
-
-                        else:
-                           perron_polys_reg.set_apos(apri, AposInfo(complete = True))
