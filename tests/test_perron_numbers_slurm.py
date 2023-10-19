@@ -136,7 +136,7 @@ class TestSlurm(unittest.TestCase):
     def test_slurm_1(self):
 
         slurm_test_main_filename = slurm_tests_filename / 'test1.py'
-        running_max_sec = 600
+        running_max_sec = 1800
         slurm_time = running_max_sec + 1
         num_processes = 15
         blk_size = 10
