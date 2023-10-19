@@ -70,3 +70,4 @@ if __name__ == "__main__":
         with reg.open() as reg:
             reg.set_tmp_dir(test_home_dir)
 
+    print(perron_polys_reg.__dict__)
