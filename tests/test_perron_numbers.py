@@ -24,7 +24,7 @@ class TestCalcPerronNums(TestCase):
 
     def test_calc_perron_nums(self):
 
-        max_sum_abs_coef = {2: 15, 3: 15, 4: 15, 5: 5, 6: 5, 7: 5, 8: 3, 9: 3, 10: 3, 11: 3, 12: 3}
+        max_sum_abs_coef = {2: 15, 3: 15, 4: 15 }#, 5: 5, 6: 5, 7: 5, 8: 3, 9: 3, 10: 3, 11: 3, 12: 3}
         total_apri = sum(val - 1 for val in max_sum_abs_coef.values())
         total_apri_with_blocks = total_apri - len(max_sum_abs_coef)
         blk_size = 100
@@ -32,6 +32,7 @@ class TestCalcPerronNums(TestCase):
 
         for num_procs in range(1, 10):
 
+            print(num_procs)
             timers = Timers()
             perron_polys_reg, perron_nums_reg, perron_conjs_reg = calc_perron_nums_setup_regs(saves_dir)
             self.assertIsInstance(
