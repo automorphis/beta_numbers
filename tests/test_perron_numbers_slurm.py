@@ -8,7 +8,8 @@ from pathlib import Path
 import time
 
 from cornifer import openregs, load_shorthand, AposInfo
-from intpolynomials import IntPolynomialRegister, MPFRegister
+from intpolynomials import IntPolynomialRegister
+from beta_numbers.registers import MPFRegister
 
 test_home_dir = Path.home() / "betanumbers_slurm_testcases"
 python_command = "sage -python"
