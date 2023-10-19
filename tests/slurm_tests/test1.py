@@ -56,7 +56,7 @@ if __name__ == "__main__":
     timers = Timers()
 
     for i in range(num_processes):
-        procs.append(mp_ctx.Process(target = calc_perron_nums, args = (
+        procs.append(mp_ctx.Process(target = f, args = (
             max_sum_abs_coef, blk_size, test_home_dir, num_processes, i, timers
         )))
 
