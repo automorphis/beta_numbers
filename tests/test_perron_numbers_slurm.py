@@ -156,6 +156,7 @@ class TestSlurm(unittest.TestCase):
         perron_polys_reg = load_shorthand("perron_polys_reg", test_home_dir)
         perron_nums_reg = load_shorthand("perron_nums_reg", test_home_dir)
         perron_conjs_reg = load_shorthand("perron_conjs_reg", test_home_dir)
+        print(perron_polys_reg.__dict__)
         total_apri = sum(val - 1 for val in max_sum_abs_coef.values())
         total_apri_with_blocks = total_apri - len(max_sum_abs_coef)
 
