@@ -134,11 +134,11 @@ class TestSlurm(unittest.TestCase):
     def test_slurm_1(self):
 
         slurm_test_main_filename = slurm_tests_filename / 'test1.py'
-        running_max_sec = 120
+        running_max_sec = 600
         slurm_time = running_max_sec + 1
-        num_processes = 5
+        num_processes = 15
         blk_size = 10
-        max_sum_abs_coef = {2: 10, 3: 7, 4: 5}
+        max_sum_abs_coef = {2: 15, 3: 13, 4: 11, 5: 9, 6: 7, 7: 5, 8: 3}
         max_sum_abs_coef_str = str(max_sum_abs_coef).replace(":", "").replace(",", "").replace("{", "").replace("}", "")
         write_batch_file(
             slurm_time, slurm_test_main_filename, num_processes, f"{blk_size} {slurm_time - 10} {max_sum_abs_coef_str}"
