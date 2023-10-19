@@ -49,6 +49,7 @@ class TestCalcPerronNums(TestCase):
             )
 
             for proc_index in range(num_procs):
+                print("\t", proc_index)
                 calc_perron_nums(
                     max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_procs,
                     proc_index, timers
