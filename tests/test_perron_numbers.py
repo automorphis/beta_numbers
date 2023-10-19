@@ -30,7 +30,8 @@ class TestCalcPerronNums(TestCase):
         blk_size = 100
         logging.basicConfig(filename = saves_dir / "testing.txt", level = logging.INFO)
 
-        for slurm_array_task_max in range(1, 10):
+        for num_procs in range(1, 10):
+
             timers = Timers()
             perron_polys_reg, perron_nums_reg, perron_conjs_reg = calc_perron_nums_setup_regs(saves_dir)
             self.assertIsInstance(
@@ -46,10 +47,10 @@ class TestCalcPerronNums(TestCase):
                 MPFRegister
             )
 
-            for slurm_array_task_id in range(1, slurm_array_task_max + 1):
+            for proc_index in range(num_procs):
                 calc_perron_nums(
-                    max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, slurm_array_task_max,
-                    slurm_array_task_id, timers
+                    max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_procs,
+                    proc_index, timers
                 )
 
             with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg, readonlys = (True,)*3) as (
@@ -76,7 +77,7 @@ class TestCalcPerronNums(TestCase):
                         AposInfo(complete = True)
                     )
 
-        for slurm_array_task_max in range(1, 10):
+        for num_procs in range(1, 10):
 
             perron_polys_reg, perron_nums_reg, perron_conjs_reg = calc_perron_nums_setup_regs(saves_dir)
 
@@ -84,14 +85,14 @@ class TestCalcPerronNums(TestCase):
 
                 beta_numbers.perron_numbers._debug = debug
 
-                for slurm_array_task_id in range(1, slurm_array_task_max + 1):
+                for proc_index in range(num_procs):
 
                     timers = Timers()
 
                     with self.assertRaises(KeyboardInterrupt):
                         calc_perron_nums(
                             max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg,
-                            slurm_array_task_max, slurm_array_task_id, timers
+                            num_procs, proc_index, timers
                         )
 
                 beta_numbers.perron_numbers._debug = 0
@@ -121,14 +122,14 @@ class TestCalcPerronNums(TestCase):
 
                 beta_numbers.perron_numbers._debug = debug
 
-                for slurm_array_task_id in range(1, slurm_array_task_max + 1):
+                for proc_index in range(num_procs):
 
                     timers = Timers()
 
                     with self.assertRaises(KeyboardInterrupt):
                         calc_perron_nums(
                             max_sum_abs_coef, 1, perron_polys_reg, perron_nums_reg, perron_conjs_reg,
-                            slurm_array_task_max, slurm_array_task_id, timers
+                            num_procs, proc_index, timers
                         )
 
                 beta_numbers.perron_numbers._debug = 0

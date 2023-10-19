@@ -9,11 +9,13 @@ from beta_numbers.perron_numbers import calc_perron_nums
 
 if __name__ == "__main__":
 
-    blk_size = 100
-
     saves_dir = Path(sys.argv[1])
     slurm_array_task_max = int(sys.argv[2])
     slurm_array_task_id = int(sys.argv[3])
+    blk_size = int(sys.argv[4])
+
+    if blk_size < 1:
+        raise ValueError
 
     if slurm_array_task_max < 1:
         raise ValueError
@@ -25,10 +27,10 @@ if __name__ == "__main__":
     logging.basicConfig(filename = saves_dir / f"log{slurm_array_task_id}.txt", level = logging.INFO)
     timers = Timers()
 
-    if (len(sys.argv) - 4) % 2 != 0:
+    if (len(sys.argv) - 5) % 2 != 0:
         raise ValueError
 
-    for d, s in zip(sys.argv[4::2], sys.argv[5::2]):
+    for d, s in zip(sys.argv[5::2], sys.argv[6::2]):
 
         d = int(d)
         s = int(s)

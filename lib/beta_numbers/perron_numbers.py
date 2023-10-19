@@ -230,8 +230,8 @@ def calc_perron_nums_setup_regs(saves_dir):
 
 
 def calc_perron_nums(
-    max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, slurm_array_task_max,
-    slurm_array_task_id, timers
+    max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_procs,
+    proc_index, timers
 ):
     with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg) as (
         perron_polys_reg, perron_nums_reg, perron_conjs_reg
@@ -239,7 +239,7 @@ def calc_perron_nums(
 
         for d in max_sum_abs_coef.keys():
 
-            for s in range(1 + slurm_array_task_id, max_sum_abs_coef[d] + 1, slurm_array_task_max):
+            for s in range(2 + proc_index, max_sum_abs_coef[d] + 1, num_procs):
 
                 logging.info(f"deg = {d}, sum_abs_coef = {s}")
                 apri = ApriInfo(deg = d, sum_abs_coef = s)
