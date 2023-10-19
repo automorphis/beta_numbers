@@ -5,7 +5,6 @@ import time
 from pathlib import Path
 
 from cornifer._utilities.multiprocessing import start_with_timeout
-from cornifer._utilities import read_text_file
 from cornifer import load_shorthand
 from dagtimers import Timers
 
