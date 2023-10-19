@@ -11,7 +11,7 @@ from intpolynomials import IntPolynomialRegister
 from cornifer import openregs, AposInfo, ApriInfo, DataNotFoundError
 from dagtimers import Timers
 
-saves_dir = Path("/mnt/d/perron_numbers_testcases")
+saves_dir = Path("~/perron_numbers_testcases")
 
 class TestCalcPerronNums(TestCase):
 
