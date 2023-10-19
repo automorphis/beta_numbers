@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 import time
 
+from cornifer import openregs, load_shorthand, AposInfo
 
 test_home_dir = Path.home() / "betanumbers_slurm_testcases"
 python_command = "sage -python"
@@ -150,5 +151,30 @@ class TestSlurm(unittest.TestCase):
         self.wait_till_not_running(running_max_sec, running_query_sec)
         print("Checking test #1...")
         self.check_empty_error_file()
+        perron_polys_reg = load_shorthand("perron_polys_reg", test_home_dir)
+        perron_nums_reg = load_shorthand("perron_nums_reg", test_home_dir)
+        perron_conjs_reg = load_shorthand("perron_conjs_reg", test_home_dir)
+        total_apri = sum(val - 1 for val in max_sum_abs_coef.values())
+        total_apri_with_blocks = total_apri - len(max_sum_abs_coef)
 
+        with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg, readonlys=(True,) * 3) as (
+                perron_polys_reg, perron_nums_reg, perron_conjs_reg
+        ):
+            self.assertEqual(
+                total_apri,
+                sum(1 for _ in perron_polys_reg.apris())
+            )
+            self.assertEqual(
+                total_apri_with_blocks,
+                sum(1 for _ in perron_nums_reg.apris())
+            )
+            self.assertEqual(
+                total_apri_with_blocks,
+                sum(1 for _ in perron_conjs_reg.apris())
+            )
 
+            for apri in perron_polys_reg:
+                self.assertEqual(
+                    perron_polys_reg.apos(apri),
+                    AposInfo(complete = True)
+                )
