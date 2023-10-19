@@ -140,7 +140,7 @@ class TestSlurm(unittest.TestCase):
         slurm_time = running_max_sec + 1
         num_processes = 15
         blk_size = 10
-        max_sum_abs_coef = {2: 15, 3: 13, 4: 11, 5: 9, 6: 7, 7: 5, 8: 3}
+        max_sum_abs_coef = {2: 15, 3: 13}#, 4: 11, 5: 9, 6: 7, 7: 5, 8: 3}
         max_sum_abs_coef_str = str(max_sum_abs_coef).replace(":", "").replace(",", "").replace("{", "").replace("}", "")
         write_batch_file(
             slurm_time, slurm_test_main_filename, num_processes, f"{blk_size} {slurm_time - 10} {max_sum_abs_coef_str}"

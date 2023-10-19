@@ -68,7 +68,5 @@ if __name__ == "__main__":
     for reg in (perron_polys_reg, perron_nums_reg, perron_conjs_reg):
 
         with reg.open() as reg:
-
-            reg.set_tmp_dir(tmp_filename)
-            reg.make_tmp_db()
+            reg.set_tmp_dir(test_home_dir)
 
