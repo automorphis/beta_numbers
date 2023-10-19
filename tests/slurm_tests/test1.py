@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 from cornifer._utilities.multiprocessing import start_with_timeout
+from cornifer._utilities import read_text_file
 from cornifer import load_shorthand
 from dagtimers import Timers
 
@@ -65,8 +66,10 @@ if __name__ == "__main__":
     for proc in procs:
         proc.join()
 
-    with reg.open() as reg:
+    for reg in (perron_polys_reg, perron_nums_reg, perron_conjs_reg):
 
-        reg.update_perm_db()
-        reg.set_tmp_dir(reg.dir)
+        with reg.open() as reg:
+
+            reg.set_tmp_dir(tmp_filename)
+            reg.make_tmp_db()
 
