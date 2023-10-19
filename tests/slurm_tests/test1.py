@@ -10,6 +10,15 @@ from dagtimers import Timers
 
 from beta_numbers.perron_numbers import calc_perron_nums, calc_perron_nums_setup_regs
 
+def f(max_sum_abs_coef, blk_size, test_home_dir, num_processes, i, timers):
+
+    perron_polys_reg = load_shorthand("perron_polys_reg", test_home_dir)
+    perron_nums_reg = load_shorthand("perron_nums_reg", test_home_dir)
+    perron_conjs_reg = load_shorthand("perron_conjs_reg", test_home_dir)
+    calc_perron_nums(
+        max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_processes, i, timers
+    )
+
 if __name__ == "__main__":
 
     start = time.time()
@@ -48,7 +57,7 @@ if __name__ == "__main__":
 
     for i in range(num_processes):
         procs.append(mp_ctx.Process(target = calc_perron_nums, args = (
-            max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_processes, i, timers
+            max_sum_abs_coef, blk_size, test_home_dir, num_processes, i, timers
         )))
 
     start_with_timeout(procs, timeout)
