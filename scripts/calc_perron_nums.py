@@ -1,34 +1,38 @@
+import datetime
+import multiprocessing
+import os
 import sys
+import time
+from contextlib import ExitStack
 from pathlib import Path
-import logging
 
+from cornifer._utilities.multiprocessing import start_with_timeout, make_sigterm_raise_KeyboardInterrupt, \
+    slurm_timecode_to_timedelta
 from cornifer import load_shorthand
 from dagtimers import Timers
 
-from beta_numbers.perron_numbers import calc_perron_nums
+from beta_numbers.perron_numbers import calc_perron_nums, calc_perron_nums_setup_regs
+
+
+def f(max_sum_abs_coef, blk_size, save_dir, num_processes, i, timers):
+
+    perron_polys_reg = load_shorthand("perron_polys_reg", save_dir)
+    perron_nums_reg = load_shorthand("perron_nums_reg", save_dir)
+    perron_conjs_reg = load_shorthand("perron_conjs_reg", save_dir)
+
+    with make_sigterm_raise_KeyboardInterrupt():
+        calc_perron_nums(
+            max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_processes, i, timers
+        )
 
 if __name__ == "__main__":
 
-    saves_dir = Path(sys.argv[1])
-    slurm_array_task_max = int(sys.argv[2])
-    slurm_array_task_id = int(sys.argv[3])
-    blk_size = int(sys.argv[4])
-
-    if blk_size < 1:
-        raise ValueError
-
-    if slurm_array_task_max < 1:
-        raise ValueError
-
-    if not (1 <= slurm_array_task_id <= slurm_array_task_max):
-        raise ValueError(f"{slurm_array_task_max},{slurm_array_task_id}")
-
+    start = time.time()
+    num_processes = int(sys.argv[1])
+    save_dir = Path(sys.argv[2])
+    blk_size = int(sys.argv[3])
+    timeout = int(slurm_timecode_to_timedelta(sys.argv[4]).total_seconds() * 0.90)
     max_sum_abs_coef = {}
-    logging.basicConfig(filename = saves_dir / f"log{slurm_array_task_id}.txt", level = logging.INFO)
-    timers = Timers()
-
-    if (len(sys.argv) - 5) % 2 != 0:
-        raise ValueError
 
     for d, s in zip(sys.argv[5::2], sys.argv[6::2]):
 
@@ -43,15 +47,25 @@ if __name__ == "__main__":
 
         max_sum_abs_coef[d] = s
 
-    logging.info(f"slurm_array_task_max = {slurm_array_task_max}")
-    logging.info(f"slurm_array_task_id  = {slurm_array_task_id}")
-    logging.info(f"sum_max_abs_coef = {max_sum_abs_coef}")
+    tmp_filename = Path(os.environ['TMPDIR'])
+    perron_polys_reg, perron_nums_reg, perron_conjs_reg = calc_perron_nums_setup_regs(save_dir)
+    mp_ctx = multiprocessing.get_context("spawn")
+    procs = []
+    timers = Timers()
 
-    perron_polys_reg = load_shorthand("perron_polys_reg", saves_dir)
-    perron_nums_reg = load_shorthand("perron_nums_reg", saves_dir)
-    perron_conjs_reg = load_shorthand("perron_conjs_reg", saves_dir)
+    with ExitStack() as stack:
 
-    calc_perron_nums(
-        max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, slurm_array_task_max,
-        slurm_array_task_id, timers
-    )
+        stack.enter_context(perron_polys_reg.tmp_db(tmp_filename))
+        stack.enter_context(perron_nums_reg.tmp_db(tmp_filename))
+        stack.enter_context(perron_conjs_reg.tmp_db(tmp_filename))
+
+        for i in range(num_processes):
+            procs.append(mp_ctx.Process(target = f, args = (
+                max_sum_abs_coef, blk_size, save_dir, num_processes, i, timers
+            )))
+
+        start_with_timeout(procs, max(1, int(timeout + start - time.time())))
+
+        for proc in procs:
+            proc.join()
+

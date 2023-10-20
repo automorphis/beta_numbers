@@ -180,6 +180,5 @@ class TestCalcPerronNums(TestCase):
                                 0
                             )
 
-
     def tearDown(self):
         shutil.rmtree(saves_dir)
