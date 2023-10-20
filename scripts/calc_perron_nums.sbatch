@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=CalcPerronNums
 #SBATCH --time=08:00:00
-#SBATCH --ntasks=24
+#SBATCH --ntasks=8
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=1
 #SBATCH --error=~/perronnumserror.txt
