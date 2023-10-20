@@ -2,6 +2,7 @@ import multiprocessing
 import os
 import sys
 import time
+from contextlib import ExitStack
 from pathlib import Path
 
 from cornifer._utilities.multiprocessing import start_with_timeout
@@ -43,31 +44,23 @@ if __name__ == "__main__":
 
     tmp_filename = Path(os.environ['TMPDIR'])
     perron_polys_reg, perron_nums_reg, perron_conjs_reg = calc_perron_nums_setup_regs(test_home_dir)
-
-    for reg in (perron_polys_reg, perron_nums_reg, perron_conjs_reg):
-
-        with reg.open() as reg:
-
-            reg.set_tmp_dir(tmp_filename)
-            reg.make_tmp_db()
-
     mp_ctx = multiprocessing.get_context("spawn")
     procs = []
     timers = Timers()
 
-    for i in range(num_processes):
-        procs.append(mp_ctx.Process(target = f, args = (
-            max_sum_abs_coef, blk_size, test_home_dir, num_processes, i, timers
-        )))
+    with ExitStack() as stack:
 
-    start_with_timeout(procs, timeout)
+        stack.enter_context(perron_polys_reg.tmp_db(tmp_filename))
+        stack.enter_context(perron_nums_reg.tmp_db(tmp_filename))
+        stack.enter_context(perron_conjs_reg.tmp_db(tmp_filename))
 
-    for proc in procs:
-        proc.join()
+        for i in range(num_processes):
+            procs.append(mp_ctx.Process(target = f, args = (
+                max_sum_abs_coef, blk_size, test_home_dir, num_processes, i, timers
+            )))
 
-    for reg in (perron_polys_reg, perron_nums_reg, perron_conjs_reg):
+        start_with_timeout(procs, timeout)
 
-        with reg.open() as reg:
-            reg.set_tmp_dir(test_home_dir)
+        for proc in procs:
+            proc.join()
 
-    print(perron_polys_reg.__dict__)
