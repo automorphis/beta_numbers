@@ -175,6 +175,10 @@ class TestCalcPerronNums(TestCase):
                                 perron_nums_reg.num_blks(apri),
                                 perron_conjs_reg.num_blks(apri)
                             )
+                            self.assertGreater(
+                                perron_polys_reg.num_blks(apri),
+                                0
+                            )
 
 
     def tearDown(self):
