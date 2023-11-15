@@ -26,6 +26,7 @@ from intpolynomials.registers import IntPolynomialRegister
 
 from .perron_numbers import Perron_Number
 from .registers import MPFRegister
+from .utilities import setdps
 
 COEF_DTYPE = np.int64
 
