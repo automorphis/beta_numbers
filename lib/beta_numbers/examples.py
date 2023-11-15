@@ -5,16 +5,22 @@ from beta_numbers.registers import MPFRegister
 from beta_numbers.beta_orbits import setdps
 from cornifer import ApriInfo, AposInfo, DataNotFoundError, Block, NumpyRegister, openregs
 
-def create_regs(dir_):
+def examples_setup(dir_):
 
     perron_polys_reg = IntPolynomialRegister(dir_, 'perron_polys_reg', 'msg', 2 ** 40)
     perron_nums_reg = MPFRegister(dir_, 'perron_nums_reg', 'msg', 2 ** 40)
     exp_coef_orbit_reg = NumpyRegister(dir_, 'exp_coef_orbit_reg', 'msg', 2 ** 40)
     exp_periodic_reg = NumpyRegister(dir_, 'exp_periodic_reg', 'msg', 2 ** 40)
+
+    with openregs(perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg):
+
+        perron_nums_reg.add_subreg(perron_polys_reg)
+        exp_periodic_reg.add_subreg(perron_polys_reg)
+        exp_coef_orbit_reg.add_subreg(perron_polys_reg)
+
     return perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg
 
-
-def populate_regs(max_dps, func, params, perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg):
+def examples_populate(max_dps, func, params, perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg):
 
     with openregs(perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg):
 

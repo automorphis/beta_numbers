@@ -11,7 +11,7 @@ from cornifer import load_shorthand, parallelize
 from dagtimers import Timers
 
 from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup
-from beta_numbers.examples import populate_regs, create_regs, boyd_psi_r, boyd_phi_r, boyd_beta_n, boyd_prop5_2
+from beta_numbers.examples import examples_populate, examples_setup, boyd_psi_r, boyd_phi_r, boyd_beta_n, boyd_prop5_2
 from beta_numbers.perron_numbers import calc_perron_nums, calc_perron_nums_setup_regs
 
 def beta(
@@ -29,7 +29,7 @@ def perron(
 ):
 
     for func, params in funcs_and_params:
-        populate_regs(
+        examples_populate(
             max_dps, func, itertools.islice(params, proc_index, None, num_procs), perron_polys_reg, perron_nums_reg,
             exp_coef_orbit_reg, exp_periodic_reg
         )
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         (boyd_beta_n, range(2, beta_n_max + 1)),
         (boyd_prop5_2, range(2, prop5_2_max + 1))
     )
-    perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg = create_regs(test_home_dir)
+    perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg = examples_setup(test_home_dir)
     parallelize(
         num_procs, perron, (
             max_dps, funcs_and_params, perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg
