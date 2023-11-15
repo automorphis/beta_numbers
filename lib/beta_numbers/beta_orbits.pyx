@@ -44,8 +44,8 @@ def calc_orbits(
     max_blk_len,
     max_orbit_len,
     max_dps,
-    slurm_array_task_max,
-    slurm_array_task_id,
+    num_procs,
+    proc_index,
     timers
 ):
     """This function is the main entry point for calculating Parry/beta numbers.
@@ -105,18 +105,6 @@ def calc_orbits(
     # and we always explictly say the poly orbit length; likewise, we always mean and explicitly say the poly pre-
     # period orbit length.
 
-    bad_coefs = [
-        -1, 1, -1, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2,
-        2, -2,
-        2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2,
-        -2,
-        2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2,
-        -2,
-        2, -2, 1, -2, 1
-    ]
-    bad_poly = IntPolynomial(len(bad_coefs) - 1)
-    bad_poly.set(bad_coefs)
-
     with timers.time("calc_orbits callee"):
 
         with timers.time("calc_orbits type, value checks"):
@@ -130,8 +118,8 @@ def calc_orbits(
             max_blk_len = check_return_int(max_blk_len, "max_blk_len")
             max_orbit_len = check_return_int(max_orbit_len, "max_orbit_len")
             max_dps = check_return_int(max_dps, "max_dps")
-            slurm_array_task_max = check_return_int(slurm_array_task_max, "slurm_array_task_max")
-            slurm_array_task_id = check_return_int(slurm_array_task_id, "slurm_array_task_id")
+            num_procs = check_return_int(num_procs, "num_procs")
+            proc_index = check_return_int(proc_index, "proc_index")
 
             if max_blk_len <= 0:
                 raise ValueError("`max_blk_len` must be positive.")
@@ -142,15 +130,15 @@ def calc_orbits(
             if max_dps <= 0:
                 raise ValueError("`max_dps` must be positive.")
 
-            if slurm_array_task_max <= 0:
-                raise ValueError("`slurm_array_task_max` must be positive.")
+            if num_procs <= 0:
+                raise ValueError("`num_procs` must be positive.")
 
-            if slurm_array_task_id <= 0:
-                raise ValueError("`slurm_array_task_id` must be positive.")
+            if proc_index < 0:
+                raise ValueError("`proc_index` must be non-negative.")
 
         # print("\t\t\tchecking which orbits are done")
 
-        if slurm_array_task_id == 1:
+        if proc_index == 0:
             _update_status_reg_apos(status_reg, timers)
 
         with timers.time_cm(
@@ -177,7 +165,7 @@ def calc_orbits(
                         enumerate(status_reg.intervals(poly_apri))
                     ):
 
-                        if blk_index % slurm_array_task_max == slurm_array_task_id - 1:
+                        if blk_index % num_procs == proc_index:
 
                             with timers.time_cm(
                                 "load status_reg in main loop",
@@ -370,15 +358,7 @@ def calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose = False):
         check_type(status_reg, "status_reg", NumpyRegister)
         check_type(verbose, "verbose", bool)
 
-        create_status_reg = not status_reg._created
-
-        if verbose and create_status_reg:
-            print("Making `status_reg` directory...")
-
         with openregs(perron_polys_reg, status_reg, readonlys = (True, False)) as (perron_polys_reg, status_reg):
-
-            if verbose and create_status_reg:
-                print("... success!")
 
             if verbose:
                 print("Populating `status_reg` (this may take some time)...")
@@ -502,18 +482,6 @@ cdef _single_orbit(
     cdef COEF_t max_abs_coef, curr_max_abs_coef, max_max_abs_coef
     cdef DPS_t PREC_INCREASE_FACTOR = 2
     cdef max_prec = int(max_dps * LOG_2_10)
-
-    bad_coefs = [
-        -1, 1, -1, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2,
-        2, -2,
-        2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2,
-        -2,
-        2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2, -2, 2,
-        -2,
-        2, -2, 1, -2, 1
-    ]
-    bad_poly = IntPolynomial(len(bad_coefs) - 1)
-    bad_poly.set(bad_coefs)
 
     with timers.time("_single_orbit callee"):
 
