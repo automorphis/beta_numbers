@@ -46,7 +46,7 @@ if __name__ == "__main__":
     prop5_2_max = int(sys.argv[7])
     max_blk_len = int(sys.argv[8])
     max_orbit_len = int(sys.argv[9])
-    timeout = int(slurm_timecode_to_timedelta(sys.argv[10]).total_seconds() * 0.9)
+    timeout = int(sys.argv[10]) * 9 // 10
     tmp_filename = Path(os.environ['TMPDIR'])
     funcs_and_params = (
         boyd_psi_r, range(1, psi_r_max + 1),
