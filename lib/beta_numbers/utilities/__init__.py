@@ -14,8 +14,10 @@
 """
 
 import random
+from contextlib import contextmanager
 from pathlib import Path
 
+import mpmath
 from mpmath import workdps, almosteq
 
 BYTES_PER_KB = 1024
@@ -68,3 +70,15 @@ def inequal_dps(x,y,max_dps = 256):
             if not almosteq(x,y):
                 return dps
     return 0
+
+@contextmanager
+def setdps(dps):
+
+    old_dps = mpmath.mp.dps
+
+    try:
+        mpmath.mp.dps = dps
+        yield
+
+    finally:
+        mpmath.mp.dps = old_dps

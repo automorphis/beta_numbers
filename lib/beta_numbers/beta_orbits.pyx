@@ -1059,16 +1059,3 @@ def setprec(prec):
     finally:
         mpmath.mp.prec = old_prec
 
-@contextmanager
-def setdps(dps):
-
-    old_dps = mpmath.mp.dps
-
-    try:
-        mpmath.mp.dps = dps
-        yield
-
-    finally:
-        mpmath.mp.dps = old_dps
-
-

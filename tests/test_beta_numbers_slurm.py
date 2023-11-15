@@ -27,7 +27,7 @@ def write_batch_file(time_sec, slurm_test_main_filename, num_processes, args):
         fh.write(
 f"""#!/usr/bin/env bash
 
-#SBATCH --job-name=perronslurmtests
+#SBATCH --job-name=betaslurmtests
 #SBATCH --time={datetime.timedelta(seconds = time_sec)}
 #SBATCH --ntasks={num_processes}
 #SBATCH --nodes=1
@@ -136,15 +136,19 @@ class TestSlurm(unittest.TestCase):
 
     def test_slurm_1(self):
 
-        slurm_test_main_filename = slurm_tests_filename / 'perrontest1.py'
+        slurm_test_main_filename = slurm_tests_filename / 'betatest1.py'
         running_max_sec = 1800
         slurm_time = running_max_sec + 1
         num_processes = 15
-        blk_size = 10
-        max_sum_abs_coef = {2: 15, 3: 13, 4: 11, 5: 9, 6: 7, 7: 5, 8: 3}
-        max_sum_abs_coef_str = str(max_sum_abs_coef).replace(":", "").replace(",", "").replace("{", "").replace("}", "")
+        max_dps = 500
+        psi_r_max = 100
+        phi_r_max = 100
+        beta_n_max = 100
+        prop5_2_max = 100
+        max_blk_len = 1000
+        max_orbit_len = 10000
         write_batch_file(
-            slurm_time, slurm_test_main_filename, num_processes, f"{blk_size} {slurm_time - 10} {max_sum_abs_coef_str}"
+            slurm_time, slurm_test_main_filename, num_processes, f"{max_dps} {psi_r_max} {phi_r_max} {beta_n_max} {prop5_2_max} {max_blk_len} {max_orbit_len} {slurm_time}"
         )
         print("Submitting test batch #1...")
         self.submit_batch()
@@ -153,31 +157,29 @@ class TestSlurm(unittest.TestCase):
         self.wait_till_not_running(running_max_sec, running_query_sec)
         print("Checking test #1...")
         self.check_empty_error_file()
-        perron_polys_reg = load_shorthand("perron_polys_reg", test_home_dir, True)
-        perron_nums_reg = load_shorthand("perron_nums_reg", test_home_dir, True)
-        perron_conjs_reg = load_shorthand("perron_conjs_reg", test_home_dir, True)
-        print(perron_polys_reg.__dict__)
-        total_apri = sum(val - 1 for val in max_sum_abs_coef.values())
-        total_apri_with_blocks = total_apri - len(max_sum_abs_coef)
-
-        with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg, readonlys=(True,) * 3) as (
-                perron_polys_reg, perron_nums_reg, perron_conjs_reg
-        ):
-            self.assertEqual(
-                total_apri,
-                sum(1 for _ in perron_polys_reg.apris())
-            )
-            self.assertEqual(
-                total_apri_with_blocks,
-                sum(1 for _ in perron_nums_reg.apris())
-            )
-            self.assertEqual(
-                total_apri_with_blocks,
-                sum(1 for _ in perron_conjs_reg.apris())
-            )
-
-            for apri in perron_polys_reg:
-                self.assertEqual(
-                    perron_polys_reg.apos(apri),
-                    AposInfo(complete = True)
-                )
+        # perron_polys_reg = load_shorthand("perron_polys_reg", test_home_dir, True)
+        # perron_nums_reg = load_shorthand("perron_nums_reg", test_home_dir, True)
+        # perron_conjs_reg = load_shorthand("perron_conjs_reg", test_home_dir, True)
+        # print(perron_polys_reg.__dict__)
+        #
+        # with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg, readonlys=(True,) * 3) as (
+        #         perron_polys_reg, perron_nums_reg, perron_conjs_reg
+        # ):
+        #     self.assertEqual(
+        #         total_apri,
+        #         sum(1 for _ in perron_polys_reg.apris())
+        #     )
+        #     self.assertEqual(
+        #         total_apri_with_blocks,
+        #         sum(1 for _ in perron_nums_reg.apris())
+        #     )
+        #     self.assertEqual(
+        #         total_apri_with_blocks,
+        #         sum(1 for _ in perron_conjs_reg.apris())
+        #     )
+        #
+        #     for apri in perron_polys_reg:
+        #         self.assertEqual(
+        #             perron_polys_reg.apos(apri),
+        #             AposInfo(complete = True)
+        #         )

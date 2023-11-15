@@ -4,115 +4,20 @@ from pathlib import Path
 from unittest import TestCase
 
 import numpy as np
+
+from beta_numbers.examples import boyd_psi_r, boyd_phi_r, boyd_beta_n, boyd_prop5_2
 from beta_numbers.perron_numbers import Perron_Number
-from beta_numbers.beta_orbits import MPFRegister, setprec, setdps
-from intpolynomials import IntPolynomial, IntPolynomialRegister, IntPolynomialArray
+from beta_numbers.beta_orbits import MPFRegister, setdps
+from intpolynomials import IntPolynomialRegister, IntPolynomialArray
 from cornifer import NumpyRegister, ApriInfo, DataNotFoundError, Block, openregs, AposInfo, load_shorthand
 from cornifer._utilities import random_unique_filename
 from cornifer.registers import _CURR_ID_KEY
-from mpmath import mp, almosteq, mpf, extradps, log, extraprec
 from dagtimers import Timers
 
-from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup, calc_orbits_resetup
+from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup
 
 NUM_BYTES_PER_TERABYTE = 2 ** 40
 
-def boyd_psi_r(r):
-
-    if r <= 0:
-        raise ValueError
-
-    return IntPolynomial(r + 1).set([-1] * (r + 1) + [1]), [1] * (r + 1) + [0], r, 1
-
-def boyd_phi_r(r):
-
-    if r <= 0:
-        raise ValueError
-
-    poly = IntPolynomial(r + 1)
-
-    if r == 1:
-        poly.set([-1, -1, 1])
-
-    else:
-        poly.set([-1, 1] + [0] * (r - 2) + [-2, 1])
-
-    return poly, [1] * r + [0] * (r - 1) + [1, 0], 2 * r - 1, 1
-
-def boyd_beta_n(n):
-
-    if n <= 1:
-        raise ValueError
-
-    xp1 = IntPolynomial(1).set([1, 1])
-    poly = IntPolynomial(n + 3)
-
-    if n == 1:
-        poly.set([-1, -1, -1, 0, 1])
-
-    elif n == 2:
-        poly.set([-1, 0, -1, 0, -1, 1])
-
-    elif n == 3:
-        poly.set([-1, 0, 0, 0, -1, -1, 1])
-
-    else:
-        poly.set([-1, 0, 0, 1] + [0] * (n - 4) + [-1, -1, -1, 1])
-
-    if n % 2 == 1:
-        poly, _ = poly.divide(xp1)
-
-    k = (n - 1) // 3
-
-    if n == 3 * k + 1:
-
-        orbit = [1, 1, 0] * k + [0, 1, 1] + [0] * (n - 1) + [1, 0]
-        m = 2 * n + 1
-
-    elif n == 3 * k + 2:
-
-        orbit = [1, 1, 0] * k + [1, 0, 1] + [0] * (n - 1) + [1, 0]
-        m = 2 * n
-
-    else:
-
-        orbit = [1, 1, 0] * (k + 1) + [0] * (n - 1) + [1, 0]
-        m = 2 * n - 1
-
-    return poly, orbit, m, 1
-
-def boyd_prop5_2(k):
-
-    if k <= 1:
-        raise ValueError
-
-    xm1 = IntPolynomial(1).set([-1, 1])
-    x2m1 = IntPolynomial(2).set([-1, 0, 1])
-    poly = np.zeros(2 * k + 2, dtype=np.longlong)
-    poly[0] = 1
-    poly[k - 1: k + 1] += np.array([1, -1])
-    poly[2 * k: 2 * k + 2] += np.array([-2, 1])
-    poly = IntPolynomial(2 * k + 1).set(poly)
-
-    if k % 2 == 0:
-        poly, _ = poly.divide(xm1)
-
-    else:
-        poly, _ = poly.divide(x2m1)
-
-    if k == 3:
-
-        orbit = [2, 0, 0, 0, 0, 1, 1, 0, 1]
-        m = 3
-        p = 5
-
-    else:
-
-        orbit = [2] + [0] * (k + 1) + [1] * (k - 1) + [0] + [1] * (k - 2) + [0, 1, 1] + [0] * (k - 2) + [1]
-        m = k
-        p = 3 * k + 1
-
-    return poly, orbit, m, p
 
 class TestBetaOrbits(TestCase):
 
