@@ -49,11 +49,10 @@ if __name__ == "__main__":
     timeout = int(sys.argv[10]) * 9 // 10
     tmp_filename = Path(os.environ['TMPDIR'])
     funcs_and_params = (
-        boyd_psi_r, range(1, psi_r_max + 1),
-        boyd_phi_r, range(1, phi_r_max + 1),
-        boyd_beta_n, range(2, beta_n_max + 1),
-        boyd_prop5_2, range(2, prop5_2_max + 1),
-
+        (boyd_psi_r, range(1, psi_r_max + 1)),
+        (boyd_phi_r, range(1, phi_r_max + 1)),
+        (boyd_beta_n, range(2, beta_n_max + 1)),
+        (boyd_prop5_2, range(2, prop5_2_max + 1))
     )
     perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg = create_regs(test_home_dir)
     parallelize(
