@@ -27,7 +27,7 @@ def write_batch_file(time_sec, slurm_test_main_filename, num_processes, args):
         fh.write(
 f"""#!/usr/bin/env bash
 
-#SBATCH --job-name=corniferslurmtests
+#SBATCH --job-name=betaslurmtests
 #SBATCH --time={datetime.timedelta(seconds = time_sec)}
 #SBATCH --ntasks={num_processes}
 #SBATCH --nodes=1
