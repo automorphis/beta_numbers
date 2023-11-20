@@ -232,7 +232,7 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
     with timers.time("calc_orbits_setup callee"):
 
         check_type(perron_polys_reg, "perron_polys_reg", IntPolynomialRegister)
-        check_Path(saves_dir, "saves_dir")
+        check_return_Path(saves_dir, "saves_dir")
         max_blk_len = check_return_int(max_blk_len, "max_blk_len")
         check_type(verbose, "verbose", bool)
 
