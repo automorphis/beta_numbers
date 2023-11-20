@@ -79,7 +79,7 @@ if __name__ == "__main__":
     poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg = calc_orbits_setup(perron_polys_reg, perron_nums_reg, test_home_dir, max_blk_len, timers)
     parallelize(
         num_procs, beta, (
-            perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg, max_blk_len, max_orbit_len, max_dps, timers
+            perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg, max_blk_len, max_orbit_len, max_dps, timers, debug_dir
         ),
         timeout, tmp_filename, 60, 60, 60
     )
