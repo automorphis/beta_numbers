@@ -14,7 +14,7 @@ from beta_numbers.registers import MPFRegister
 
 python_command = "sage -python"
 error_file = 'error.txt'
-sbatch_file = test_home_dir / 'test.sbatch'
+sbatch_file = 'test.sbatch'
 slurm_tests_filename = Path(__file__).parent / "slurm_tests"
 allocation_query_sec = 0.5
 running_query_sec = 0.5
