@@ -21,7 +21,7 @@ import numpy as np
 import math
 import mpmath
 from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, openregs, openblks
-from cornifer._utilities import check_type, check_return_int, check_Path
+from cornifer._utilities import check_type, check_return_int, check_return_Path
 from intpolynomials.registers import IntPolynomialRegister
 
 from .perron_numbers import Perron_Number
