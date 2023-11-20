@@ -17,8 +17,10 @@ from beta_numbers.perron_numbers import calc_perron_nums, calc_perron_nums_setup
 
 def beta(
     num_procs, proc_index, perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg,
-    max_blk_len, max_orbit_len, max_dps, timers
+    max_blk_len, max_orbit_len, max_dps, timers, debug_dir
 ):
+
+    set_dir(debug_dir)
     calc_orbits(
         perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg, max_blk_len,
         max_orbit_len, max_dps, num_procs, proc_index, timers

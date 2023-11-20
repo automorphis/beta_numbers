@@ -22,6 +22,7 @@ import math
 import mpmath
 from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, openregs, openblks
 from cornifer._utilities import check_type, check_return_int, check_return_Path
+from cornifer.debug import log
 from intpolynomials.registers import IntPolynomialRegister
 
 from .perron_numbers import Perron_Number
@@ -151,6 +152,8 @@ def calc_orbits(
         ) as (perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg):
 
             for poly_apri in timers.time_iter("poly_apri loop", perron_polys_reg):
+
+                log(str(poly_apri))
 
                 with timers.time("calc_obits calc complete_to_max_orbit_len"):
 
