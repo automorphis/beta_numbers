@@ -32,7 +32,7 @@ class TestBetaSlurm(TestSlurm, test_dir = Path.home() / "betanumbers_slurm_testc
 
         self.write_batch(
             test_dir / sbatch_file,
-            f'sage -python {slurm_test_main_filename} {num_processes} {max_dps} {psi_r_max} {phi_r_max} {beta_n_max} {prop5_2_max} {max_blk_len} {max_orbit_len} {slurm_time}',
+            f'sage -python {slurm_test_main_filename} {num_processes} {test_dir} {max_dps} {psi_r_max} {phi_r_max} {beta_n_max} {prop5_2_max} {max_blk_len} {max_orbit_len} {slurm_time}',
             'PerronSlurmTests', 1, num_processes, slurm_time - 10, test_dir / error_file, None, True
         )
         self.submit_batch(verbose = True)
