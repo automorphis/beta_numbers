@@ -7,9 +7,7 @@ import subprocess
 from pathlib import Path
 import time
 
-from cornifer import openregs, load_shorthand, AposInfo
-from intpolynomials import IntPolynomialRegister
-from beta_numbers.registers import MPFRegister
+from cornifer._utilities import print_debug
 
 test_home_dir = Path.home() / "betanumbers_slurm_testcases"
 python_command = "sage -python"
@@ -137,6 +135,7 @@ class TestSlurm(unittest.TestCase):
     def test_slurm_1(self):
 
         slurm_test_main_filename = slurm_tests_filename / 'betatest1.py'
+        time =
         running_max_sec = 1800
         slurm_time = running_max_sec + 1
         num_processes = 15
