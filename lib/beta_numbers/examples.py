@@ -4,6 +4,7 @@ from beta_numbers.perron_numbers import Perron_Number
 from beta_numbers.registers import MPFRegister
 from beta_numbers.beta_orbits import setdps
 from cornifer import ApriInfo, AposInfo, DataNotFoundError, Block, NumpyRegister, openregs
+from cornifer.debug import log
 
 def examples_setup(dir_):
 
@@ -26,6 +27,7 @@ def examples_populate(max_dps, func, params, perron_polys_reg, perron_nums_reg, 
 
         for param in params:
 
+            log(str(param))
             poly, orbit, m, p = func(param)
             perron = Perron_Number(poly)
             poly_seg = IntPolynomialArray(poly.deg())

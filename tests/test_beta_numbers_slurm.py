@@ -1,13 +1,7 @@
-import datetime
-import os
-import re
-import shutil
-import unittest
-import subprocess
 from pathlib import Path
-import time
 
 from testslurm import TestSlurm, SlurmStates
+from cornifer.debug import init_dir
 
 error_file = 'error.txt'
 sbatch_file = 'test.sbatch'
@@ -29,10 +23,10 @@ class TestBetaSlurm(TestSlurm, test_dir = Path.home() / "betanumbers_slurm_testc
         prop5_2_max = 100
         max_blk_len = 1000
         max_orbit_len = 10000
-
+        debug_dir = init_dir(Path.home() / 'debugs')
         self.write_batch(
             test_dir / sbatch_file,
-            f'sage -python {slurm_test_main_filename} {num_processes} {test_dir} {max_dps} {psi_r_max} {phi_r_max} {beta_n_max} {prop5_2_max} {max_blk_len} {max_orbit_len} {slurm_time}',
+            f'sage -python {slurm_test_main_filename} {num_processes} {test_dir} {max_dps} {psi_r_max} {phi_r_max} {beta_n_max} {prop5_2_max} {max_blk_len} {max_orbit_len} {slurm_time} {debug_dir}',
             'PerronSlurmTests', 1, num_processes, slurm_time - 10, test_dir / error_file, None, True
         )
         self.submit_batch(verbose = True)

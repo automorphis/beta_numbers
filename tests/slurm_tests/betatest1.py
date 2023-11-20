@@ -8,6 +8,7 @@ from pathlib import Path
 
 from cornifer._utilities.multiprocessing import slurm_timecode_to_timedelta
 from cornifer import load_shorthand, parallelize
+from cornifer.debug import set_dir
 from dagtimers import Timers
 
 from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup
@@ -25,8 +26,10 @@ def beta(
 
 def perron(
     num_procs, proc_index, max_dps, funcs_and_params, perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg,
-    exp_periodic_reg
+    exp_periodic_reg, debug_dir
 ):
+
+    set_dir(debug_dir)
 
     for func, params in funcs_and_params:
         examples_populate(
@@ -50,11 +53,12 @@ if __name__ == "__main__":
         max_blk_len = int(sys.argv[8])
         max_orbit_len = int(sys.argv[9])
         timeout = int(sys.argv[10]) * 9 // 10
+        debug_dir = Path(sys.argv[11])
 
     except BaseException as e:
         raise ValueError(sys.argv) from e
 
-
+    set_dir(debug_dir)
     tmp_filename = Path(os.environ['TMPDIR'])
     funcs_and_params = (
         (boyd_psi_r, range(1, psi_r_max + 1)),
@@ -65,7 +69,7 @@ if __name__ == "__main__":
     perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg = examples_setup(test_home_dir)
     parallelize(
         num_procs, perron, (
-            max_dps, funcs_and_params, perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg
+            max_dps, funcs_and_params, perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg, debug_dir
         ),
         timeout, tmp_filename, 60, 60, 60
     )
