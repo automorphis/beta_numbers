@@ -37,16 +37,24 @@ def perron(
 if __name__ == "__main__":
 
     start = time.time()
-    num_procs = int(sys.argv[1])
-    test_home_dir = Path(sys.argv[2])
-    max_dps = int(sys.argv[3])
-    psi_r_max = int(sys.argv[4])
-    phi_r_max = int(sys.argv[5])
-    beta_n_max = int(sys.argv[6])
-    prop5_2_max = int(sys.argv[7])
-    max_blk_len = int(sys.argv[8])
-    max_orbit_len = int(sys.argv[9])
-    timeout = int(sys.argv[10]) * 9 // 10
+
+    try:
+
+        num_procs = int(sys.argv[1])
+        test_home_dir = Path(sys.argv[2])
+        max_dps = int(sys.argv[3])
+        psi_r_max = int(sys.argv[4])
+        phi_r_max = int(sys.argv[5])
+        beta_n_max = int(sys.argv[6])
+        prop5_2_max = int(sys.argv[7])
+        max_blk_len = int(sys.argv[8])
+        max_orbit_len = int(sys.argv[9])
+        timeout = int(sys.argv[10]) * 9 // 10
+
+    except BaseException as e:
+        raise ValueError(sys.argv) from e
+
+
     tmp_filename = Path(os.environ['TMPDIR'])
     funcs_and_params = (
         (boyd_psi_r, range(1, psi_r_max + 1)),
