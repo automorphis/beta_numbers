@@ -10,8 +10,8 @@
 #SBATCH --mail-type=ALL
 
 DOSETUP=True
-SAVEDIR=~/perronnums
-MAINFILE=~/beta_numbers/scripts/calc_perron_nums.py
+SAVEDIR=/fs/project/thompson.2455/lane.662/perronnums
+MAINFILE=/home/lane.662/beta_numbers/scripts/calc_perron_nums.py
 BLKSIZE=10000
 TIMEOUT=$(squeue -j $SLURM_JOB_ID -h --Format TimeLimit)
 UPDATEPERIOD=900
