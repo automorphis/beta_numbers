@@ -17,6 +17,7 @@ import math
 
 from dagtimers import Timers
 from cornifer import Block, openregs, ApriInfo, DataNotFoundError, openblks, AposInfo
+from cornifer.debug import log
 from mpmath import almosteq, mp
 from intpolynomials import IntPolynomial, IntPolynomialRegister, IntPolynomialArray, IntPolynomialIter
 
@@ -233,6 +234,7 @@ def calc_perron_nums(
     max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_procs,
     proc_index, timers
 ):
+
     with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg) as (
         perron_polys_reg, perron_nums_reg, perron_conjs_reg
     ):
@@ -241,7 +243,7 @@ def calc_perron_nums(
 
             for s in range(2 + proc_index, max_sum_abs_coef[d] + 1, num_procs):
 
-                logging.info(f"deg = {d}, sum_abs_coef = {s}")
+                log(f"deg = {d}, sum_abs_coef = {s}")
                 apri = ApriInfo(deg = d, sum_abs_coef = s)
 
                 try:
@@ -274,11 +276,11 @@ def calc_perron_nums(
                         with timers.time("dump"):
 
                             len_ = len(polys_seg)
-                            logging.info(
+                            log(
                                 f"dumping {len_} numbers, ({100 * len_ / total_irreducible : .1f}% among irreducible, "
                                 f"{100 * len_ / total_poly : .1f}% among all)"
                             )
-                            logging.info("...polys...")
+                            log("...polys...")
                             polys_done = nums_done = conjs_done = False
                             length = len(polys_blk)
 
@@ -295,7 +297,7 @@ def calc_perron_nums(
                                     raise KeyboardInterrupt
 
                                 polys_seg.clear()
-                                logging.info("...nums...")
+                                log("...nums...")
                                 with timers.time("nums"):
                                     perron_nums_reg.append_disk_blk(nums_blk)
                                 nums_done = True
@@ -306,7 +308,7 @@ def calc_perron_nums(
                                     raise KeyboardInterrupt
 
                                 nums_seg.clear()
-                                logging.info("...conjs...")
+                                log("...conjs...")
                                 with timers.time("conjs"):
                                     perron_conjs_reg.append_disk_blk(conjs_blk)
                                 conjs_done = True
@@ -317,7 +319,7 @@ def calc_perron_nums(
                                     raise KeyboardInterrupt
 
                                 conjs_seg.clear()
-                                logging.info("...done.")
+                                log("...done.")
                                 perron_polys_reg.set_apos(apri, AposInfo(
                                     complete = False, last_poly = tuple(poly.get_ndarray().astype(int))
                                 ), exists_ok = True)
@@ -353,7 +355,7 @@ def calc_perron_nums(
                                 logging.error("...conjs successfully deleted...")
                                 raise
 
-                        logging.info(timers.pretty_print())
+                        log(timers.pretty_print())
 
                     with timers.time("IntPolynomialIter"):
 
