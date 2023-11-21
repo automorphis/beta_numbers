@@ -5,7 +5,7 @@
 #SBATCH --ntasks=24
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=1
-#SBATCH --error=~/perronnumserror.txt
+#SBATCH --error=/home/lane.662/perronnumserror.txt
 #SBATCH --mail-user=lane.662@osu.edu
 #SBATCH --mail-type=ALL
 
