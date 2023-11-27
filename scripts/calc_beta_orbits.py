@@ -4,7 +4,7 @@ from pathlib import Path
 
 from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup
 from cornifer import parallelize, load_shorthand
-from cornifer._utilities.multiprocesing import slurm_timecode_to_timedelta
+from cornifer._utilities.multiprocessing import slurm_timecode_to_timedelta
 from dagtimers import Timers
 
 def f(
