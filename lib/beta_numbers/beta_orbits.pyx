@@ -262,46 +262,47 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
         poly_orbit_reg = IntPolynomialRegister(
             saves_dir,
             "poly_orbit_reg",
-            "Polynomial orbits of Perron numbers under the beta transformation. The 0-index term is the coefficient of "
-            "the 0-degree term, etc. The apri have two keys, first \"resp\" an `ApriInfo`, which are apri of the "
-            "subreg \"perron_polys_reg\", second \"index\" a non-negative `int`. Each orbit gets its own apri and the "
-            "respective minimal polynomial is given by `perron_polys_reg[resp, index]`.",
+"""Polynomial orbits of Perron numbers under the beta transformation. The 0-index term is the coefficient of
+the 0-degree term, etc. The apri have two keys, first 'resp' an `ApriInfo`, which are apri of the
+subreg 'perron_polys_reg', second 'index' a non-negative `int`. Each orbit gets its own apri and the
+respective minimal polynomial is given by `perron_polys_reg[resp, index]`.""",
             NUM_BYTES_PER_TERABYTE
         )
         coef_orbit_reg = NumpyRegister(
             saves_dir,
             "coef_orbit_reg",
-            "Coefficient orbits of Perron numbers under the beta transformation. The apri are the same as "
-            "\"poly_orbit_reg\". See `str(poly_orbit_reg)` for more information on the apri.",
+"""Coefficient orbits of Perron numbers under the beta transformation. The apri are the same as
+'poly_orbit_reg'. See `str(poly_orbit_reg)` for more information on the apri.""",
             NUM_BYTES_PER_TERABYTE
         )
         periodic_reg = NumpyRegister(
             saves_dir,
             "periodic_reg",
-            "Contains periodic length data for `poly_orbit_reg` and `coef_orbit_reg`. The apri are the same as the "
-            "subreg `perron_polys_reg`. The blocks encode the following information:\n"
-            "   0. The pre-period length of the poly orbit (always one less than that of the coef orbit).\n"
-            "   1. The period length (always the same as that of the coef orbit).\n"
-            "Assuming that those data have been determined. (If not, then each is listed as -1.)",
+"""Contains periodic length data for `poly_orbit_reg` and `coef_orbit_reg`. The apri are the same as the
+subreg `perron_polys_reg`. The blocks encode the following information:
+   0. The pre-period length of the poly orbit (always one less than that of the coef orbit).
+   1. The period length (always the same as that of the coef orbit).
+Assuming that those data have been determined. (If not, then each is listed as -1.)""",
             NUM_BYTES_PER_TERABYTE
         )
         status_reg = NumpyRegister(
             saves_dir,
             "status_reg",
-            "Contains computation status for `poly_orbit_reg` and `coef_orbit_reg`. The apris are the same as "
-            "`perron_polys_reg`. The blocks encode the following information:"
-            "   0. The so-far-calculated poly orbit length of the respective perron poly (initialized to 0)."
-            "   1. Whether or not the orbit encountered an unrecoverable precision error. This value is the poly "
-            "      orbit index of where the error occured, or -1 if no such error occurred. For the maximum "
-            "      precision used, please see the 'dps' attribute of the corresponding apri of `perron_nums_reg`."
-            "   2. Whether or not a coefficient of one of iterates of the polynomial exceeded an upper bound. This\n"
-            "      value is the poly orbit index of where the overflow occurred, or -1 if no such overflow occurred."
-            "If an orbit is periodic, then the 0-th entry (the poly orbit length) is listed as -1. (For the actual "
-            "poly pre-period and period lengths, see `periodic_reg`.) Each apri of `status_reg` has an apos with one "
-            "attribute, \"min_len\" a non-negative `int`, the minimum calculated poly orbit length among all orbits "
-            "of polynomials corresponding to the apri; therefore, at the beginning of the calculation, this value "
-            "should be 0 for all apri. \"min_len\" is merely a convenience, as its value can be inferred from the "
-            "block data. If all orbits for the apri are periodic, then \"min_len\" is -1.",
+"""Contains computation status for `poly_orbit_reg` and `coef_orbit_reg`. The apris are the same as 
+`perron_polys_reg`. The blocks encode the following information:
+   0. The so-far-calculated poly orbit length of the respective perron poly (initialized to 0).
+   1. Whether or not the orbit encountered an unrecoverable precision error. This value is the poly 
+      orbit index of where the error occured, or -1 if no such error occurred. For the maximum
+      precision used, please see the 'dps' attribute of the corresponding apri of `perron_nums_reg`.
+   2. Whether or not a coefficient of one of iterates of the polynomial exceeded an upper bound. This
+      value is the poly orbit index of where the overflow occurred, or -1 if no such overflow occurred.
+If an orbit is periodic, then the 0-th entry (the poly orbit length) is listed as -1. (For the actual
+poly pre-period and period lengths, see `periodic_reg`.) Each apri of `status_reg` has an apos with one
+attribute, 'min_len' a non-negative `int`, the minimum calculated poly orbit length among all orbits
+of polynomials corresponding to the apri; therefore, at the beginning of the calculation, this value
+should be 0 for all apri EXCEPT for those apri that do not have any associated blks in `poly_orbit_reg`. 
+'min_len' is merely a convenience, as its value can be inferred from the block data. If all orbits for 
+the apri are periodic OR there are no associated blks in `poly_orbit_reg`, then 'min_len' is -1.""",
             NUM_BYTES_PER_TERABYTE
         )
         calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose)
@@ -403,7 +404,7 @@ def calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose = False):
         if verbose:
             print("... success!")
 
-def _update_status_reg_apos(status_reg, timers):
+def _update_status_reg_apos(poly_orbit_reg, status_reg, timers):
 
     with timers.time("_update_status_reg_apos callee"):
 
@@ -414,9 +415,9 @@ def _update_status_reg_apos(status_reg, timers):
         # itself. (We do not update concurrently because both registers are opened in readonly mode.)
         with timers.time("searching for apos_updates"):
 
-            with status_reg.open(readonly = True) as status_reg:
+            with openregs(poly_orbit_reg, status_reg, readonlys = (True, True)):
 
-                for j, apri in enumerate(status_reg):
+                for j, apri in enumerate(poly_orbit_reg):
 
                     try:
                         apos_min_len = status_reg.apos(apri)
@@ -442,7 +443,7 @@ def _update_status_reg_apos(status_reg, timers):
                                 min_orbit_len_this_apri = min(min_orbit_len_this_apri, min_orbit_len_this_blk)
 
                     if min_orbit_len_this_apri is None:
-                        # Only possible if all orbit lengths are listed as -1.
+                        # Only possible if all orbit lengths are listed as -1 OR if `poly_orbit_reg.total_len(apri) == 0`
                         apos_updates[apri] = (True, AposInfo(min_len = -1))
 
                     elif apos_min_len is None or min_orbit_len_this_apri != apos_min_len:
