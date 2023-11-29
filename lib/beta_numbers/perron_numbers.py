@@ -246,10 +246,11 @@ def calc_perron_nums(
                 for s in range(2 + proc_index, max_sum_abs_coef[d] + 1, num_procs):
 
                     log(f"deg = {d}, sum_abs_coef = {s}, dps = {dps}")
-                    apri = ApriInfo(deg = d, sum_abs_coef = s, dps = dps)
+                    poly_apri = ApriInfo(deg = d, sum_abs_coef = s)
+                    num_conj_apri = ApriInfo(deg = d, sum_abs_coef = s, dps = dps)
 
                     try:
-                        restart_apos = perron_polys_reg.apos(apri)
+                        restart_apos = perron_polys_reg.apos(poly_apri)
 
                     except DataNotFoundError:
                         last_poly = None
@@ -269,7 +270,7 @@ def calc_perron_nums(
                     total_poly = 0
                     total_irreducible = 0
 
-                    with openblks(Block(polys_seg, apri), Block(nums_seg, apri), Block(conjs_seg, apri)) as (
+                    with openblks(Block(polys_seg, poly_apri), Block(nums_seg, num_conj_apri), Block(conjs_seg, num_conj_apri)) as (
                         polys_blk, nums_blk, conjs_blk
                     ):
 
@@ -293,9 +294,9 @@ def calc_perron_nums(
                                     length = len(polys_blk)
                                     polys_done = True
                                     with timers.time("compress polys"):
-                                        perron_polys_reg.compress(apri, startn, length, 9)
+                                        perron_polys_reg.compress(poly_apri, startn, length, 9)
 
-                                    if _debug == 1 or (_debug == 4 and perron_polys_reg.num_blks(apri) > 0):
+                                    if _debug == 1 or (_debug == 4 and perron_polys_reg.num_blks(poly_apri) > 0):
                                         raise KeyboardInterrupt
 
                                     polys_seg.clear()
@@ -304,9 +305,9 @@ def calc_perron_nums(
                                         perron_nums_reg.append_disk_blk(nums_blk)
                                     nums_done = True
                                     with timers.time("compress nums"):
-                                        perron_nums_reg.compress(apri, startn, length, 9)
+                                        perron_nums_reg.compress(num_conj_apri, startn, length, 9)
 
-                                    if _debug == 2 or (_debug == 5 and perron_nums_reg.num_blks(apri) > 0):
+                                    if _debug == 2 or (_debug == 5 and perron_nums_reg.num_blks(num_conj_apri) > 0):
                                         raise KeyboardInterrupt
 
                                     nums_seg.clear()
@@ -315,14 +316,14 @@ def calc_perron_nums(
                                         perron_conjs_reg.append_disk_blk(conjs_blk)
                                     conjs_done = True
                                     with timers.time("compress conjs"):
-                                        perron_conjs_reg.compress(apri, startn, length, 9)
+                                        perron_conjs_reg.compress(num_conj_apri, startn, length, 9)
 
-                                    if _debug == 3 or (_debug == 6 and perron_conjs_reg.num_blks(apri) > 0):
+                                    if _debug == 3 or (_debug == 6 and perron_conjs_reg.num_blks(num_conj_apri) > 0):
                                         raise KeyboardInterrupt
 
                                     conjs_seg.clear()
                                     log("...done.")
-                                    perron_polys_reg.set_apos(apri, AposInfo(
+                                    perron_polys_reg.set_apos(poly_apri, AposInfo(
                                         complete = False, last_poly = tuple(poly.get_ndarray().astype(int))
                                     ), exists_ok = True)
 
@@ -331,28 +332,28 @@ def calc_perron_nums(
 
                                     if polys_done:
 
-                                        perron_polys_reg.rmv_disk_blk(apri, startn, length)
+                                        perron_polys_reg.rmv_disk_blk(poly_apri, startn, length)
 
-                                        if perron_polys_reg.num_blks(apri) == 0:
-                                            perron_polys_reg.rmv_apri(apri, force = True)
+                                        if perron_polys_reg.num_blks(poly_apri) == 0:
+                                            perron_polys_reg.rmv_apri(poly_apri, force = True)
 
                                     logging.error("...polys successfully deleted...")
 
                                     if nums_done:
 
-                                        perron_nums_reg.rmv_disk_blk(apri, startn, length)
+                                        perron_nums_reg.rmv_disk_blk(num_conj_apri, startn, length)
 
-                                        if perron_nums_reg.num_blks(apri) == 0:
-                                            perron_nums_reg.rmv_apri(apri, force = True)
+                                        if perron_nums_reg.num_blks(num_conj_apri) == 0:
+                                            perron_nums_reg.rmv_apri(num_conj_apri, force = True)
 
                                     logging.error("...nums successfully deleted...")
 
                                     if conjs_done:
 
-                                        perron_conjs_reg.rmv_disk_blk(apri, startn, length)
+                                        perron_conjs_reg.rmv_disk_blk(num_conj_apri, startn, length)
 
-                                        if perron_conjs_reg.num_blks(apri) == 0:
-                                            perron_conjs_reg.rmv_apri(apri, force = True)
+                                        if perron_conjs_reg.num_blks(num_conj_apri) == 0:
+                                            perron_conjs_reg.rmv_apri(num_conj_apri, force = True)
 
                                     logging.error("...conjs successfully deleted...")
                                     raise
@@ -395,5 +396,5 @@ def calc_perron_nums(
                         if len(polys_seg) > 0:
                             dump()
 
-                        perron_polys_reg.set_apos(apri, AposInfo(complete = True), exists_ok = True)
+                        perron_polys_reg.set_apos(poly_apri, AposInfo(complete = True), exists_ok = True)
 
