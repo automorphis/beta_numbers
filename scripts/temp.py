@@ -15,6 +15,14 @@ with openregs(perron_polys_reg, perron_nums_reg):
         if apri not in apri_exceptions:
             assert list(perron_nums_reg.intervals(apri)) == list(perron_polys_reg.intervals(apri))
 
+        for startn, length in perron_polys_reg.intervals(apri):
+
+            try:
+                assert perron_polys_reg.is_compressed(apri, startn, length)
+
+            except AssertionError:
+                print(apri, startn, length)
+
 
     for apri in perron_nums_reg:
         assert apri in perron_polys_reg
