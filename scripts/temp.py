@@ -11,6 +11,8 @@ with openregs(perron_polys_reg, perron_nums_reg, readonlys = (True, True)):
 
     for apri in perron_polys_reg:
 
+        assert not hasattr(apri, 'dps')
+
         try:
             assert ApriInfo(deg = apri.deg, sum_abs_coef = apri.sum_abs_coef, dps = dps) in perron_nums_reg or apri in apri_exceptions
 
