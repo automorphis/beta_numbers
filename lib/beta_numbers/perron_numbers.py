@@ -21,7 +21,8 @@ from cornifer.debug import log
 from mpmath import almosteq, mp
 from intpolynomials import IntPolynomial, IntPolynomialRegister, IntPolynomialArray, IntPolynomialIter
 
-from beta_numbers.registers import MPFRegister
+from .registers import MPFRegister
+from .utilities import setdps
 
 NUM_BYTES_PER_TERABYTE = 2 ** 40
 _debug = 0
@@ -229,169 +230,170 @@ def calc_perron_nums_setup_regs(saves_dir):
 
     return perron_polys_reg, perron_nums_reg, perron_conjs_reg
 
-
 def calc_perron_nums(
-    max_sum_abs_coef, blk_size, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_procs,
+    max_sum_abs_coef, blk_size, dps, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_procs,
     proc_index, timers
 ):
 
-    with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg) as (
-        perron_polys_reg, perron_nums_reg, perron_conjs_reg
-    ):
+    with setdps(dps):
 
-        for d in max_sum_abs_coef.keys():
+        with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg) as (
+            perron_polys_reg, perron_nums_reg, perron_conjs_reg
+        ):
 
-            for s in range(2 + proc_index, max_sum_abs_coef[d] + 1, num_procs):
+            for d in max_sum_abs_coef.keys():
 
-                log(f"deg = {d}, sum_abs_coef = {s}")
-                apri = ApriInfo(deg = d, sum_abs_coef = s)
+                for s in range(2 + proc_index, max_sum_abs_coef[d] + 1, num_procs):
 
-                try:
-                    restart_apos = perron_polys_reg.apos(apri)
+                    log(f"deg = {d}, sum_abs_coef = {s}, dps = {dps}")
+                    apri = ApriInfo(deg = d, sum_abs_coef = s, dps = dps)
 
-                except DataNotFoundError:
-                    last_poly = None
+                    try:
+                        restart_apos = perron_polys_reg.apos(apri)
 
-                else:
-
-                    if not restart_apos.complete:
-                        last_poly = IntPolynomial(d).set(restart_apos.last_poly)
+                    except DataNotFoundError:
+                        last_poly = None
 
                     else:
-                        continue
 
-                polys_seg = IntPolynomialArray(d)
-                polys_seg.empty(blk_size)
-                nums_seg = []
-                conjs_seg = []
-                total_poly = 0
-                total_irreducible = 0
+                        if not restart_apos.complete:
+                            last_poly = IntPolynomial(d).set(restart_apos.last_poly)
 
-                with openblks(Block(polys_seg, apri), Block(nums_seg, apri), Block(conjs_seg, apri)) as (
-                    polys_blk, nums_blk, conjs_blk
-                ):
+                        else:
+                            continue
 
-                    def dump():
+                    polys_seg = IntPolynomialArray(d)
+                    polys_seg.empty(blk_size)
+                    nums_seg = []
+                    conjs_seg = []
+                    total_poly = 0
+                    total_irreducible = 0
 
-                        with timers.time("dump"):
+                    with openblks(Block(polys_seg, apri), Block(nums_seg, apri), Block(conjs_seg, apri)) as (
+                        polys_blk, nums_blk, conjs_blk
+                    ):
 
-                            len_ = len(polys_seg)
-                            log(
-                                f"dumping {len_} numbers, ({100 * len_ / total_irreducible : .1f}% among irreducible, "
-                                f"{100 * len_ / total_poly : .1f}% among all)"
-                            )
-                            log("...polys...")
-                            polys_done = nums_done = conjs_done = False
-                            length = len(polys_blk)
+                        def dump():
 
-                            try:
+                            with timers.time("dump"):
 
-                                with timers.time("polys"):
-                                    startn = perron_polys_reg.append_disk_blk(polys_blk)
+                                len_ = len(polys_seg)
+                                log(
+                                    f"dumping {len_} numbers, ({100 * len_ / total_irreducible : .1f}% among irreducible, "
+                                    f"{100 * len_ / total_poly : .1f}% among all)"
+                                )
+                                log("...polys...")
+                                polys_done = nums_done = conjs_done = False
                                 length = len(polys_blk)
-                                polys_done = True
-                                with timers.time("compress polys"):
-                                    perron_polys_reg.compress(apri, startn, length, 9)
-
-                                if _debug == 1 or (_debug == 4 and perron_polys_reg.num_blks(apri) > 0):
-                                    raise KeyboardInterrupt
-
-                                polys_seg.clear()
-                                log("...nums...")
-                                with timers.time("nums"):
-                                    perron_nums_reg.append_disk_blk(nums_blk)
-                                nums_done = True
-                                with timers.time("compress nums"):
-                                    perron_nums_reg.compress(apri, startn, length, 9)
-
-                                if _debug == 2 or (_debug == 5 and perron_nums_reg.num_blks(apri) > 0):
-                                    raise KeyboardInterrupt
-
-                                nums_seg.clear()
-                                log("...conjs...")
-                                with timers.time("conjs"):
-                                    perron_conjs_reg.append_disk_blk(conjs_blk)
-                                conjs_done = True
-                                with timers.time("compress conjs"):
-                                    perron_conjs_reg.compress(apri, startn, length, 9)
-
-                                if _debug == 3 or (_debug == 6 and perron_conjs_reg.num_blks(apri) > 0):
-                                    raise KeyboardInterrupt
-
-                                conjs_seg.clear()
-                                log("...done.")
-                                perron_polys_reg.set_apos(apri, AposInfo(
-                                    complete = False, last_poly = tuple(poly.get_ndarray().astype(int))
-                                ), exists_ok = True)
-
-
-                            except BaseException:
-
-                                if polys_done:
-
-                                    perron_polys_reg.rmv_disk_blk(apri, startn, length)
-
-                                    if perron_polys_reg.num_blks(apri) == 0:
-                                        perron_polys_reg.rmv_apri(apri, force = True)
-
-                                logging.error("...polys successfully deleted...")
-
-                                if nums_done:
-
-                                    perron_nums_reg.rmv_disk_blk(apri, startn, length)
-
-                                    if perron_nums_reg.num_blks(apri) == 0:
-                                        perron_nums_reg.rmv_apri(apri, force = True)
-
-                                logging.error("...nums successfully deleted...")
-
-                                if conjs_done:
-
-                                    perron_conjs_reg.rmv_disk_blk(apri, startn, length)
-
-                                    if perron_conjs_reg.num_blks(apri) == 0:
-                                        perron_conjs_reg.rmv_apri(apri, force = True)
-
-                                logging.error("...conjs successfully deleted...")
-                                raise
-
-                        log(timers.pretty_print())
-
-                    with timers.time("IntPolynomialIter"):
-
-                        for poly in IntPolynomialIter(d, s, True, last_poly):
-
-                            total_poly += 1
-
-                            with timers.time("is_irreducible"):
-                                is_irreducible = poly.is_irreducible()
-
-                            if is_irreducible:
-
-                                total_irreducible += 1
-                                perron = Perron_Number(poly)
 
                                 try:
 
-                                    with timers.time("roots"):
-                                        perron.calc_roots()
+                                    with timers.time("polys"):
+                                        startn = perron_polys_reg.append_disk_blk(polys_blk)
+                                    length = len(polys_blk)
+                                    polys_done = True
+                                    with timers.time("compress polys"):
+                                        perron_polys_reg.compress(apri, startn, length, 9)
 
-                                except Not_Perron_Error:
-                                    pass
+                                    if _debug == 1 or (_debug == 4 and perron_polys_reg.num_blks(apri) > 0):
+                                        raise KeyboardInterrupt
 
-                                else:
+                                    polys_seg.clear()
+                                    log("...nums...")
+                                    with timers.time("nums"):
+                                        perron_nums_reg.append_disk_blk(nums_blk)
+                                    nums_done = True
+                                    with timers.time("compress nums"):
+                                        perron_nums_reg.compress(apri, startn, length, 9)
 
-                                    polys_seg.append(poly)
-                                    nums_seg.append(perron.beta0)
-                                    conjs_seg.append(perron.conjs_mods_mults[1:])
+                                    if _debug == 2 or (_debug == 5 and perron_nums_reg.num_blks(apri) > 0):
+                                        raise KeyboardInterrupt
 
-                                    if len(polys_seg) >= blk_size:
+                                    nums_seg.clear()
+                                    log("...conjs...")
+                                    with timers.time("conjs"):
+                                        perron_conjs_reg.append_disk_blk(conjs_blk)
+                                    conjs_done = True
+                                    with timers.time("compress conjs"):
+                                        perron_conjs_reg.compress(apri, startn, length, 9)
 
-                                        dump()
-                                        total_poly = total_irreducible = 0
+                                    if _debug == 3 or (_debug == 6 and perron_conjs_reg.num_blks(apri) > 0):
+                                        raise KeyboardInterrupt
 
-                    if len(polys_seg) > 0:
-                        dump()
+                                    conjs_seg.clear()
+                                    log("...done.")
+                                    perron_polys_reg.set_apos(apri, AposInfo(
+                                        complete = False, last_poly = tuple(poly.get_ndarray().astype(int))
+                                    ), exists_ok = True)
 
-                    perron_polys_reg.set_apos(apri, AposInfo(complete = True), exists_ok = True)
+
+                                except BaseException:
+
+                                    if polys_done:
+
+                                        perron_polys_reg.rmv_disk_blk(apri, startn, length)
+
+                                        if perron_polys_reg.num_blks(apri) == 0:
+                                            perron_polys_reg.rmv_apri(apri, force = True)
+
+                                    logging.error("...polys successfully deleted...")
+
+                                    if nums_done:
+
+                                        perron_nums_reg.rmv_disk_blk(apri, startn, length)
+
+                                        if perron_nums_reg.num_blks(apri) == 0:
+                                            perron_nums_reg.rmv_apri(apri, force = True)
+
+                                    logging.error("...nums successfully deleted...")
+
+                                    if conjs_done:
+
+                                        perron_conjs_reg.rmv_disk_blk(apri, startn, length)
+
+                                        if perron_conjs_reg.num_blks(apri) == 0:
+                                            perron_conjs_reg.rmv_apri(apri, force = True)
+
+                                    logging.error("...conjs successfully deleted...")
+                                    raise
+
+                            log(timers.pretty_print())
+
+                        with timers.time("IntPolynomialIter"):
+
+                            for poly in IntPolynomialIter(d, s, True, last_poly):
+
+                                total_poly += 1
+
+                                with timers.time("is_irreducible"):
+                                    is_irreducible = poly.is_irreducible()
+
+                                if is_irreducible:
+
+                                    total_irreducible += 1
+                                    perron = Perron_Number(poly)
+
+                                    try:
+
+                                        with timers.time("roots"):
+                                            perron.calc_roots()
+
+                                    except Not_Perron_Error:
+                                        pass
+
+                                    else:
+
+                                        polys_seg.append(poly)
+                                        nums_seg.append(perron.beta0)
+                                        conjs_seg.append(perron.conjs_mods_mults[1:])
+
+                                        if len(polys_seg) >= blk_size:
+
+                                            dump()
+                                            total_poly = total_irreducible = 0
+
+                        if len(polys_seg) > 0:
+                            dump()
+
+                        perron_polys_reg.set_apos(apri, AposInfo(complete = True), exists_ok = True)
 
