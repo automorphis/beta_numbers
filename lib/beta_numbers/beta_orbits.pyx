@@ -189,6 +189,9 @@ def calc_orbits(
 
                                     with setdps(max_dps):
 
+                                        perron_polys_reg.decompress(poly_apri, startn, length)
+                                        perron_nums_reg.decompress(poly_apri, startn, length)
+
                                         with timers.time_cm(
                                             "opening perron_poly_blk, perron_num_blk",
                                             openblks(
@@ -220,6 +223,9 @@ def calc_orbits(
                                                     max_dps,
                                                     timers
                                                 )
+
+                                        perron_polys_reg.compress(poly_apri, startn, length)
+                                        perron_nums_reg.compress(poly_apri, startn, length)
 
 def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len, timers, verbose = False):
     """Setup and return the `Register`s `poly_orbit_reg`, `coef_orbit_reg`, `periodic_reg`, and `status_reg`.
