@@ -17,17 +17,8 @@ with openregs(perron_polys_reg, perron_nums_reg):
 
         for startn, length in perron_polys_reg.intervals(apri):
 
-            try:
-                assert perron_polys_reg.is_compressed(apri, startn, length)
-
-            except AssertionError:
-                perron_polys_reg.compress(apri, startn, length)
-
-            try:
-                assert perron_nums_reg.is_compressed(apri, startn, length)
-
-            except AssertionError:
-                perron_nums_reg.compress(apri, startn, length)
+            assert perron_polys_reg.is_compressed(apri, startn, length)
+            assert perron_nums_reg.is_compressed(apri, startn, length)
 
     for apri in perron_nums_reg:
         assert apri in perron_polys_reg
