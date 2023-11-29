@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #SBATCH --job-name=CalcPerronNums
-#SBATCH --time=24:00:00
+#SBATCH --time=2:00:00
 #SBATCH --ntasks=24
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=1
