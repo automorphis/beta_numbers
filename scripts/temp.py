@@ -21,13 +21,13 @@ with openregs(perron_polys_reg, perron_nums_reg):
                 assert perron_polys_reg.is_compressed(apri, startn, length)
 
             except AssertionError:
-                print(apri, startn, length)
+                perron_polys_reg.compress(apri, startn, length)
 
             try:
                 assert perron_nums_reg.is_compressed(apri, startn, length)
 
             except AssertionError:
-                print(apri, startn, length)
+                perron_nums_reg.compress(apri, startn, length)
 
     for apri in perron_nums_reg:
         assert apri in perron_polys_reg
