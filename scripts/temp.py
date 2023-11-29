@@ -8,7 +8,17 @@ perron_nums_reg = load_shorthand('perron_nums_reg', '/fs/project/thompson.2455/l
 with openregs(perron_polys_reg, perron_nums_reg):
 
     for apri in perron_polys_reg:
-        assert apri in perron_nums_reg
+
+        try:
+            assert apri in perron_nums_reg
+
+        except AssertionError:
+            print(apri)
 
     for apri in perron_nums_reg:
-        assert apri in perron_polys_reg
+
+        try:
+            assert apri in perron_polys_reg
+
+        except AssertionError:
+            assert apri in perron_nums_reg
