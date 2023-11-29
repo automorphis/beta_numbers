@@ -147,7 +147,7 @@ def calc_orbits(
             "calc_orbits openregs cm",
             openregs(
                 perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg,
-                readonlys = (True, True, False, False, False, False)
+                readonlys = (False, False, False, False, False, False)
             )
         ) as (perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg):
 
