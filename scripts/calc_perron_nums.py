@@ -35,7 +35,7 @@ if __name__ == "__main__":
     max_sum_abs_coef = {}
     debug_dir = init_dir('/fs/project/thompson.2455/lane.662/debugs')
 
-    for d, s in zip(sys.argv[9::2], sys.argv[10::2]):
+    for d, s in zip(sys.argv[10::2], sys.argv[11::2]):
 
         d = int(d)
         s = int(s)
