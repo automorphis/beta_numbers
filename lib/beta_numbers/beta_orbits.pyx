@@ -141,7 +141,7 @@ def calc_orbits(
         # print("\t\t\tchecking which orbits are done")
 
         if proc_index == 0:
-            _update_status_reg_apos(status_reg, timers)
+            _update_status_reg_apos(perron_polys_reg, status_reg, timers)
 
         with timers.time_cm(
             "calc_orbits openregs cm",
@@ -399,12 +399,12 @@ def calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose = False):
                     with Block(seg, apri, startn) as blk:
                         status_reg.add_disk_blk(blk, dups_ok = False)
 
-        _update_status_reg_apos(status_reg, timers)
+        _update_status_reg_apos(perron_polys_reg, status_reg, timers)
 
         if verbose:
             print("... success!")
 
-def _update_status_reg_apos(poly_orbit_reg, status_reg, timers):
+def _update_status_reg_apos(perron_polys_reg, status_reg, timers):
 
     with timers.time("_update_status_reg_apos callee"):
 
@@ -415,9 +415,9 @@ def _update_status_reg_apos(poly_orbit_reg, status_reg, timers):
         # itself. (We do not update concurrently because both registers are opened in readonly mode.)
         with timers.time("searching for apos_updates"):
 
-            with openregs(poly_orbit_reg, status_reg, readonlys = (True, True)):
+            with openregs(perron_polys_reg, status_reg, readonlys = (True, True)):
 
-                for j, apri in enumerate(poly_orbit_reg):
+                for j, apri in enumerate(perron_polys_reg):
 
                     try:
                         apos_min_len = status_reg.apos(apri)
