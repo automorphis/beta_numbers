@@ -138,7 +138,7 @@ def calc_orbits(
             if proc_index < 0:
                 raise ValueError("`proc_index` must be non-negative.")
 
-        # print("\t\t\tchecking which orbits are done")
+        # log("\t\t\tchecking which orbits are done")
 
         if proc_index == 0:
             _update_status_reg_apos(perron_polys_reg, status_reg, timers)
@@ -162,7 +162,7 @@ def calc_orbits(
                     log(str(status_reg.apos(poly_apri)))
                     complete_to_max_orbit_len = min_len >= max_orbit_len if min_len != -1 else True
                     log(str(complete_to_max_orbit_len))
-                    # print(f"\t\t\t\tperron_apri = {perron_apri}")
+                    # log(f"\t\t\t\tperron_apri = {perron_apri}")
 
                 if not complete_to_max_orbit_len:
 
@@ -280,8 +280,8 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
                     total_apri += 1
                     total_polys += perron_polys_reg.total_len(apri)
 
-                print(f"Number of apri:  {total_apri}")
-                print(f"Number of polys: {total_polys}")
+                log(f"Number of apri:  {total_apri}")
+                log(f"Number of polys: {total_polys}")
 
         poly_orbit_reg = IntPolynomialRegister(
             saves_dir,
@@ -332,13 +332,13 @@ the apri are periodic OR there are no associated blks in `poly_orbit_reg`, then 
         calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose)
 
         if verbose:
-            print("Making `periodic_reg` directory...")
+            log("Making `periodic_reg` directory...")
 
         with openregs(perron_polys_reg, periodic_reg, readonlys = (True, False)) as (perron_polys_reg, periodic_reg):
 
             if verbose:
-                print("... success!")
-                print("Initializing `periodic_reg` (this may take some time)...")
+                log("... success!")
+                log("Initializing `periodic_reg` (this may take some time)...")
 
             for apri in perron_polys_reg:
 
@@ -351,8 +351,8 @@ the apri are periodic OR there are no associated blks in `poly_orbit_reg`, then 
                         periodic_reg.add_disk_blk(blk)
 
         if verbose:
-            print("... success!")
-            print("Setting up subregister relation...")
+            log("... success!")
+            log("Setting up subregister relation...")
 
         with openregs(
             poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg, perron_nums_reg, perron_polys_reg,
@@ -368,7 +368,7 @@ the apri are periodic OR there are no associated blks in `poly_orbit_reg`, then 
             coef_orbit_reg.add_subreg(perron_polys_reg)
 
         if verbose:
-            print("... success!")
+            log("... success!")
 
         return poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg
 
@@ -390,7 +390,7 @@ def calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose = False):
         with openregs(perron_polys_reg, status_reg, readonlys = (True, False)) as (perron_polys_reg, status_reg):
 
             if verbose:
-                print("Populating `status_reg` (this may take some time)...")
+                log("Populating `status_reg` (this may take some time)...")
 
             for apri in perron_polys_reg:
 
@@ -426,7 +426,7 @@ def calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose = False):
         _update_status_reg_apos(perron_polys_reg, status_reg, timers)
 
         if verbose:
-            print("... success!")
+            log("... success!")
 
 def _update_status_reg_apos(perron_polys_reg, status_reg, timers):
 
@@ -543,7 +543,7 @@ cdef _single_orbit(
                 startn = last_poly_orbit_len + 1
 
                 if is_bad_poly:
-                    print(f"startn = {startn}")
+                    log(f"startn = {startn}")
 
                 coef_seg = []
                 poly_seg = IntPolynomialArray(min_poly.deg() - 1)
@@ -578,8 +578,8 @@ cdef _single_orbit(
                             Bk_iter = poly_orbit_reg[orbit_apri, 1:]
 
                         if is_bad_poly:
-                            print(f"Bn_1 = {Bn_1}")
-                            print(f"k = {k}")
+                            log(f"Bn_1 = {Bn_1}")
+                            log(f"k = {k}")
 
                     with timers.time("find base_y_prec"):
 
@@ -608,7 +608,7 @@ cdef _single_orbit(
                                 n_even = TRUE if 2 * k == n else FALSE
 
                                 if is_bad_poly:
-                                    print(f"\tn  = {n}")
+                                    log(f"\tn  = {n}")
 
                                 do_while = TRUE
 
@@ -624,20 +624,20 @@ cdef _single_orbit(
 
                                         status_reg[poly_apri, orbit_apri.index] = np.array([n-1, -1, n])
 
-                                # with timers.time("print reg info"):
+                                # with timers.time("log reg info"):
                                 #
-                                #     print(f"len(poly_orbit_reg.apris()) = {sum(1 for _ in poly_orbit_reg.apris())}")
-                                #     print(
+                                #     log(f"len(poly_orbit_reg.apris()) = {sum(1 for _ in poly_orbit_reg.apris())}")
+                                #     log(
                                 #         f"sum(poly_orbit_reg.num_blks(apri) for apri in poly_orbit_reg) = "
                                 #         f"{sum(poly_orbit_reg.num_blks(apri) for apri in poly_orbit_reg)}"
                                 #     )
-                                #     print(f"poly_orbit_reg._db.info() = {poly_orbit_reg._db.info()}")
-                                #     print(f"len(coef_orbit_reg.apris()) = {sum(1 for _ in coef_orbit_reg.apris())}")
-                                #     print(
+                                #     log(f"poly_orbit_reg._db.info() = {poly_orbit_reg._db.info()}")
+                                #     log(f"len(coef_orbit_reg.apris()) = {sum(1 for _ in coef_orbit_reg.apris())}")
+                                #     log(
                                 #         f"sum(coef_orbit_reg.num_blks(apri) for apri in coef_orbit_reg) = "
                                 #         f"{sum(coef_orbit_reg.num_blks(apri) for apri in coef_orbit_reg)}"
                                 #     )
-                                #     print(f"coef_orbit_reg._db.info() = {coef_orbit_reg._db.info()}")
+                                #     log(f"coef_orbit_reg._db.info() = {coef_orbit_reg._db.info()}")
 
 
                             with timers.time("_single orbit next iterate loop"):
@@ -649,28 +649,28 @@ cdef _single_orbit(
                                         with timers.time("calc bin"):
                                             bin_ = math.floor(math.log2(current_x_prec))
                                         # if is_bad_poly:
-                                        #     print(f"\t\tcurrent_x_prec = {mpmath.mp.prec}")
-                                        #     print(f"\t\tcurrent_y_prec = {current_y_prec}")
+                                        #     log(f"\t\tcurrent_x_prec = {mpmath.mp.prec}")
+                                        #     log(f"\t\tcurrent_y_prec = {current_y_prec}")
                                         with timers.time(f"eval 2 ** {bin_}"):
                                             Bn_1.c_eval(beta0, FALSE)
                                         with timers.time(f"set xi 2 ** {bin_}"):
                                             xi = beta0 * Bn_1.last_eval
                                         if is_bad_poly:
-                                            print(f"\t\txi             = {xi}")
+                                            log(f"\t\txi             = {xi}")
 
                                         with timers.time_cm("_single_orbit next iterate setprec", setprec(current_y_prec)):
 
                                             with timers.time("_is_int"):
                                                 do_while = TRUE if _is_int(xi) else FALSE
 
-                                        # print(f"\t\t\t\t\t\t_is_int(xi) = {0 if do_while == FALSE else 1}")
+                                        # log(f"\t\t\t\t\t\t_is_int(xi) = {0 if do_while == FALSE else 1}")
 
                                     with timers.time("_single orbit increase DPS loop"):
 
                                         if do_while == TRUE:
                                             # precision error encountered
                                             # if is_bad_poly:
-                                            #     print("\t\tprecision error")
+                                            #     log("\t\tprecision error")
 
                                             if current_x_prec < max_prec:
                                                 # increase prec if we haven't hit max_prec, reset
@@ -688,8 +688,8 @@ cdef _single_orbit(
                                                 Bn = IntPolynomial(min_poly._deg - 1)
                                                 _calc_Bn(Bn_1, cn, min_poly, Bn)
                                                 if is_bad_poly:
-                                                    print(f"\t\tcn = {cn}")
-                                                    print(f"\t\tBn = {Bn}")
+                                                    log(f"\t\tcn = {cn}")
+                                                    log(f"\t\tBn = {Bn}")
 
                                                 for j in range(min_poly._deg):
                                                     # confirm simple Parry
@@ -703,11 +703,11 @@ cdef _single_orbit(
 
                                                         status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
 
-                                                        # print("\t\t\t\t\tunrecoverable precision")
+                                                        # log("\t\t\t\t\tunrecoverable precision")
                                                         return
                                                 else:
                                                     # simple parry
-                                                    # print("\t\t\t\t\tsimple parry")
+                                                    # log("\t\t\t\t\tsimple parry")
 
                                                     with timers.time("_single orbit simple parry detected"):
 
@@ -727,9 +727,9 @@ cdef _single_orbit(
                                                         if len(poly_blk) > 0:
                                                             poly_orbit_reg.append_disk_blk(poly_blk)
 
-                                                        # print(beta)
-                                                        # print([blk.segment() for blk in coef_orbit_reg.blks(orbit_apri)])
-                                                        # print([blk.segment() for blk in poly_orbit_reg.blks(orbit_apri)])
+                                                        # log(beta)
+                                                        # log([blk.segment() for blk in coef_orbit_reg.blks(orbit_apri)])
+                                                        # log([blk.segment() for blk in poly_orbit_reg.blks(orbit_apri)])
 
                                                         if cn == 0:
 
@@ -753,22 +753,22 @@ cdef _single_orbit(
                                                                 orbit_apri, n, 1
                                                             )
 
-                                                        # print(beta)
-                                                        # print([blk.segment() for blk in coef_orbit_reg.blks(orbit_apri)])
-                                                        # print([blk.segment() for blk in poly_orbit_reg.blks(orbit_apri)])
+                                                        # log(beta)
+                                                        # log([blk.segment() for blk in coef_orbit_reg.blks(orbit_apri)])
+                                                        # log([blk.segment() for blk in poly_orbit_reg.blks(orbit_apri)])
 
                                                         return
 
                             with timers.time("_single_orbit calculating Bn and cn"):
 
                                 cn = _calc_cn(xi)
-                                # print(f"\t\t\t\t\t\tcn                = {cn}")
+                                # log(f"\t\t\t\t\t\tcn                = {cn}")
                                 Bn = IntPolynomial(min_poly._deg - 1)
                                 _calc_Bn(Bn_1, cn, min_poly, Bn)
-                                # print(f"\t\t\t\t\t\tBn                = {Bn}")
+                                # log(f"\t\t\t\t\t\tBn                = {Bn}")
                                 if is_bad_poly:
-                                    print(f"\t\tcn = {cn}")
-                                    print(f"\t\tBn = {Bn}")
+                                    log(f"\t\tcn = {cn}")
+                                    log(f"\t\tBn = {Bn}")
                                 coef_seg.append(cn)
                                 poly_seg.append(Bn)
                                 Bn_1 = Bn
@@ -780,9 +780,9 @@ cdef _single_orbit(
                                         Bk = next(Bk_iter)
 
                                     except StopIteration:
-                                        print(poly_orbit_reg.total_len(orbit_apri))
-                                        print(poly_orbit_reg._ram_blks[orbit_apri])
-                                        print(list(poly_orbit_reg.intervals(orbit_apri)))
+                                        log(poly_orbit_reg.total_len(orbit_apri))
+                                        log(poly_orbit_reg._ram_blks[orbit_apri])
+                                        log(list(poly_orbit_reg.intervals(orbit_apri)))
                                         raise
 
                                 if n_even == TRUE and Bk.c_eq(Bn) == TRUE:
@@ -813,31 +813,31 @@ cdef _single_orbit(
                                     for reg, seg, blk in [(coef_orbit_reg, coef_seg, coef_blk), (poly_orbit_reg, poly_seg, poly_blk)]:
 
                                         if is_bad_poly:
-                                            print("hi1", reg._ram_blks.get(orbit_apri))
+                                            log("hi1", reg._ram_blks.get(orbit_apri))
                                             try:
-                                                print("hi1", list(reg.intervals(orbit_apri, diskonly = True)))
+                                                log("hi1", list(reg.intervals(orbit_apri, diskonly = True)))
 
                                             except DataNotFoundError:
-                                                print("hi1 NO!")
-                                            print("hi1", blk)
+                                                log("hi1 NO!")
+                                            log("hi1", blk)
 
                                         reg.append_disk_blk(blk)
                                         blk.set_startn(blk.startn() + len(blk))
                                         seg.clear()
 
                                         if is_bad_poly:
-                                            print("hi2", reg._ram_blks.get(orbit_apri))
-                                            print("hi2", list(reg.intervals(orbit_apri, diskonly = True)))
-                                            print("hi2", blk)
+                                            log("hi2", reg._ram_blks.get(orbit_apri))
+                                            log("hi2", list(reg.intervals(orbit_apri, diskonly = True)))
+                                            log("hi2", blk)
 
                                         if reg.maxn(orbit_apri) != n:
-                                            print("NOOOO!", n, min_poly)
+                                            log("NOOOO!", n, min_poly)
 
                                     with timers.time("_single orbit dump blk status_reg.set"):
                                         status_reg.set(poly_apri, orbit_apri.index, [n, -1, -1], mmap_mode = "r+")
 
-                            # print(f"\t\t\t\t\t\tcurrent_x_prec = {current_x_prec}")
-                            # print(f"\t\t\t\t\t\tbase_x_prec    = {base_x_prec}")
+                            # log(f"\t\t\t\t\t\tcurrent_x_prec = {current_x_prec}")
+                            # log(f"\t\t\t\t\t\tbase_x_prec    = {base_x_prec}")
 
                     with timers.time("_single_orbit final block dump"):
 
@@ -868,7 +868,7 @@ cdef (INDEX_t, INDEX_t) _calc_minimal_period(INDEX_t k, IntPolynomial Bk, object
                 p = k
 
             Bkp = poly_orbit_reg.get(B_apri, k + p, mmap_mode ="r")
-            # print("calc_minimal_period", k, p, Bkp)
+            # log("calc_minimal_period", k, p, Bkp)
 
             if Bk.c_eq(Bkp):
 
@@ -879,18 +879,18 @@ cdef (INDEX_t, INDEX_t) _calc_minimal_period(INDEX_t k, IntPolynomial Bk, object
 
                 else:
 
-                    print(k)
-                    print(p)
-                    print(Bk)
-                    print(Bkp)
-                    print(B_apri in poly_orbit_reg)
-                    print(poly_orbit_reg.total_len(B_apri))
+                    log(k)
+                    log(p)
+                    log(Bk)
+                    log(Bkp)
+                    log(B_apri in poly_orbit_reg)
+                    log(poly_orbit_reg.total_len(B_apri))
                     for i, poly in enumerate(poly_orbit_reg[B_apri, :, True]):
-                        print("i", i)
-                        print("poly", poly)
+                        log("i", i)
+                        log("poly", poly)
                     for i in range(poly_orbit_reg.total_len(B_apri)):
-                        print("i", i)
-                        print(poly_orbit_reg[B_apri, i + 1, True])
+                        log("i", i)
+                        log(poly_orbit_reg[B_apri, i + 1, True])
                     raise RuntimeError
 
                 break
@@ -902,19 +902,19 @@ cdef (INDEX_t, INDEX_t) _calc_minimal_period(INDEX_t k, IntPolynomial Bk, object
 
 def _cleanup_register(orbit_reg, status_reg, periodic_reg, orbit_apri, periodic_startn, period_len):
 
-    # print(list(orbit_reg.diskIntervals(apri)))
+    # log(list(orbit_reg.diskIntervals(apri)))
 
     for startn, length in orbit_reg.intervals(orbit_apri, diskonly = True):
 
-        # print(startn, length)
+        # log(startn, length)
 
         if period_len + periodic_startn - 1 < startn:
-            # print(1, "why")
+            # log(1, "why")
             orbit_reg.rmv_disk_blk(orbit_apri, startn, length)
 
         elif startn <= period_len + periodic_startn - 1 < startn + length - 1:
 
-            # print(2, "why")
+            # log(2, "why")
             with orbit_reg.blk(orbit_apri, startn, length, diskonly = True) as old_blk:
 
                 old_seg = old_blk.segment()
@@ -923,19 +923,19 @@ def _cleanup_register(orbit_reg, status_reg, periodic_reg, orbit_apri, periodic_
 
                     max_deg = old_seg.max_deg()
                     new_seg = IntPolynomialArray(max_deg).set(old_seg.get_ndarray()[ : period_len + periodic_startn - startn, :])
-                    # print(old_blk)
-                    # print(new_blk)
-                    # print(startn)
-                    # print(p)
-                    # print(m)
+                    # log(old_blk)
+                    # log(new_blk)
+                    # log(startn)
+                    # log(p)
+                    # log(m)
 
                 else:
                     new_seg = old_blk[startn : period_len + periodic_startn]
-                    # print(old_blk)
-                    # print(new_blk)
-                    # print(startn)
-                    # print(p)
-                    # print(m)
+                    # log(old_blk)
+                    # log(new_blk)
+                    # log(startn)
+                    # log(p)
+                    # log(m)
 
             with Block(new_seg, orbit_apri, startn) as new_blk:
                 orbit_reg.add_disk_blk(new_blk)
@@ -943,7 +943,7 @@ def _cleanup_register(orbit_reg, status_reg, periodic_reg, orbit_apri, periodic_
             orbit_reg.rmv_disk_blk(orbit_apri, startn, length)
 
         # else:
-        #     print(3, "why")
+        #     log(3, "why")
 
     status_reg.set(orbit_apri.resp, orbit_apri.index, [periodic_startn + period_len - 1, -1, -1], mmap_mode = "r+")
 
@@ -952,7 +952,7 @@ def _cleanup_register(orbit_reg, status_reg, periodic_reg, orbit_apri, periodic_
 
     except IndexError:
 
-        print(orbit_apri)
+        log(orbit_apri)
         raise
 
 
@@ -982,8 +982,8 @@ cdef MPF_t _torus_norm(MPF_t x):
 cdef BOOL_t _is_int(MPF_t x) except -1:
 
     cdef MPF_t frac = mpmath.frac(x)
-    # print(f"frac = {frac}")
-    # print(f"mpmath.mp.prec = {mpmath.mp.prec}")
+    # log(f"frac = {frac}")
+    # log(f"mpmath.mp.prec = {mpmath.mp.prec}")
     return TRUE if mpmath.almosteq(frac, 0) or mpmath.almosteq(frac, 1) else FALSE
 
 # cdef BOOL_t _check_eta(MPF_t xi, MPF_t eta) except -1:
@@ -991,8 +991,8 @@ cdef BOOL_t _is_int(MPF_t x) except -1:
 #     cdef MPF_t frac_xi1 = mpmath.frac(xi)
 #     cdef MPF_t frac_xi2 = 1 - frac_xi1
 #
-#     # print("frac_xi1", frac_xi1)
-#     # print("frac_xi2", frac_xi2)
+#     # log("frac_xi1", frac_xi1)
+#     # log("frac_xi2", frac_xi2)
 #
 #     if frac_xi1 <= eta or frac_xi2 <= eta:
 #         return TRUE
