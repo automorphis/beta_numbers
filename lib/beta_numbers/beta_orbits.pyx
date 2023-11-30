@@ -521,6 +521,7 @@ cdef _single_orbit(
             is_bad_poly = False
             debug = False
             beta0 = beta.beta0
+            log(f'beta0 = {beta0}')
             max_max_abs_coef = 2 ** 61
             poly_apri = orbit_apri.resp
             # get startup info
@@ -591,6 +592,8 @@ cdef _single_orbit(
                     current_y_prec = base_y_prec
                     current_x_prec = base_x_prec + base_y_prec
                     mpmath.mp.prec = current_x_prec
+
+                    log(f'base_x_prec = {base_x_prec}, base_y_prec = {base_y_prec}')
 
                     if current_x_prec > max_prec:
                         status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
