@@ -175,9 +175,11 @@ def calc_orbits(
                         enumerate(status_reg.intervals(poly_apri))
                     ):
 
-                        log(f'blk_index = {blk_index}, startn = {startn}, length = {length}')
+                        log(f'blk_index = {blk_index}, num_procs = {num_procs}, proc_index = {proc_index}, startn = {startn}, length = {length}')
 
                         if blk_index % num_procs == proc_index:
+
+                            log('hi!!!')
 
                             with timers.time_cm(
                                 "load status_reg in main loop",
@@ -189,6 +191,8 @@ def calc_orbits(
                                     orbit_lengths = status_blk.segment()[:,0]
                                     nonneg_orbit_lengths = orbit_lengths[orbit_lengths >= 0]
                                     complete_blk = len(nonneg_orbit_lengths) == 0 or np.all(nonneg_orbit_lengths >= max_orbit_len)
+
+                                log(str(complete_blk))
 
                                 if not complete_blk:
 
