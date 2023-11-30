@@ -12,7 +12,7 @@
 
 PERRONDIR=/fs/project/thompson.2455/lane.662/perronnums
 BETADIR=/fs/project/thompson.2455/lane.662/betaorbits
-DOSETUP=False
+DOSETUP=True
 MAINFILE=~/beta_numbers/scripts/calc_beta_orbits.py
 BLKSIZE=25000
 MAXORBITLEN=1000000
