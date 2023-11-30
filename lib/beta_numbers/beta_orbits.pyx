@@ -604,7 +604,7 @@ cdef _single_orbit(
                                 k = n // 2
                                 n_even = TRUE if 2 * k == n else FALSE
 
-                               log(f"\tn  = {n}")
+                                log(f"\tn  = {n}")
                                 do_while = TRUE
 
                                 with timers.time("_single_orbit main loop max coef found"):
