@@ -542,9 +542,7 @@ cdef _single_orbit(
 
                 startn = last_poly_orbit_len + 1
 
-                if is_bad_poly:
-                    log(f"startn = {startn}")
-
+                log(f"startn = {startn}")
                 coef_seg = []
                 poly_seg = IntPolynomialArray(min_poly.deg() - 1)
                 poly_seg.empty(max_blk_len)
@@ -577,9 +575,8 @@ cdef _single_orbit(
                             Bn_1.c_set_coef(0, 1)
                             Bk_iter = poly_orbit_reg[orbit_apri, 1:]
 
-                        if is_bad_poly:
-                            log(f"Bn_1 = {Bn_1}")
-                            log(f"k = {k}")
+                        log(f"Bn_1 = {Bn_1}")
+                        log(f"k = {k}")
 
                     with timers.time("find base_y_prec"):
 
@@ -607,9 +604,7 @@ cdef _single_orbit(
                                 k = n // 2
                                 n_even = TRUE if 2 * k == n else FALSE
 
-                                if is_bad_poly:
-                                    log(f"\tn  = {n}")
-
+                               log(f"\tn  = {n}")
                                 do_while = TRUE
 
                                 with timers.time("_single_orbit main loop max coef found"):
@@ -655,8 +650,7 @@ cdef _single_orbit(
                                             Bn_1.c_eval(beta0, FALSE)
                                         with timers.time(f"set xi 2 ** {bin_}"):
                                             xi = beta0 * Bn_1.last_eval
-                                        if is_bad_poly:
-                                            log(f"\t\txi             = {xi}")
+                                        log(f"\t\txi             = {xi}")
 
                                         with timers.time_cm("_single_orbit next iterate setprec", setprec(current_y_prec)):
 
@@ -687,9 +681,8 @@ cdef _single_orbit(
                                                 cn = _round(xi)
                                                 Bn = IntPolynomial(min_poly._deg - 1)
                                                 _calc_Bn(Bn_1, cn, min_poly, Bn)
-                                                if is_bad_poly:
-                                                    log(f"\t\tcn = {cn}")
-                                                    log(f"\t\tBn = {Bn}")
+                                                log(f"\t\tcn = {cn}")
+                                                log(f"\t\tBn = {Bn}")
 
                                                 for j in range(min_poly._deg):
                                                     # confirm simple Parry
