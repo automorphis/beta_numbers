@@ -4,13 +4,17 @@ from pathlib import Path
 
 from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup
 from cornifer import parallelize, load_shorthand
+from cornifer.debug import init_dir, set_dir, log
 from cornifer._utilities.multiprocessing import slurm_timecode_to_timedelta
 from dagtimers import Timers
 
 def f(
     num_procs, proc_index, perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg,
-    max_blk_len, max_orbit_len, max_dps, timers
+    max_blk_len, max_orbit_len, max_dps, debug_dir, timers
 ):
+
+    set_dir(debug_dir)
+    log('????')
 
     return calc_orbits(
         perron_polys_reg,
@@ -44,9 +48,12 @@ if __name__ == '__main__':
     perron_polys_reg = load_shorthand('perron_polys_reg', perron_polys_dir)
     perron_nums_reg = load_shorthand('perron_nums_reg', perron_polys_dir)
     timers = Timers()
+    debug_dir = init_dir('/fs/project/thompson.2455/lane.662/debugs')
 
     if do_setup:
+
         poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg = calc_orbits_setup(perron_polys_reg, perron_nums_reg, beta_numbers_dir, max_blk_len, timers)
+        log('???')
 
     else:
 
@@ -58,6 +65,6 @@ if __name__ == '__main__':
     parallelize(
         num_procs, f, (
             perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg,
-            max_blk_len, max_orbit_len, max_dps, timers
+            max_blk_len, max_orbit_len, max_dps, debug_dir, timers
         ), timeout, tmp_filename, update_period, update_timeout, sec_per_block_upper_bound
     )
