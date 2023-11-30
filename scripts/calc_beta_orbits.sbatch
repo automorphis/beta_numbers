@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=CalcBetaOrbits
 #SBATCH --time=24:00:00
-#SBATCH --ntasks=24
+#SBATCH --ntasks=2
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=1
 #SBATCH --error=/home/lane.662/betaorbitserror.txt
