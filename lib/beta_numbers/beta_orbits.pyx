@@ -646,14 +646,14 @@ cdef _single_orbit(
 
                                         with timers.time("calc bin"):
                                             bin_ = math.floor(math.log2(current_x_prec))
-                                        # if is_bad_poly:
-                                        #     log(f"\t\tcurrent_x_prec = {mpmath.mp.prec}")
-                                        #     log(f"\t\tcurrent_y_prec = {current_y_prec}")
+                                        log(f"\t\tcurrent_x_prec = {mpmath.mp.prec}")
+                                        log(f"\t\tcurrent_y_prec = {current_y_prec}")
                                         with timers.time(f"eval 2 ** {bin_}"):
                                             Bn_1.c_eval(beta0, FALSE)
                                         with timers.time(f"set xi 2 ** {bin_}"):
                                             xi = beta0 * Bn_1.last_eval
-                                        log(f"\t\txi             = {xi}")
+                                        log(f"\t\txi = {xi}")
+                                        log(f'Bn_1.last_eval')
 
                                         with timers.time_cm("_single_orbit next iterate setprec", setprec(current_y_prec)):
 
@@ -762,9 +762,8 @@ cdef _single_orbit(
                                 Bn = IntPolynomial(min_poly._deg - 1)
                                 _calc_Bn(Bn_1, cn, min_poly, Bn)
                                 # log(f"\t\t\t\t\t\tBn                = {Bn}")
-                                if is_bad_poly:
-                                    log(f"\t\tcn = {cn}")
-                                    log(f"\t\tBn = {Bn}")
+                                log(f"\t\tcn = {cn}")
+                                log(f"\t\tBn = {Bn}")
                                 coef_seg.append(cn)
                                 poly_seg.append(Bn)
                                 Bn_1 = Bn
