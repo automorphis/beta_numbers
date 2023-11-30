@@ -175,7 +175,7 @@ def calc_orbits(
                         enumerate(status_reg.intervals(poly_apri))
                     ):
 
-                        print(f'blk_index = {blk_index}, startn = {startn}, length = {length}')
+                        log(f'blk_index = {blk_index}, startn = {startn}, length = {length}')
 
                         if blk_index % num_procs == proc_index:
 
