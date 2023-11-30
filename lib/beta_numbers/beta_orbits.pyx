@@ -653,7 +653,7 @@ cdef _single_orbit(
                                         with timers.time(f"set xi 2 ** {bin_}"):
                                             xi = beta0 * Bn_1.last_eval
                                         log(f"\t\txi = {xi}")
-                                        log(f'Bn_1.last_eval')
+                                        log(f'Bn_1.last_eval = {Bn_1.last_eval}')
 
                                         with timers.time_cm("_single_orbit next iterate setprec", setprec(current_y_prec)):
 
