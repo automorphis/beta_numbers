@@ -159,7 +159,9 @@ def calc_orbits(
 
                     num_apri = ApriInfo(deg = poly_apri.deg, sum_abs_coef = poly_apri.sum_abs_coef, dps = max_dps)
                     min_len = status_reg.apos(poly_apri).min_len
+                    log(str(status_reg.apos(poly_apri)))
                     complete_to_max_orbit_len = min_len >= max_orbit_len if min_len != -1 else True
+                    log(str(complete_to_max_orbit_len))
                     # print(f"\t\t\t\tperron_apri = {perron_apri}")
 
                 if not complete_to_max_orbit_len:
