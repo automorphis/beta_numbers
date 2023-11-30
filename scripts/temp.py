@@ -22,12 +22,18 @@ with openregs(perron_polys_reg, perron_nums_reg, readonlys = (False, False)):
             try:
                 assert list(perron_nums_reg.intervals(nums_apri)) == list(perron_polys_reg.intervals(apri))
             except AssertionError:
-                print(apri)
+                print(apri, list(perron_nums_reg.intervals(nums_apri)))
 
         for startn, length in perron_polys_reg.intervals(apri):
 
-            assert perron_polys_reg.is_compressed(apri, startn, length)
-            assert perron_nums_reg.is_compressed(nums_apri, startn, length)
+            try:
+                assert perron_polys_reg.is_compressed(apri, startn, length)
+            except AssertionError:
+                print(apri, startn, length)
+            try:
+                assert perron_nums_reg.is_compressed(nums_apri, startn, length)
+            except AssertionError:
+                print(nums_apri, startn, length)
 
         apos = perron_polys_reg.apos(apri)
         assert apos.complete or hasattr(apos, 'last_poly')
