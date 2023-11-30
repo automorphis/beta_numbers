@@ -167,6 +167,7 @@ def calc_orbits(
                 if not complete_to_max_orbit_len:
 
                     log('hello!!')
+                    log(str(poly_apri in status_reg))
 
                     for blk_index, (startn, length) in timers.time_iter(
                         "status_reg.intervals loop",
