@@ -168,6 +168,7 @@ def calc_orbits(
 
                     log('hello!!')
                     log(str(poly_apri in status_reg))
+                    log(str(status_reg.num_blks(poly_apri)))
 
                     for blk_index, (startn, length) in timers.time_iter(
                         "status_reg.intervals loop",
