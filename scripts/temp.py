@@ -22,7 +22,7 @@ with openregs(perron_polys_reg, perron_nums_reg, readonlys = (False, False)):
             try:
                 assert list(perron_nums_reg.intervals(nums_apri)) == list(perron_polys_reg.intervals(apri))
             except AssertionError:
-                print(apri, list(perron_nums_reg.intervals(nums_apri)))
+                print(apri, list(perron_nums_reg.intervals(nums_apri)), list(perron_polys_reg.intervals(apri)))
 
         for startn, length in perron_polys_reg.intervals(apri):
 
@@ -39,4 +39,7 @@ with openregs(perron_polys_reg, perron_nums_reg, readonlys = (False, False)):
         assert apos.complete or hasattr(apos, 'last_poly')
 
     for apri in perron_nums_reg:
-        assert ApriInfo(deg = apri.deg, sum_abs_coef = apri.sum_abs_coef) in perron_polys_reg
+        try:
+            assert ApriInfo(deg = apri.deg, sum_abs_coef = apri.sum_abs_coef) in perron_polys_reg
+        except AssertionError:
+            print(apri)
