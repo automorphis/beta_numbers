@@ -166,10 +166,14 @@ def calc_orbits(
 
                 if not complete_to_max_orbit_len:
 
+                    log('hello!!')
+
                     for blk_index, (startn, length) in timers.time_iter(
                         "status_reg.intervals loop",
                         enumerate(status_reg.intervals(poly_apri))
                     ):
+
+                        print(f'blk_index = {blk_index}, startn = {startn}, length = {length}')
 
                         if blk_index % num_procs == proc_index:
 
