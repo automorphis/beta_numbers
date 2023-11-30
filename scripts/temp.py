@@ -19,7 +19,10 @@ with openregs(perron_polys_reg, perron_nums_reg, readonlys = (False, False)):
         assert nums_apri in perron_nums_reg or apri in apri_exceptions
 
         if apri not in apri_exceptions:
-            assert list(perron_nums_reg.intervals(nums_apri)) == list(perron_polys_reg.intervals(apri))
+            try:
+                assert list(perron_nums_reg.intervals(nums_apri)) == list(perron_polys_reg.intervals(apri))
+            except AssertionError:
+                print(apri)
 
         for startn, length in perron_polys_reg.intervals(apri):
 

@@ -9,7 +9,7 @@ from beta_numbers.examples import boyd_psi_r, boyd_phi_r, boyd_beta_n, boyd_prop
 from beta_numbers.perron_numbers import Perron_Number
 from beta_numbers.beta_orbits import MPFRegister, setdps
 from intpolynomials import IntPolynomialRegister, IntPolynomialArray
-from cornifer import NumpyRegister, ApriInfo, DataNotFoundError, Block, openregs, AposInfo, load_shorthand
+from cornifer import NumpyRegister, ApriInfo, DataNotFoundError, Block, openregs, AposInfo, load_shorthand, openblks
 from cornifer._utilities import random_unique_filename
 from cornifer.registers import _CURR_ID_KEY
 from dagtimers import Timers
@@ -276,7 +276,7 @@ class TestBetaOrbits(TestCase):
                                 self.fail("`coef_orbit_Reg` should not contain apri!")
 
                         with openregs(
-                            cls.perron_polys_reg, status_reg, periodic_reg, readonlys = (True,)*3
+                            cls.perron_polys_reg, status_reg, periodic_reg, readonlys = (False,)*3
                         ) as (cls.perron_polys_reg, status_reg, periodic_reg):
                             # check that `status_reg` and `periodic_reg` contain the correct apri, apos, and blocks
                             for poly_apri in cls.perron_polys_reg:
@@ -284,26 +284,39 @@ class TestBetaOrbits(TestCase):
                                 self.assertIn(poly_apri, status_reg)
                                 self.assertIn(poly_apri, periodic_reg)
 
-                                for status_blk, periodic_blk, perron_poly_blk in zip(
-                                    status_reg.blks(poly_apri), periodic_reg.blks(poly_apri), cls.perron_polys_reg.blks(poly_apri)
-                                ):
+                                for startn, length in status_reg.intervals(poly_apri):
 
-                                    self.assertEqual(
-                                        status_blk.startn(),
-                                        periodic_blk.startn()
-                                    )
-                                    self.assertEqual(
-                                        periodic_blk.startn(),
-                                        perron_poly_blk.startn()
-                                    )
-                                    self.assertEqual(
-                                        len(status_blk),
-                                        len(periodic_blk)
-                                    )
-                                    self.assertEqual(
-                                        len(periodic_blk),
-                                        len(perron_poly_blk)
-                                    )
+                                    if status_reg.is_compressed(poly_apri, startn, length):
+                                        status_reg.decompress(poly_apri, startn, length)
+
+                                    if periodic_reg.is_compressed(poly_apri, startn, length):
+                                        periodic_reg.decompress(poly_apri, startn, length)
+
+                                    if cls.perron_polys_reg.is_compressed(poly_apri, startn, length):
+                                        cls.perron_polys_reg.decompress(poly_apri, startn, length)
+
+                                    with openblks(
+                                        status_reg.blk(poly_apri, startn, length),
+                                        periodic_reg.blk(poly_apri, startn, length),
+                                        cls.perron_polys_reg.blk(poly_apri, startn, length)
+                                    ) as (status_blk, periodic_blk, perron_poly_blk):
+
+                                        self.assertEqual(
+                                            status_blk.startn(),
+                                            periodic_blk.startn()
+                                        )
+                                        self.assertEqual(
+                                            periodic_blk.startn(),
+                                            perron_poly_blk.startn()
+                                        )
+                                        self.assertEqual(
+                                            len(status_blk),
+                                            len(periodic_blk)
+                                        )
+                                        self.assertEqual(
+                                            len(periodic_blk),
+                                            len(perron_poly_blk)
+                                        )
 
                                 for blk in status_reg.blks(poly_apri, mmap_mode = "r"):
 
