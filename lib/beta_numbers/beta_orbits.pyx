@@ -522,6 +522,7 @@ cdef _single_orbit(
             debug = False
             beta0 = beta.beta0
             log(f'beta0 = {beta0}')
+            log(f'min_poly = {min_poly}')
             max_max_abs_coef = 2 ** 61
             poly_apri = orbit_apri.resp
             # get startup info
