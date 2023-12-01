@@ -555,11 +555,12 @@ cdef _single_orbit(
 
             with timers.time_cm("_single_orbit main portion open coef and poly blks", openblks(coef_blk, poly_blk)):
 
+                original_dps = mpmath.mp.dps
+
                 try:
                     # try clause followed by a finally clause that removes all RAM blocks from poly_orbit_reg
                     # (coef_orbit_reg has no RAM blocks)
                     # and resets mpmath.mp.dps to its original value
-                    original_dps = mpmath.mp.dps
                     poly_orbit_reg.add_ram_blk(poly_blk)
 
                     with timers.time("_single_orbit setup restart info"):
@@ -586,7 +587,7 @@ cdef _single_orbit(
                             base_y_prec = -math.log2(float(_torus_norm(beta0)))
 
                         except ValueError:
-                            base_y_prec = 30
+                            base_y_prec = 32
 
                     base_x_prec = (
                         math.ceil(math.log2(beta.deg - 1)) +
@@ -677,13 +678,15 @@ cdef _single_orbit(
 
                                             if current_x_prec < max_prec:
                                                 # increase prec if we haven't hit max_prec, reset
-                                                current_x_prec *= PREC_INCREASE_FACTOR
+                                                current_y_prec *= PREC_INCREASE_FACTOR
+                                                current_x_prec = current_y_prec + base_x_prec
+                                                mpmath.mp.prec = current_x_prec
 
                                                 if max_prec < current_x_prec:
                                                     current_x_prec = max_prec
 
-                                                current_y_prec = current_x_prec - base_x_prec
-                                                mpmath.mp.prec = current_x_prec
+                                                if max_prec < current_y_prec:
+                                                    current_y_prec = max_prec
 
                                             else:
                                                 # likely simple Parry number detected
