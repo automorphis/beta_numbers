@@ -581,9 +581,7 @@ cdef _single_orbit(
                         log(f"k = {k}")
 
                     with timers.time("find base_y_prec"):
-
-                        with setprec(max_dps):
-                            base_y_prec = -mpmath.log(_torus_norm(beta0), 2)
+                        base_y_prec = math.log(float(_torus_norm(beta0)), 2)
 
                     base_x_prec = (
                         math.ceil(math.log2(beta.deg - 1)) +
