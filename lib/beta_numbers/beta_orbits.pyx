@@ -653,6 +653,7 @@ cdef _single_orbit(
                                             bin_ = math.floor(math.log2(current_x_prec))
                                         log(f"\t\tcurrent_x_prec = {mpmath.mp.prec}")
                                         log(f"\t\tcurrent_y_prec = {current_y_prec}")
+                                        log(f'\t\tbase_x_prec    = {base_x_prec}')
                                         with timers.time(f"eval 2 ** {bin_}"):
                                             Bn_1.c_eval(beta0, FALSE)
                                         with timers.time(f"set xi 2 ** {bin_}"):
@@ -806,7 +807,7 @@ cdef _single_orbit(
 
                             with timers.time("_single_orbit prec offset"):
 
-                                base_x_prec = base_x_prec + _prec_offset(Bn, Bn_1)
+                                base_x_prec += _prec_offset(Bn, Bn_1)
                                 current_x_prec = base_x_prec + base_y_prec
                                 current_y_prec = base_y_prec
                                 mpmath.mp.prec = current_x_prec
