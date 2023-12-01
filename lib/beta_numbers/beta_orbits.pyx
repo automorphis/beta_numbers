@@ -661,6 +661,8 @@ cdef _single_orbit(
                                             with timers.time("_is_int"):
                                                 do_while = TRUE if _is_int(xi) else FALSE
 
+                                        log(f'd_while == {do_while}')
+
                                         # log(f"\t\t\t\t\t\t_is_int(xi) = {0 if do_while == FALSE else 1}")
 
                                     with timers.time("_single orbit increase DPS loop"):
@@ -765,6 +767,7 @@ cdef _single_orbit(
                                 # log(f"\t\t\t\t\t\tBn                = {Bn}")
                                 log(f"\t\tcn = {cn}")
                                 log(f"\t\tBn = {Bn}")
+                                log(f'\t\tBn.deg() = {Bn.deg()}')
                                 coef_seg.append(cn)
                                 poly_seg.append(Bn)
                                 Bn_1 = Bn
