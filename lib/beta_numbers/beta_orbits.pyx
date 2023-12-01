@@ -658,12 +658,12 @@ cdef _single_orbit(
 
                                         with timers.time_cm("_single_orbit next iterate setprec", setprec(current_y_prec)):
 
-                                            with timers.time("_is_int"):
-                                                do_while = TRUE if _is_int(xi) else FALSE
+                                            with timers.time("_incr_prec"):
+                                                do_while = TRUE if _incr_prec(xi) else FALSE
 
                                         log(f'd_while == {do_while}')
 
-                                        # log(f"\t\t\t\t\t\t_is_int(xi) = {0 if do_while == FALSE else 1}")
+                                        # log(f"\t\t\t\t\t\t_incr_prec(xi) = {0 if do_while == FALSE else 1}")
 
                                     with timers.time("_single orbit increase DPS loop"):
 
@@ -978,12 +978,12 @@ cdef MPF_t _torus_norm(MPF_t x):
         return frac2
 
 
-cdef BOOL_t _is_int(MPF_t x) except -1:
+cdef BOOL_t _incr_prec(MPF_t x) except -1:
 
     cdef MPF_t frac = mpmath.frac(x)
     # log(f"frac = {frac}")
     # log(f"mpmath.mp.prec = {mpmath.mp.prec}")
-    return TRUE if mpmath.almosteq(frac, 0) or mpmath.almosteq(frac, 1) else FALSE
+    return TRUE if x < 0 or mpmath.almosteq(frac, 0) or mpmath.almosteq(frac, 1) else FALSE
 
 # cdef BOOL_t _check_eta(MPF_t xi, MPF_t eta) except -1:
 #

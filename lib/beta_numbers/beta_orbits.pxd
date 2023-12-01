@@ -30,7 +30,7 @@ cdef MPF_t _torus_norm(MPF_t x)
 #
 # cdef MPF_t _calc_eta(MPF_t beta0, IntPolynomial Bn_1, MPF_t eps)
 
-cdef BOOL_t _is_int(MPF_t x) except -1
+cdef BOOL_t _incr_prec(MPF_t x) except -1
 
 cdef ERR_t _calc_Bn(IntPolynomial Bn_1, C_t cn, IntPolynomial min_poly, IntPolynomial Bn) except -1
 
