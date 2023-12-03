@@ -500,9 +500,9 @@ cdef _single_orbit(
     object timers
 ):
 
-    cdef DEG_t j
+    cdef DEG_t j, deg
     cdef INDEX_t n, p, k, m
-    cdef DPS_t current_x_prec, current_y_prec, original_dps, base_x_prec, base_y_prec
+    cdef DPS_t current_x_prec, current_y_prec, original_dps, x_y_prec_offset, x_prec_lower_bound
     cdef IntPolynomial min_poly, Bn, Bn_1, Bk
     cdef IntPolynomialArray poly_seg
     cdef MPF_t beta0, xi
@@ -521,6 +521,7 @@ cdef _single_orbit(
             is_bad_poly = False
             debug = False
             beta0 = beta.beta0
+            deg = beta.deg
             log(f'beta0 = {beta0}')
             log(f'min_poly = {min_poly}')
             max_max_abs_coef = 2 ** 61
@@ -581,24 +582,39 @@ cdef _single_orbit(
                         log(f"Bn_1 = {Bn_1}")
                         log(f"k = {k}")
 
-                    with timers.time("find base_y_prec"):
-
-                        try:
-                            base_y_prec = -math.log2(float(_torus_norm(beta0)))
-
-                        except ValueError:
-                            base_y_prec = 32
-
-                    base_x_prec = (
-                        math.ceil(math.log2(beta.deg - 1)) +
-                        math.ceil((beta.deg - 2) * math.log2(int(beta0) + 1)) +
+                    initial_y_prec = 8
+                    x_y_prec_offset = math.ceil(
+                        1 +
+                        2 * _base2_magn(deg - 1) +
                         _base2_magn(Bn_1.max_abs_coef())
+                        (deg - 2) * math.log2(int(beta0) + 2)
                     )
-                    current_y_prec = base_y_prec
-                    current_x_prec = base_x_prec + base_y_prec
+
+                    if deg == 2:
+                        x_prec_lower_bound = 1
+
+                    else:
+                        x_prec_lower_bound = math.ceil(
+                            2 +
+                            2 * _base2_magn(deg - 2) -
+                            _base2_magn(deg - 1)
+                        )
+
+                    if x_prec_lower_bound <= 0:
+                        x_prec_lower_bound = 1
+
+                    current_y_prec = initial_y_prec
+                    current_x_prec = current_y_prec + x_y_prec_offset
+
+                    if current_x_prec < x_prec_lower_bound:
+                        current_x_prec = x_prec_lower_bound
+
                     mpmath.mp.prec = current_x_prec
 
-                    log(f'base_x_prec = {base_x_prec}, base_y_prec = {base_y_prec}')
+                    log(f'x_prec_lower_bound = {x_prec_lower_bound}')
+                    log(f'x_y_prec_offset = {x_y_prec_offset}')
+                    log(f'current_x_prec = {current_x_prec}')
+                    log(f'current_y_prec = {current_y_prec}')
 
                     if current_x_prec > max_prec:
                         status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
@@ -653,7 +669,6 @@ cdef _single_orbit(
                                             bin_ = math.floor(math.log2(current_x_prec))
                                         log(f"\t\tcurrent_x_prec = {mpmath.mp.prec}")
                                         log(f"\t\tcurrent_y_prec = {current_y_prec}")
-                                        log(f'\t\tbase_x_prec    = {base_x_prec}')
                                         with timers.time(f"eval 2 ** {bin_}"):
                                             Bn_1.c_eval(beta0, FALSE)
                                         with timers.time(f"set xi 2 ** {bin_}"):
@@ -680,7 +695,7 @@ cdef _single_orbit(
                                             if current_x_prec < max_prec:
                                                 # increase prec if we haven't hit max_prec, reset
                                                 current_y_prec *= PREC_INCREASE_FACTOR
-                                                current_x_prec = current_y_prec + base_x_prec
+                                                current_x_prec = current_y_prec + x_y_prec_offset
                                                 mpmath.mp.prec = current_x_prec
 
                                                 if max_prec < current_x_prec:
@@ -807,9 +822,13 @@ cdef _single_orbit(
 
                             with timers.time("_single_orbit prec offset"):
 
-                                base_x_prec += _prec_offset(Bn, Bn_1)
-                                current_x_prec = base_x_prec + base_y_prec
-                                current_y_prec = base_y_prec
+                                current_y_prec *= PREC_INCREASE_FACTOR
+                                x_y_prec_offset += _prec_offset(Bn, Bn_1)
+                                current_x_prec = current_y_prec + x_y_prec_offset
+
+                                if current_x_prec < x_prec_lower_bound:
+                                    current_x_prec = x_prec_lower_bound
+
                                 mpmath.mp.prec = current_x_prec
 
                             with timers.time("_single_orbit dump blk and clear seg"):
