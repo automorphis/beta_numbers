@@ -603,19 +603,6 @@ cdef _single_orbit(
                     if x_prec_lower_bound <= 0:
                         x_prec_lower_bound = 1
 
-                    current_y_prec = initial_y_prec
-                    current_x_prec = current_y_prec + x_y_prec_offset
-
-                    if current_x_prec < x_prec_lower_bound:
-                        current_x_prec = x_prec_lower_bound
-
-                    mpmath.mp.prec = current_x_prec
-
-                    log(f'x_prec_lower_bound = {x_prec_lower_bound}')
-                    log(f'x_y_prec_offset = {x_y_prec_offset}')
-                    log(f'current_x_prec = {current_x_prec}')
-                    log(f'current_y_prec = {current_y_prec}')
-
                     if current_x_prec > max_prec:
                         status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
 
@@ -625,9 +612,20 @@ cdef _single_orbit(
                             # primary orbit iteration loop
                             with timers.time("_single_orbit main loop beginning"):
 
+                                current_y_prec = initial_y_prec
+                                current_x_prec = current_y_prec + x_y_prec_offset
+
+                                if current_x_prec < x_prec_lower_bound:
+                                    current_x_prec = x_prec_lower_bound
+
+                                mpmath.mp.prec = current_x_prec
+
+                                log(f'x_prec_lower_bound = {x_prec_lower_bound}')
+                                log(f'x_y_prec_offset = {x_y_prec_offset}')
+                                log(f'current_x_prec = {current_x_prec}')
+                                log(f'current_y_prec = {current_y_prec}')
                                 k = n // 2
                                 n_even = TRUE if 2 * k == n else FALSE
-
                                 log(f"\tn  = {n}")
                                 do_while = TRUE
 
