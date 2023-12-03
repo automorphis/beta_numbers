@@ -582,7 +582,7 @@ cdef _single_orbit(
                         log(f"Bn_1 = {Bn_1}")
                         log(f"k = {k}")
 
-                    initial_y_prec = 8
+                    initial_y_prec = 16
                     x_y_prec_offset = math.ceil(
                         1 +
                         2 * _base2_magn(deg - 1) +
