@@ -586,7 +586,7 @@ cdef _single_orbit(
                     x_y_prec_offset = math.ceil(
                         1 +
                         2 * _base2_magn(deg - 1) +
-                        _base2_magn(Bn_1.max_abs_coef())
+                        _base2_magn(Bn_1.max_abs_coef()) +
                         (deg - 2) * math.log2(int(beta0) + 2)
                     )
 
