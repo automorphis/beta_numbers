@@ -57,9 +57,9 @@ if __name__ == "__main__":
 
     else:
 
-        perron_polys_reg = load_shorthand('perron_polys_reg', dir_)
-        perron_nums_reg = load_shorthand('perron_nums_reg', dir_)
-        perron_conjs_reg = load_shorthand('perron_conjs_reg', dir_)
+        perron_polys_reg = load('perron_polys_reg', dir_)
+        perron_nums_reg = load('perron_nums_reg', dir_)
+        perron_conjs_reg = load('perron_conjs_reg', dir_)
 
     timers = Timers()
     parallelize(

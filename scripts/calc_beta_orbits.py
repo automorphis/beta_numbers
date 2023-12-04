@@ -47,8 +47,8 @@ if __name__ == '__main__':
     sec_per_block_upper_bound = int(sys.argv[11])
     tmp_filename = Path(os.environ['TMPDIR'])
     debug_dir = init_dir('/fs/project/thompson.2455/lane.662/debugs')
-    perron_polys_reg = load_shorthand('perron_polys_reg', perron_polys_dir)
-    perron_nums_reg = load_shorthand('perron_nums_reg', perron_polys_dir)
+    perron_polys_reg = load('perron_polys_reg', perron_polys_dir)
+    perron_nums_reg = load('perron_nums_reg', perron_polys_dir)
     timers = Timers()
 
     if do_setup:
@@ -58,10 +58,10 @@ if __name__ == '__main__':
 
     else:
 
-        poly_orbit_reg = load_shorthand('poly_orbit_reg', beta_numbers_dir)
-        coef_orbit_reg = load_shorthand('coef_orbit_reg', beta_numbers_dir)
-        periodic_reg = load_shorthand('periodic_reg', beta_numbers_dir)
-        status_reg = load_shorthand('status_reg', beta_numbers_dir)
+        poly_orbit_reg = load('poly_orbit_reg', beta_numbers_dir)
+        coef_orbit_reg = load('coef_orbit_reg', beta_numbers_dir)
+        periodic_reg = load('periodic_reg', beta_numbers_dir)
+        status_reg = load('status_reg', beta_numbers_dir)
 
     parallelize(
         num_procs, f, (
