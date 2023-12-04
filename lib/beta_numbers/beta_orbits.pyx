@@ -512,7 +512,7 @@ cdef _single_orbit(
     cdef MPF_t beta0, xi
     cdef C_t cn
     cdef BOOL_t simple_parry, n_even
-    cdef COEF_t max_abs_coef, curr_max_abs_coef, max_max_abs_coef
+    cdef COEF_t max_abs_coef, curr_max_abs_coef, max_max_abs_coef, norm_max_eval
     cdef DPS_t PREC_INCREASE_FACTOR = 2
     cdef DPS_t max_prec = int(max_dps * LOG_2_10)
     cdef DPS_t constant_y_prec, constant_x_prec
@@ -627,6 +627,11 @@ cdef _single_orbit(
                     if current_x_prec > max_prec:
                         status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
 
+                    with setprec(max_prec):
+                        norm_max_eval = int(beta0 * (beta0 ** deg - 1) / (beta0 - 1)) + 1
+
+                    log(f'norm_max_eval = {norm_max_eval}')
+
                     with timers.time("_single_orbit main loop"):
 
                         for n in range(startn, max_poly_orbit_len + 1):
@@ -648,18 +653,19 @@ cdef _single_orbit(
 
                                 mpmath.mp.prec = current_x_prec
 
-                                log(f'x_prec_lower_bound = {x_prec_lower_bound}')
-                                log(f'x_y_prec_offset = {x_y_prec_offset}')
-                                log(f'current_x_prec = {current_x_prec}')
-                                log(f'current_y_prec = {current_y_prec}')
+                                log(f'\t\tx_prec_lower_bound = {x_prec_lower_bound}')
+                                log(f'\t\tx_y_prec_offset = {x_y_prec_offset}')
+                                log(f'\t\tcurrent_x_prec = {current_x_prec}')
+                                log(f'\t\tcurrent_y_prec = {current_y_prec}')
                                 k = n // 2
                                 n_even = TRUE if 2 * k == n else FALSE
-                                log(f"\tn  = {n}")
+                                log(f"\tn = {n}")
                                 do_while = TRUE
 
                                 with timers.time("_single_orbit main loop max coef found"):
 
-                                    if Bn_1.max_abs_coef() > max_max_abs_coef:
+                                    if Bn_1.max_abs_coef() * norm_max_eval > max_max_abs_coef:
+                                        log('\tlarge coefficient!')
                                         # large coefficients found
                                         if len(coef_blk) > 0:
                                             coef_orbit_reg.append_disk_blk(coef_blk)
@@ -700,14 +706,14 @@ cdef _single_orbit(
                                         with timers.time(f"set xi 2 ** {bin_}"):
                                             xi = beta0 * Bn_1.last_eval
                                         log(f"\t\txi = {xi}")
-                                        log(f'Bn_1.last_eval = {Bn_1.last_eval}')
+                                        log(f'\t\tBn_1.last_eval = {Bn_1.last_eval}')
 
                                         with timers.time_cm("_single_orbit next iterate setprec", setprec(current_y_prec)):
 
                                             with timers.time("_incr_prec"):
                                                 do_while = TRUE if _incr_prec(xi) else FALSE
 
-                                        log(f'd_while == {do_while}')
+                                        log(f'\t\tdo_while == {do_while}')
 
                                         # log(f"\t\t\t\t\t\t_incr_prec(xi) = {0 if do_while == FALSE else 1}")
 
