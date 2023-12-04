@@ -21,7 +21,12 @@ with openregs(perron_polys_reg, perron_nums_reg, readonlys = (True, True)):
 
         assert not hasattr(apri, 'dps')
         nums_apri = ApriInfo(deg = apri.deg, sum_abs_coef = apri.sum_abs_coef, dps = dps)
-        assert nums_apri in perron_nums_reg or apri in apri_exceptions
+
+        try:
+            assert nums_apri in perron_nums_reg or apri in apri_exceptions
+
+        except AssertionError:
+            print(nums_apri)
 
         if apri not in apri_exceptions:
             try:
