@@ -674,6 +674,7 @@ cdef _single_orbit(
                                             poly_orbit_reg.append_disk_blk(poly_blk)
 
                                         status_reg[poly_apri, orbit_apri.index] = np.array([n-1, -1, n])
+                                        return
 
                                 # with timers.time("log reg info"):
                                 #
