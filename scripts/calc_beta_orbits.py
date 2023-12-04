@@ -46,10 +46,10 @@ if __name__ == '__main__':
     update_timeout = int(sys.argv[10])
     sec_per_block_upper_bound = int(sys.argv[11])
     tmp_filename = Path(os.environ['TMPDIR'])
+    debug_dir = init_dir('/fs/project/thompson.2455/lane.662/debugs')
     perron_polys_reg = load_shorthand('perron_polys_reg', perron_polys_dir)
     perron_nums_reg = load_shorthand('perron_nums_reg', perron_polys_dir)
     timers = Timers()
-    debug_dir = init_dir('/fs/project/thompson.2455/lane.662/debugs')
 
     if do_setup:
 
