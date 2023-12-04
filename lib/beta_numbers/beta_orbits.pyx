@@ -138,9 +138,9 @@ def calc_orbits(
             if proc_index < 0:
                 raise ValueError("`proc_index` must be non-negative.")
 
-        # log("\t\t\tchecking which orbits are done")
-
         if proc_index == 0:
+
+            log('`calc_orbits` calling `_update_status_reg_apos`')
             _update_status_reg_apos(perron_polys_reg, status_reg, timers)
 
         with timers.time_cm(
@@ -153,7 +153,7 @@ def calc_orbits(
 
             for poly_apri in timers.time_iter("poly_apri loop", perron_polys_reg):
 
-                log(str(poly_apri))
+                log(f'`calc_orbits` poly_apri loop {poly_apri}')
 
                 with timers.time("calc_obits calc complete_to_max_orbit_len"):
 
@@ -326,7 +326,8 @@ If an orbit is periodic, then the 0-th entry (the poly orbit length) is listed a
 poly pre-period and period lengths, see `periodic_reg`.) Each apri of `status_reg` has an apos with one
 attribute, 'min_len' a non-negative `int`, the minimum calculated poly orbit length among all orbits
 of polynomials corresponding to the apri; therefore, at the beginning of the calculation, this value
-should be 0 for all apri EXCEPT for those apri that do not have any associated blks in `poly_orbit_reg`. 
+should be
+ 0 for all apri EXCEPT for those apri that do not have any associated blks in `poly_orbit_reg`. 
 'min_len' is merely a convenience, as its value can be inferred from the block data. If all orbits for 
 the apri are periodic OR there are no associated blks in `poly_orbit_reg`, then 'min_len' is -1.""",
             NUM_BYTES_PER_TERABYTE

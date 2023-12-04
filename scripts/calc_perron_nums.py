@@ -3,7 +3,7 @@ import sys
 import time
 from pathlib import Path
 
-from cornifer import load_shorthand, parallelize
+from cornifer import load, parallelize
 from cornifer._utilities.multiprocessing import slurm_timecode_to_timedelta
 from cornifer.debug import init_dir, set_dir
 from dagtimers import Timers

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from intpolynomials.registers import IntPolynomialRegister
 from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup
-from cornifer import parallelize, load_shorthand
+from cornifer import parallelize, load
 from cornifer.debug import init_dir, set_dir, log
 from cornifer._utilities.multiprocessing import slurm_timecode_to_timedelta
 from dagtimers import Timers
