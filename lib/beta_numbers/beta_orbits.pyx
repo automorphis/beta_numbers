@@ -722,24 +722,11 @@ cdef _single_orbit(
 
                                         if do_while == TRUE:
 
-                                            if prec_is_constant == TRUE:
-
-                                                if len(coef_blk) > 0:
-                                                    coef_orbit_reg.append_disk_blk(coef_blk)
-
-                                                if len(poly_blk) > 0:
-                                                    poly_orbit_reg.append_disk_blk(poly_blk)
-
-                                                status_reg.set(
-                                                    poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode = "r+"
-                                                )
-                                                return
-
                                             # precision error encountered
                                             # if is_bad_poly:
                                             #     log("\t\tprecision error")
 
-                                            if current_x_prec < max_prec:
+                                            if prec_is_constant == FALSE and current_x_prec < max_prec:
                                                 # increase prec if we haven't hit max_prec, reset
                                                 current_y_prec *= PREC_INCREASE_FACTOR
                                                 current_x_prec = current_y_prec + x_y_prec_offset
@@ -838,7 +825,9 @@ cdef _single_orbit(
                                                         # log(beta)
                                                         # log([blk.segment() for blk in coef_orbit_reg.blks(orbit_apri)])
                                                         # log([blk.segment() for blk in poly_orbit_reg.blks(orbit_apri)])
-
+                                                        log('Simple parry!')
+                                                        log(f'period info: {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
+                                                        log(f'status info: {status_reg[orbit_apri.resp, orbit_apri.index]}')
                                                         return
 
                             with timers.time("_single_orbit calculating Bn and cn"):
@@ -879,6 +868,9 @@ cdef _single_orbit(
 
                                     _cleanup_register(coef_orbit_reg, status_reg, periodic_reg, orbit_apri, m + 1, p)
                                     _cleanup_register(poly_orbit_reg, status_reg, periodic_reg, orbit_apri, m, p)
+                                    log('Non-simple parry!')
+                                    log(f'period info: {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
+                                    log(f'status info: {status_reg[orbit_apri.resp, orbit_apri.index]}')
                                     return
 
                             with timers.time("_single_orbit prec offset"):
