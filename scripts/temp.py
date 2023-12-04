@@ -4,7 +4,6 @@ from intpolynomials.registers import IntPolynomialRegister
 
 perron_polys_reg = load_shorthand('perron_polys_reg', '/fs/project/thompson.2455/lane.662/perronnums')
 perron_nums_reg = load_shorthand('perron_nums_reg', '/fs/project/thompson.2455/lane.662/perronnums')
-apri_exceptions = (ApriInfo(deg = 2, sum_abs_coef = 2), ApriInfo(deg = 3, sum_abs_coef = 2))
 dps = 500
 
 # with openregs(perron_polys_reg, perron_nums_reg, readonlys = (True, True)):
@@ -22,13 +21,9 @@ with openregs(perron_polys_reg, perron_nums_reg, readonlys = (True, True)):
         assert not hasattr(apri, 'dps')
         nums_apri = ApriInfo(deg = apri.deg, sum_abs_coef = apri.sum_abs_coef, dps = dps)
 
-        try:
-            assert nums_apri in perron_nums_reg or apri in apri_exceptions
+        assert nums_apri in perron_nums_reg or apri.sum_abs_coef == 2
 
-        except AssertionError:
-            print(nums_apri)
-
-        if apri not in apri_exceptions:
+        if apri.sum_abs_coef == 2:
             try:
                 assert list(perron_nums_reg.intervals(nums_apri)) == list(perron_polys_reg.intervals(apri))
             except AssertionError:
