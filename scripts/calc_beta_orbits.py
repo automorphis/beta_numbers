@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 
+from intpolynomials.registers import IntPolynomialRegister
 from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup
 from cornifer import parallelize, load_shorthand
 from cornifer.debug import init_dir, set_dir, log
