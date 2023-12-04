@@ -100,7 +100,8 @@ class Perron_Number:
         if (
             self.min_poly.deg() <= 0 or
             self.min_poly[self.min_poly.deg()] != 1 or
-            self.beta0.real < 1 or (
+            self.beta0.real < 1 or
+            not almosteq(self.beta0.imag, 0.0) or (
                 self.min_poly.deg() >= 2 and (
                     self.conjs_mods_mults[0][2] > 1 or
                     almosteq(self.beta0.real, self.conjs_mods_mults[1][1])
