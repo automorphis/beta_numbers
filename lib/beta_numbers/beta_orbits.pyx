@@ -585,9 +585,9 @@ cdef _single_orbit(
                     initial_y_prec = 16
                     x_y_prec_offset = math.ceil(
                         1 +
-                        2 * _base2_magn(deg - 1) +
+                        2 * _base2_magn(deg) +
                         _base2_magn(Bn_1.max_abs_coef()) +
-                        (deg - 2) * math.log2(int(beta0) + 2)
+                        (deg - 1) * math.log2(int(beta0) + 2)
                     )
 
                     if deg == 2:
@@ -596,8 +596,8 @@ cdef _single_orbit(
                     else:
                         x_prec_lower_bound = math.ceil(
                             2 +
-                            2 * _base2_magn(deg - 2) -
-                            _base2_magn(deg - 1)
+                            2 * _base2_magn(deg - 1) -
+                            _base2_magn(deg)
                         )
 
                     if x_prec_lower_bound <= 0:
