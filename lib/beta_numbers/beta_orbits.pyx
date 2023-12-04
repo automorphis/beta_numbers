@@ -236,7 +236,9 @@ def calc_orbits(
                                                     max_blk_len,
                                                     max_orbit_len,
                                                     max_dps,
-                                                    timers
+                                                    timers,
+                                                    100,
+                                                    500
                                                 )
 
                                         if not perron_polys_reg.is_compressed(poly_apri, startn, length):
@@ -497,7 +499,9 @@ cdef _single_orbit(
     INDEX_t max_blk_len,
     INDEX_t max_poly_orbit_len,
     DPS_t max_dps,
-    object timers
+    object timers,
+    DPS_t constant_y_dps,
+    DPS_t constant_x_dps
 ):
 
     cdef DEG_t j, deg
@@ -510,7 +514,22 @@ cdef _single_orbit(
     cdef BOOL_t simple_parry, n_even
     cdef COEF_t max_abs_coef, curr_max_abs_coef, max_max_abs_coef
     cdef DPS_t PREC_INCREASE_FACTOR = 2
-    cdef max_prec = int(max_dps * LOG_2_10)
+    cdef DPS_t max_prec = int(max_dps * LOG_2_10)
+    cdef DPS_t constant_y_prec, constant_x_prec
+    cdef BOOL_t prec_is_constant
+
+    if (constant_y_dps == -1) != (constant_x_dps == -1):
+        raise ValueError
+
+    prec_is_constant = FALSE if constant_y_dps == -1 else TRUE
+
+    if prec_is_constant == FALSE:
+        constant_y_prec = constant_x_prec = -1
+
+    else:
+
+        constant_y_prec = int(constant_y_dps * LOG_2_10)
+        constant_x_prec = int(constant_x_dps * LOG_2_10)
 
     with timers.time("_single_orbit callee"):
 
@@ -582,26 +601,28 @@ cdef _single_orbit(
                         log(f"Bn_1 = {Bn_1}")
                         log(f"k = {k}")
 
-                    initial_y_prec = 16
-                    x_y_prec_offset = math.ceil(
-                        1 +
-                        2 * _base2_magn(deg) +
-                        _base2_magn(Bn_1.max_abs_coef()) +
-                        (deg - 1) * math.log2(int(beta0) + 2)
-                    )
+                    if not prec_is_constant:
 
-                    if deg == 2:
-                        x_prec_lower_bound = 1
-
-                    else:
-                        x_prec_lower_bound = math.ceil(
-                            2 +
-                            2 * _base2_magn(deg - 1) -
-                            _base2_magn(deg)
+                        initial_y_prec = 16
+                        x_y_prec_offset = math.ceil(
+                            1 +
+                            2 * _base2_magn(deg) +
+                            _base2_magn(Bn_1.max_abs_coef()) +
+                            (deg - 1) * math.log2(int(beta0) + 2)
                         )
 
-                    if x_prec_lower_bound <= 0:
-                        x_prec_lower_bound = 1
+                        if deg == 2:
+                            x_prec_lower_bound = 1
+
+                        else:
+                            x_prec_lower_bound = math.ceil(
+                                2 +
+                                2 * _base2_magn(deg - 1) -
+                                _base2_magn(deg)
+                            )
+
+                        if x_prec_lower_bound <= 0:
+                            x_prec_lower_bound = 1
 
                     if current_x_prec > max_prec:
                         status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
@@ -612,11 +633,18 @@ cdef _single_orbit(
                             # primary orbit iteration loop
                             with timers.time("_single_orbit main loop beginning"):
 
-                                current_y_prec = initial_y_prec
-                                current_x_prec = current_y_prec + x_y_prec_offset
+                                if prec_is_constant == FALSE:
 
-                                if current_x_prec < x_prec_lower_bound:
-                                    current_x_prec = x_prec_lower_bound
+                                    current_y_prec = initial_y_prec
+                                    current_x_prec = current_y_prec + x_y_prec_offset
+
+                                    if current_x_prec < x_prec_lower_bound:
+                                        current_x_prec = x_prec_lower_bound
+
+                                else:
+
+                                    current_x_prec = constant_x_prec
+                                    current_y_prec = constant_y_prec
 
                                 mpmath.mp.prec = current_x_prec
 
@@ -686,6 +714,20 @@ cdef _single_orbit(
                                     with timers.time("_single orbit increase DPS loop"):
 
                                         if do_while == TRUE:
+
+                                            if prec_is_constant == TRUE:
+
+                                                if len(coef_blk) > 0:
+                                                    coef_orbit_reg.append_disk_blk(coef_blk)
+
+                                                if len(poly_blk) > 0:
+                                                    poly_orbit_reg.append_disk_blk(poly_blk)
+
+                                                status_reg.set(
+                                                    poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode = "r+"
+                                                )
+                                                return
+
                                             # precision error encountered
                                             # if is_bad_poly:
                                             #     log("\t\tprecision error")
@@ -704,6 +746,20 @@ cdef _single_orbit(
 
                                             else:
                                                 # likely simple Parry number detected
+
+                                                if xi < 0:
+
+                                                    if len(coef_blk) > 0:
+                                                        coef_orbit_reg.append_disk_blk(coef_blk)
+
+                                                    if len(poly_blk) > 0:
+                                                        poly_orbit_reg.append_disk_blk(poly_blk)
+
+                                                    status_reg.set(
+                                                        poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode = "r+"
+                                                    )
+                                                    return
+
                                                 cn = _round(xi)
                                                 Bn = IntPolynomial(min_poly._deg - 1)
                                                 _calc_Bn(Bn_1, cn, min_poly, Bn)

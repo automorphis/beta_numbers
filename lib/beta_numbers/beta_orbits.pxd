@@ -19,7 +19,9 @@ cdef _single_orbit(
     INDEX_t max_blk_len,
     INDEX_t max_poly_orbit_len,
     DPS_t max_dps,
-    object timers
+    object timers,
+    DPS_t constant_y_dps,
+    DPS_t constant_x_dps
 )
 
 cdef C_t _round(MPF_t x) except -1
