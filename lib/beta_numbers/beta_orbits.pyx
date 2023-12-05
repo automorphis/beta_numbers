@@ -237,8 +237,8 @@ def calc_orbits(
                                                     max_orbit_len,
                                                     max_dps,
                                                     timers,
-                                                    100,
-                                                    500
+                                                    -1,
+                                                    -1
                                                 )
 
                                         if not perron_polys_reg.is_compressed(poly_apri, startn, length):
@@ -544,7 +544,7 @@ cdef _single_orbit(
             deg = beta.deg
             log(f'beta0 = {beta0}')
             log(f'min_poly = {min_poly}')
-            max_max_abs_coef = 2 ** 61
+            base2_magn_max_max_abs_coef = 61
             poly_apri = orbit_apri.resp
             # get startup info
             with timers.time("_single_orbit boilerplate status_reg.get"):
@@ -629,7 +629,7 @@ cdef _single_orbit(
                         status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
 
                     with setprec(max_prec):
-                        norm_max_eval = int(beta0 * (beta0 ** deg - 1) / (beta0 - 1)) + 1
+                        norm_max_eval = _base2_magn(int(beta0 * (beta0 ** deg - 1) / (beta0 - 1)) + 1)
 
                     log(f'norm_max_eval = {norm_max_eval}')
 
@@ -665,7 +665,7 @@ cdef _single_orbit(
 
                                 with timers.time("_single_orbit main loop max coef found"):
 
-                                    if Bn_1.max_abs_coef() * norm_max_eval > max_max_abs_coef:
+                                    if _base2_magn(Bn_1.max_abs_coef()) + norm_max_eval > base2_magn_max_max_abs_coef:
                                         log('\tlarge coefficient!')
                                         # large coefficients found
                                         if len(coef_blk) > 0:
