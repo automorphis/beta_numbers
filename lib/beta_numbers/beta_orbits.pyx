@@ -607,7 +607,7 @@ cdef _single_orbit(
                                 1 +
                                 2 * _base2_magn(deg) +
                                 _base2_magn(Bn_1.max_abs_coef()) +
-                                (deg - 1) * math.log2(int(beta0) + 2)
+                                deg * math.log2(int(beta0) + 2)
                             )
 
                             if deg == 2:
@@ -841,6 +841,18 @@ cdef _single_orbit(
                                     log(f'\t\tBn.deg() = {Bn.deg()}')
                                     coef_seg.append(cn)
                                     poly_seg.append(Bn)
+
+                                    with timers.time("_single_orbit prec offset"):
+
+                                        current_y_prec *= PREC_INCREASE_FACTOR
+                                        x_y_prec_offset += _prec_offset(Bn, Bn_1)
+                                        current_x_prec = current_y_prec + x_y_prec_offset
+
+                                        if current_x_prec < x_prec_lower_bound:
+                                            current_x_prec = x_prec_lower_bound
+
+                                        mpmath.mp.prec = current_x_prec
+
                                     Bn_1 = Bn
 
                                     if cn != coef_orbit_reg_highprec[orbit_apri, n]:
@@ -874,17 +886,6 @@ cdef _single_orbit(
                                         log(f'period info: {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
                                         log(f'status info: {status_reg[orbit_apri.resp, orbit_apri.index]}')
                                         return
-
-                                with timers.time("_single_orbit prec offset"):
-
-                                    current_y_prec *= PREC_INCREASE_FACTOR
-                                    x_y_prec_offset += _prec_offset(Bn, Bn_1)
-                                    current_x_prec = current_y_prec + x_y_prec_offset
-
-                                    if current_x_prec < x_prec_lower_bound:
-                                        current_x_prec = x_prec_lower_bound
-
-                                    mpmath.mp.prec = current_x_prec
 
                                 with timers.time("_single_orbit dump blk and clear seg"):
 
