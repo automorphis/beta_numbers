@@ -50,7 +50,7 @@ with stack(perron_polys_reg.open(), perron_nums_reg.open()):
                 print('polys', apri, startn, length)
             try:
                 assert perron_nums_reg.decompress(nums_apri, startn, length)
-            except BadZipFile
+            except BadZipFile:
                 print('nums', nums_apri, startn, length)
 
         apos = perron_polys_reg.apos(apri)
