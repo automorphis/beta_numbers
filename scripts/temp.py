@@ -45,11 +45,11 @@ with stack(perron_polys_reg.open(), perron_nums_reg.open()):
         for startn, length in perron_polys_reg.intervals(apri):
 
             try:
-                assert perron_polys_reg.decompress(apri, startn, length)
+                perron_polys_reg.decompress(apri, startn, length)
             except BadZipFile:
                 print('polys', apri, startn, length)
             try:
-                assert perron_nums_reg.decompress(nums_apri, startn, length)
+                perron_nums_reg.decompress(nums_apri, startn, length)
             except BadZipFile:
                 print('nums', nums_apri, startn, length)
 
