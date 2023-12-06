@@ -20,7 +20,7 @@ from intpolynomials.intpolynomials cimport IntPolynomial, IntPolynomialArray, BO
 import numpy as np
 import math
 import mpmath
-from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, stack
+from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, stack, load
 from cornifer._utilities import check_type, check_return_int, check_return_Path
 from cornifer.debug import log
 from intpolynomials.registers import IntPolynomialRegister
@@ -517,6 +517,7 @@ cdef _single_orbit(
         raise ValueError
 
     prec_is_constant = FALSE if constant_y_dps == -1 else TRUE
+    coef_orbit_reg_highprec = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
 
     if prec_is_constant == FALSE:
         constant_y_prec = constant_x_prec = -1
@@ -838,6 +839,9 @@ cdef _single_orbit(
                                 coef_seg.append(cn)
                                 poly_seg.append(Bn)
                                 Bn_1 = Bn
+
+                                if cn != coef_orbit_reg_highprec[orbit_apri, n]:
+                                    raise RuntimeError(f'Oh no! Should be {coef_orbit_reg_highprec[orbit_apri, n]}')
 
                             with timers.time("_single_orbit even check"):
 
