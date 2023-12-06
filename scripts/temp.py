@@ -24,6 +24,8 @@ with stack(coef_orbit_reg_highprec.open(True), coef_orbit_reg.open(True)):
 
             except AssertionError:
                 print(2, apri)
+                print(list(coef_orbit_reg_highprec[apri, :len_]))
+                print(list(coef_orbit_reg[apri, :len_]))
 
 # perron_polys_reg = load('perron_polys_reg', '/fs/project/thompson.2455/lane.662/perronnums')
 # perron_nums_reg = load('perron_nums_reg', '/fs/project/thompson.2455/lane.662/perronnums')
