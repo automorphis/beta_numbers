@@ -20,7 +20,7 @@ from intpolynomials.intpolynomials cimport IntPolynomial, IntPolynomialArray, BO
 import numpy as np
 import math
 import mpmath
-from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, openregs, openblks
+from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, stack
 from cornifer._utilities import check_type, check_return_int, check_return_Path
 from cornifer.debug import log
 from intpolynomials.registers import IntPolynomialRegister
@@ -145,9 +145,9 @@ def calc_orbits(
 
         with timers.time_cm(
             "calc_orbits openregs cm",
-            openregs(
-                perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg,
-                readonlys = (False, False, False, False, False, False)
+            stack(
+                perron_polys_reg.open(True), perron_nums_reg.open(True), poly_orbit_reg.open(), coef_orbit_reg.open(),
+                periodic_reg.open(), status_reg.open(),
             )
         ) as (perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg):
 
@@ -209,9 +209,9 @@ def calc_orbits(
 
                                         with timers.time_cm(
                                             "opening perron_poly_blk, perron_num_blk",
-                                            openblks(
-                                                perron_polys_reg.blk(poly_apri, startn, length),
-                                                perron_nums_reg.blk(num_apri, startn, length)
+                                            stack(
+                                                perron_polys_reg.blk(poly_apri, startn, length, decompress = True),
+                                                perron_nums_reg.blk(num_apri, startn, length, decompress = True)
                                             )
                                         ) as (perron_poly_blk, perron_num_blk):
 
@@ -240,12 +240,6 @@ def calc_orbits(
                                                     -1,
                                                     -1
                                                 )
-
-                                        if not perron_polys_reg.is_compressed(poly_apri, startn, length):
-                                            perron_polys_reg.compress(poly_apri, startn, length)
-
-                                        if not perron_nums_reg.is_compressed(num_apri, startn, length):
-                                            perron_nums_reg.compress(num_apri, startn, length)
 
 def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len, timers, verbose = False):
     """Setup and return the `Register`s `poly_orbit_reg`, `coef_orbit_reg`, `periodic_reg`, and `status_reg`.
@@ -337,7 +331,7 @@ the apri are periodic OR there are no associated blks in `poly_orbit_reg`, then 
         if verbose:
             log("Making `periodic_reg` directory...")
 
-        with openregs(perron_polys_reg, periodic_reg, readonlys = (True, False)) as (perron_polys_reg, periodic_reg):
+        with stack(perron_polys_reg.open(True), periodic_reg.open()) as (perron_polys_reg, periodic_reg):
 
             if verbose:
                 log("... success!")
@@ -357,9 +351,9 @@ the apri are periodic OR there are no associated blks in `poly_orbit_reg`, then 
             log("... success!")
             log("Setting up subregister relation...")
 
-        with openregs(
-            poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg, perron_nums_reg, perron_polys_reg,
-            readonlys = (False, False, False, False, True, True)
+        with stack(
+            poly_orbit_reg.open(), coef_orbit_reg.open(), periodic_reg.open(), status_reg.open(),
+            perron_nums_reg.open(True), perron_polys_reg.open(True)
         ) as (poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg, perron_nums_reg, perron_polys_reg):
 
             status_reg.add_subreg(poly_orbit_reg)
@@ -390,7 +384,7 @@ def calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose = False):
         check_type(status_reg, "status_reg", NumpyRegister)
         check_type(verbose, "verbose", bool)
 
-        with openregs(perron_polys_reg, status_reg, readonlys = (True, False)) as (perron_polys_reg, status_reg):
+        with stack(perron_polys_reg.open(True), status_reg.open()) as (perron_polys_reg, status_reg):
 
             if verbose:
                 log("Populating `status_reg` (this may take some time)...")
@@ -442,7 +436,7 @@ def _update_status_reg_apos(perron_polys_reg, status_reg, timers):
         # itself. (We do not update concurrently because both registers are opened in readonly mode.)
         with timers.time("searching for apos_updates"):
 
-            with openregs(perron_polys_reg, status_reg, readonlys = (True, True)):
+            with stack(perron_polys_reg.open(True), status_reg.open(True)) as (perron_polys_reg, status_reg):
 
                 for j, apri in enumerate(perron_polys_reg):
 
@@ -574,7 +568,7 @@ cdef _single_orbit(
 
         with timers.time("_single_orbit main portion"):
 
-            with timers.time_cm("_single_orbit main portion open coef and poly blks", openblks(coef_blk, poly_blk)):
+            with timers.time_cm("_single_orbit main portion open coef and poly blks", stack(coef_blk, poly_blk)):
 
                 original_dps = mpmath.mp.dps
 

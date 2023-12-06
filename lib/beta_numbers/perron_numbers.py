@@ -16,7 +16,7 @@ import logging
 import math
 
 from dagtimers import Timers
-from cornifer import Block, openregs, ApriInfo, DataNotFoundError, openblks, AposInfo
+from cornifer import Block, ApriInfo, DataNotFoundError, AposInfo, stack
 from cornifer.debug import log
 from mpmath import almosteq, mp
 from intpolynomials import IntPolynomial, IntPolynomialRegister, IntPolynomialArray, IntPolynomialIter
@@ -221,7 +221,7 @@ def calc_perron_nums_setup_regs(saves_dir):
         NUM_BYTES_PER_TERABYTE
     )
 
-    with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg) as (
+    with stack(perron_polys_reg.open(), perron_nums_reg.open(), perron_conjs_reg.open()) as (
         perron_polys_reg, perron_nums_reg, perron_conjs_reg
     ):
 
@@ -238,13 +238,13 @@ def calc_perron_nums(
 
     with setdps(dps):
 
-        with openregs(perron_polys_reg, perron_nums_reg, perron_conjs_reg) as (
+        with stack(perron_polys_reg.open(), perron_nums_reg.open(), perron_conjs_reg.open()) as (
             perron_polys_reg, perron_nums_reg, perron_conjs_reg
         ):
 
             for d in max_sum_abs_coef.keys():
 
-                for s in range(2 + proc_index, max_sum_abs_coef[d] + 1, num_procs):
+                for s in range(3 + proc_index, max_sum_abs_coef[d] + 1, num_procs):
 
                     log(f"deg = {d}, sum_abs_coef = {s}, dps = {dps}")
                     poly_apri = ApriInfo(deg = d, sum_abs_coef = s)
@@ -271,7 +271,7 @@ def calc_perron_nums(
                     total_poly = 0
                     total_irreducible = 0
 
-                    with openblks(Block(polys_seg, poly_apri), Block(nums_seg, num_conj_apri), Block(conjs_seg, num_conj_apri)) as (
+                    with stack(Block(polys_seg, poly_apri), Block(nums_seg, num_conj_apri), Block(conjs_seg, num_conj_apri)) as (
                         polys_blk, nums_blk, conjs_blk
                     ):
 

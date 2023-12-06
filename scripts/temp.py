@@ -1,9 +1,11 @@
-from cornifer import load_shorthand, NumpyRegister, openregs, ApriInfo
+from zipfile import BadZipFile
+
+from cornifer import load, NumpyRegister, stack, ApriInfo
 from beta_numbers.registers import MPFRegister
 from intpolynomials.registers import IntPolynomialRegister
 
-perron_polys_reg = load_shorthand('perron_polys_reg', '/fs/project/thompson.2455/lane.662/perronnums')
-perron_nums_reg = load_shorthand('perron_nums_reg', '/fs/project/thompson.2455/lane.662/perronnums')
+perron_polys_reg = load('perron_polys_reg', '/fs/project/thompson.2455/lane.662/perronnums')
+perron_nums_reg = load('perron_nums_reg', '/fs/project/thompson.2455/lane.662/perronnums')
 dps = 500
 
 # with openregs(perron_polys_reg, perron_nums_reg, readonlys = (True, True)):
@@ -11,7 +13,7 @@ dps = 500
     # for apri in perron_polys_reg:
     #     print(apri)
 
-with openregs(perron_polys_reg, perron_nums_reg, readonlys = (True, True)):
+with stack(perron_polys_reg.open(), perron_nums_reg.open()):
 
     for apri in perron_polys_reg:
 
@@ -39,6 +41,17 @@ with openregs(perron_polys_reg, perron_nums_reg, readonlys = (True, True)):
                 assert perron_nums_reg.is_compressed(nums_apri, startn, length)
             except AssertionError:
                 print(nums_apri, startn, length)
+
+        for startn, length in perron_polys_reg.intervals(apri):
+
+            try:
+                assert perron_polys_reg.decompress(apri, startn, length)
+            except BadZipFile:
+                print('polys', apri, startn, length)
+            try:
+                assert perron_nums_reg.decompress(nums_apri, startn, length)
+            except BadZipFile
+                print('nums', nums_apri, startn, length)
 
         apos = perron_polys_reg.apos(apri)
         assert apos.complete or hasattr(apos, 'last_poly')
