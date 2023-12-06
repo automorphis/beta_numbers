@@ -36,11 +36,11 @@ with stack(perron_polys_reg.open(), perron_nums_reg.open()):
             try:
                 assert perron_polys_reg.is_compressed(apri, startn, length)
             except AssertionError:
-                print(apri, startn, length)
+                perron_polys_reg.compress(apri, startn, length)
             try:
                 assert perron_nums_reg.is_compressed(nums_apri, startn, length)
             except AssertionError:
-                print(nums_apri, startn, length)
+                perron_nums_reg.compress(nums_apri, startn, length)
 
         for startn, length in perron_polys_reg.intervals(apri):
 
