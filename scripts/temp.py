@@ -5,8 +5,8 @@ from beta_numbers.registers import MPFRegister
 from intpolynomials.registers import IntPolynomialRegister
 
 
-coef_orbit_reg_highprec = load('poly_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
-coef_orbit_reg = load('poly_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
+coef_orbit_reg_highprec = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
+coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
 
 with stack(coef_orbit_reg_highprec.open(True), coef_orbit_reg.open(True)):
 
