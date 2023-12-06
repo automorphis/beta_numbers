@@ -699,7 +699,7 @@ cdef _single_orbit(
 
                                             with timers.time("calc bin"):
                                                 bin_ = math.floor(math.log2(current_x_prec))
-                                            log(f"\t\tcurrent_x_prec = {mpmath.mp.prec}")
+                                            log(f"\t\tcurrent_x_prec = {current_y_prec}")
                                             log(f"\t\tcurrent_y_prec = {current_y_prec}")
                                             with timers.time(f"eval 2 ** {bin_}"):
                                                 Bn_1.c_eval(beta0, FALSE)
@@ -729,13 +729,13 @@ cdef _single_orbit(
                                                     # increase prec if we haven't hit max_prec, reset
                                                     current_y_prec *= PREC_INCREASE_FACTOR
                                                     current_x_prec = current_y_prec + x_y_prec_offset
+
+                                                    if max_prec <= current_x_prec:
+
+                                                        current_x_prec = max_prec - 3
+                                                        current_y_prec = current_x_prec - x_y_prec_offset
+
                                                     mpmath.mp.prec = current_x_prec
-
-                                                    if max_prec < current_x_prec:
-                                                        current_x_prec = max_prec
-
-                                                    if max_prec < current_y_prec:
-                                                        current_y_prec = max_prec
 
                                                 else:
                                                     # likely simple Parry number detected
