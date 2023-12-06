@@ -1,6 +1,6 @@
 from zipfile import BadZipFile
 
-from cornifer import load, NumpyRegister, stack, ApriInfo
+from cornifer import load, NumpyRegister, stack, ApriInfo, DecompressionError
 from beta_numbers.registers import MPFRegister
 from intpolynomials.registers import IntPolynomialRegister
 
@@ -48,10 +48,14 @@ with stack(perron_polys_reg.open(), perron_nums_reg.open()):
                 perron_polys_reg.decompress(apri, startn, length)
             except BadZipFile:
                 print('polys', apri, startn, length)
+            except DecompressionError:
+                pass
             try:
                 perron_nums_reg.decompress(nums_apri, startn, length)
             except BadZipFile:
                 print('nums', nums_apri, startn, length)
+            except DecompressionError:
+                pass
 
         apos = perron_polys_reg.apos(apri)
         assert apos.complete or hasattr(apos, 'last_poly')
