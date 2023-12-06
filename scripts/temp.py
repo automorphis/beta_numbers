@@ -13,7 +13,7 @@ with stack(coef_orbit_reg_highprec.open(True), coef_orbit_reg.open(True)):
     for apri in coef_orbit_reg:
 
         if apri not in coef_orbit_reg_highprec:
-            print(1, apri)
+            pass
 
         else:
 
