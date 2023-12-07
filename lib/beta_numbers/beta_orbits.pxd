@@ -21,7 +21,9 @@ cdef _single_orbit(
     DPS_t max_dps,
     object timers,
     DPS_t constant_y_dps,
-    DPS_t constant_x_dps
+    DPS_t constant_x_dps,
+    object coef_orbit_reg_highprec,
+    object periodic_reg_highprec
 )
 
 cdef C_t _round(MPF_t x) except -1
