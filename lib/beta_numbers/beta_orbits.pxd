@@ -21,18 +21,12 @@ cdef _single_orbit(
     DPS_t max_dps,
     object timers,
     DPS_t constant_y_dps,
-    DPS_t constant_x_dps,
-    object coef_orbit_reg_highprec,
-    object periodic_reg_highprec
+    DPS_t constant_x_dps
 )
 
 cdef C_t _round(MPF_t x) except -1
 
 cdef MPF_t _torus_norm(MPF_t x)
-
-# cdef BOOL_t _check_eta(MPF_t xi, MPF_t eta) except -1
-#
-# cdef MPF_t _calc_eta(MPF_t beta0, IntPolynomial Bn_1, MPF_t eps)
 
 cdef BOOL_t _incr_prec(MPF_t x) except -1
 
