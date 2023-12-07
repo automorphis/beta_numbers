@@ -700,7 +700,7 @@ cdef _single_orbit(
 
                                             with timers.time("calc bin"):
                                                 bin_ = math.floor(math.log2(current_x_prec))
-                                            log(f"\t\tcurrent_x_prec = {current_y_prec}")
+                                            log(f"\t\tcurrent_x_prec = {current_x_prec}")
                                             log(f"\t\tcurrent_y_prec = {current_y_prec}")
                                             with timers.time(f"eval 2 ** {bin_}"):
                                                 Bn_1.c_eval(beta0, FALSE)
@@ -871,8 +871,6 @@ cdef _single_orbit(
 
                                         if cn != coef_orbit_reg_highprec[orbit_apri, n_]:
                                             raise RuntimeError(f'Oh no! Should be {coef_orbit_reg_highprec[orbit_apri, n_]}')
-
-
 
                                 with timers.time("_single_orbit even check"):
 
