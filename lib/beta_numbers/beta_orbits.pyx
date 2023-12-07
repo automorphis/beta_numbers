@@ -519,8 +519,9 @@ cdef _single_orbit(
 
     prec_is_constant = FALSE if constant_y_dps == -1 else TRUE
     coef_orbit_reg_highprec = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
+    periodic_reg_highprec = load('periodic_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
 
-    with coef_orbit_reg_highprec.open(True):
+    with stack(coef_orbit_reg_highprec.open(True), periodic_reg_highprec.open(True)):
 
         if prec_is_constant == FALSE:
             constant_y_prec = constant_x_prec = -1
@@ -855,8 +856,23 @@ cdef _single_orbit(
 
                                     Bn_1 = Bn
 
-                                    if cn != coef_orbit_reg_highprec[orbit_apri, n]:
-                                        raise RuntimeError(f'Oh no! Should be {coef_orbit_reg_highprec[orbit_apri, n]}')
+                                    m, p = periodic_reg_highprec[orbit_apri.resp, orbit_apri.index]
+                                    is_periodic = m != -1
+                                    m += 1 # bc coef orbit
+
+                                    if not is_periodic or n <= m + p:
+
+                                        if cn != coef_orbit_reg_highprec[orbit_apri, n]:
+                                            raise RuntimeError(f'Oh no! Should be {coef_orbit_reg_highprec[orbit_apri, n]}')
+
+                                    else:
+
+                                        n_ = m + 1 + (n - m - 1) % p
+
+                                        if cn != coef_orbit_reg_highprec[orbit_apri, n_]:
+                                            raise RuntimeError(f'Oh no! Should be {coef_orbit_reg_highprec[orbit_apri, n_]}')
+
+
 
                                 with timers.time("_single_orbit even check"):
 
