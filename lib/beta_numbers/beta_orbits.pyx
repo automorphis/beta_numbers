@@ -733,7 +733,7 @@ cdef _single_orbit(
 
                                                     if max_prec <= current_x_prec:
 
-                                                        current_x_prec = max_prec - 3
+                                                        current_x_prec = max_prec
                                                         current_y_prec = current_x_prec - x_y_prec_offset
 
                                                     mpmath.mp.prec = current_x_prec
