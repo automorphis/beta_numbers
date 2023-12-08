@@ -166,12 +166,6 @@ def calc_orbits(
 
                                 with setdps(max_dps):
 
-                                    if perron_polys_reg.is_compressed(poly_apri, startn, length):
-                                        perron_polys_reg.decompress(poly_apri, startn, length)
-
-                                    if perron_nums_reg.is_compressed(num_apri, startn, length):
-                                        perron_nums_reg.decompress(num_apri, startn, length)
-
                                     with stack(
                                         perron_polys_reg.blk(poly_apri, startn, length, decompress = True),
                                         perron_nums_reg.blk(num_apri, startn, length, decompress = True),
