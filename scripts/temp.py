@@ -32,6 +32,8 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
             assert coef_orbit_reg.total_len(orbit_apri) == poly_len
             assert status_reg[poly_len, index][0] == poly_len
 
+        print(orbit_apri, is_periodic)
+
 # coef_orbit_reg_highprec = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
 # coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
 #
