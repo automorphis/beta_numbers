@@ -2,9 +2,9 @@
 
 #SBATCH --job-name=CalcBetaOrbits
 #SBATCH --time=00:20:00
-#SBATCH --ntasks=2
+#SBATCH --ntasks=1
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-core=1
+#SBATCH --cpus-per-task=24
 #SBATCH --error=/home/lane.662/betaorbitserror.txt
 #SBATCH --output=/home/lane.662/betaorbitsoutput.txt
 #SBATCH --mail-user=lane.662@osu.edu
