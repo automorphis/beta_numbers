@@ -12,6 +12,8 @@ poly_orbit_reg = load('poly_orbit_reg', '/fs/project/thompson.2455/lane.662/beta
 
 with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(True), poly_orbit_reg.open(True)):
 
+    print('hi')
+
     for orbit_apri in poly_orbit_reg:
 
         poly_apri = orbit_apri.resp
