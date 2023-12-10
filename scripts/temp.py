@@ -5,10 +5,10 @@ from cornifer import load, NumpyRegister, stack, ApriInfo, DecompressionError
 from beta_numbers.registers import MPFRegister
 from intpolynomials.registers import IntPolynomialRegister
 
-status_reg = load('status_reg', '/fs/project/thompson.2455/lane.6625/betaorbits')
-periodic_reg = load('periodic_reg', '/fs/project/thompson.2455/lane.6625/betaorbits')
-coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.6625/betaorbits')
-poly_orbit_reg = load('poly_orbit_reg', '/fs/project/thompson.2455/lane.6625/betaorbits')
+status_reg = load('status_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
+periodic_reg = load('periodic_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
+coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
+poly_orbit_reg = load('poly_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
 
 with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(True), poly_orbit_reg.open(True)):
 
