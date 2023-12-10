@@ -41,7 +41,7 @@ if __name__ == '__main__':
     max_blk_len = int(sys.argv[5])
     max_orbit_len = int(sys.argv[6])
     max_dps = int(sys.argv[7])
-    timeout = int(slurm_timecode_to_timedelta(sys.argv[8]).total_seconds() * 0.90)
+    timeout = int(slurm_timecode_to_timedelta(sys.argv[8]).total_seconds())
     update_period = int(sys.argv[9])
     update_timeout = int(sys.argv[10])
     sec_per_block_upper_bound = int(sys.argv[11])
