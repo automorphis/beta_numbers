@@ -1,31 +1,58 @@
 from zipfile import BadZipFile
 
+import numpy as np
 from cornifer import load, NumpyRegister, stack, ApriInfo, DecompressionError
 from beta_numbers.registers import MPFRegister
 from intpolynomials.registers import IntPolynomialRegister
 
+status_reg = load('status_reg', '/fs/project/thompson.2455/lane.6625/betaorbits')
+periodic_reg = load('periodic_reg', '/fs/project/thompson.2455/lane.6625/betaorbits')
+coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.6625/betaorbits')
+poly_orbit_reg = load('poly_orbit_reg', '/fs/project/thompson.2455/lane.6625/betaorbits')
 
-coef_orbit_reg_highprec = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
-coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
+with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(True), poly_orbit_reg.open(True)):
 
-with stack(coef_orbit_reg_highprec.open(True), coef_orbit_reg.open(True)):
+    for orbit_apri in poly_orbit_reg:
 
-    for apri in coef_orbit_reg:
+        poly_apri = orbit_apri.resp
+        index = orbit_apri.index
+        m, p = periodic_reg[poly_apri, index]
+        is_periodic = m != -1
 
-        if apri not in coef_orbit_reg_highprec:
-            pass
+        if is_periodic:
+
+            assert p != -1
+            assert poly_orbit_reg.total_len(orbit_apri) == m + p
+            assert coef_orbit_reg.total_len(orbit_apri) == m + p + 1
+            assert status_reg[poly_apri, index] == np.array([m + p, -1, -1])
 
         else:
 
-            len_ = min(coef_orbit_reg_highprec.total_len(apri), coef_orbit_reg.total_len(apri))
+            poly_len = poly_orbit_reg.total_len(orbit_apri)
+            assert coef_orbit_reg.total_len(orbit_apri) == poly_len
+            assert status_reg[poly_len, index][0] == poly_len
 
-            try:
-                assert list(coef_orbit_reg_highprec[apri, :len_]) == list(coef_orbit_reg[apri, :len_])
-
-            except AssertionError:
-                print(2, apri)
-                print(list(coef_orbit_reg_highprec[apri, :len_]))
-                print(list(coef_orbit_reg[apri, :len_]))
+# coef_orbit_reg_highprec = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
+# coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
+#
+# with stack(coef_orbit_reg_highprec.open(True), coef_orbit_reg.open(True)):
+#
+#     for apri in coef_orbit_reg:
+#
+#         if apri not in coef_orbit_reg_highprec:
+#             pass
+#
+#         else:
+#
+#             len_ = min(coef_orbit_reg_highprec.total_len(apri), coef_orbit_reg.total_len(apri))
+#
+#             try:
+#                 assert list(coef_orbit_reg_highprec[apri, :len_]) == list(coef_orbit_reg[apri, :len_])
+#
+#             except AssertionError:
+#                 print(2, apri)
+#                 print(list(coef_orbit_reg_highprec[apri, :len_]))
+#                 print(list(coef_orbit_reg[apri, :len_]))
 
 # perron_polys_reg = load('perron_polys_reg', '/fs/project/thompson.2455/lane.662/perronnums')
 # perron_nums_reg = load('perron_nums_reg', '/fs/project/thompson.2455/lane.662/perronnums')
