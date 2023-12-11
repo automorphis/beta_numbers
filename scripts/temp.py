@@ -16,29 +16,32 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
 
     for orbit_apri in poly_orbit_reg:
 
-        print(orbit_apri)
-        poly_apri = orbit_apri.resp
-        index = orbit_apri.index
-        m, p = periodic_reg[poly_apri, index]
-        is_periodic = m != -1
+        try:
+            poly_apri = orbit_apri.resp
 
-        if is_periodic:
-
-            assert p != -1
-            assert poly_orbit_reg.total_len(orbit_apri) == m + p
-            assert coef_orbit_reg.total_len(orbit_apri) == m + p + 1
-            assert status_reg[poly_apri, index] == np.array([m + p, -1, -1])
+        except AttributeError:
+            pass
 
         else:
 
-            poly_len = poly_orbit_reg.total_len(orbit_apri)
-            assert coef_orbit_reg.total_len(orbit_apri) == poly_len
-            assert status_reg[poly_len, index][0] == poly_len
+            index = orbit_apri.index
+            m, p = periodic_reg[poly_apri, index]
+            is_periodic = m != -1
 
-        print(orbit_apri, is_periodic)
+            if is_periodic:
 
-    for poly_apri in status_reg:
-        print(poly_apri)
+                assert p != -1
+                assert poly_orbit_reg.total_len(orbit_apri) == m + p
+                assert coef_orbit_reg.total_len(orbit_apri) == m + p + 1
+                assert status_reg[poly_apri, index] == np.array([m + p, -1, -1])
+
+            else:
+
+                poly_len = poly_orbit_reg.total_len(orbit_apri)
+                assert coef_orbit_reg.total_len(orbit_apri) == poly_len
+                assert status_reg[poly_len, index][0] == poly_len
+
+            print(orbit_apri, is_periodic)
 
 # coef_orbit_reg_highprec = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
 # coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
