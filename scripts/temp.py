@@ -16,6 +16,7 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
 
     for orbit_apri in poly_orbit_reg:
 
+        print(orbit_apri)
         poly_apri = orbit_apri.resp
         index = orbit_apri.index
         m, p = periodic_reg[poly_apri, index]
