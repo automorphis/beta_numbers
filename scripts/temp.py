@@ -53,8 +53,10 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
                     assert coef_orbit_reg.total_len(orbit_apri) == poly_len
                 except AssertionError:
                     print('yo', coef_orbit_reg.total_len(orbit_apri), poly_len)
-                    print(list(coef_orbit_reg[orbit_apri, :]))
-                    print(list(poly_orbit_reg[orbit_apri, :]))
+                    for blk in coef_orbit_reg.blks(orbit_apri):
+                        print(blk)
+                    for blk in poly_orbit_reg.blks(orbit_apri):
+                        print(blk)
                 try:
                     assert status_reg[poly_apri, index][0] == poly_len
                 except AssertionError:
