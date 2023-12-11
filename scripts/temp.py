@@ -33,7 +33,7 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
                 assert p != -1
                 assert poly_orbit_reg.total_len(orbit_apri) == m + p
                 assert coef_orbit_reg.total_len(orbit_apri) == m + p + 1
-                assert status_reg[poly_apri, index] == np.array([m + p, -1, -1])
+                assert np.all(status_reg[poly_apri, index] == np.array([m + p, -1, -1]))
 
             else:
 
