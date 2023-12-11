@@ -38,7 +38,7 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
                 try:
                     assert coef_orbit_reg.total_len(orbit_apri) == m + p + 1
                 except AssertionError:
-                    print('hello', poly_orbit_reg.total_len(orbit_apri), m, p)
+                    print('hello', coef_orbit_reg.total_len(orbit_apri), m, p)
                 try:
                     assert np.all(status_reg[poly_apri, index] == np.array([m + p, -1, -1]))
                 except AssertionError:
@@ -47,8 +47,14 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
             else:
 
                 poly_len = poly_orbit_reg.total_len(orbit_apri)
-                assert coef_orbit_reg.total_len(orbit_apri) == poly_len
-                assert status_reg[poly_apri, index][0] == poly_len
+                try:
+                    assert coef_orbit_reg.total_len(orbit_apri) == poly_len
+                except AssertionError:
+                    print('yo', coef_orbit_reg.total_len(orbit_apri), poly_len)
+                try:
+                    assert status_reg[poly_apri, index][0] == poly_len
+                except AssertionError:
+                    print('sup', status_reg[poly_apri, index][0], poly_len)
 
 # coef_orbit_reg_highprec = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits_highprec')
 # coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
