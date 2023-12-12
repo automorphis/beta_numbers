@@ -660,6 +660,11 @@ cdef _single_orbit(
                                 return
 
                             cn = _round(xi)
+
+                            if cn == 0:
+                                log(f'unrecoverable precision, quitting, n = {n}.')
+                                status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
+
                             Bn = IntPolynomial(min_poly._deg - 1)
                             _calc_Bn(Bn_1, cn, min_poly, Bn)
 
@@ -679,27 +684,19 @@ cdef _single_orbit(
 
                             else:
                                 # simple parry
-                                if cn != 0:
+                                if is_bad_poly:
+                                    print('hey', n, cn)
 
-                                    if is_bad_poly:
-                                        print('hey', n, cn)
+                                coef_seg.append(cn)
 
-                                    coef_seg.append(cn)
+                                if len(coef_blk) >= max_blk_len:
 
-                                    if len(coef_blk) >= max_blk_len:
+                                    coef_orbit_reg.append_disk_blk(coef_blk)
+                                    coef_blk.startn += len(coef_blk)
+                                    coef_seg.clear()
 
-                                        coef_orbit_reg.append_disk_blk(coef_blk)
-                                        coef_blk.startn += len(coef_blk)
-                                        coef_seg.clear()
-
-                                    coef_seg.append(0)
-                                    poly_seg.append(Bn)
-
-                                else:
-                                    # append a trailing 0
-                                    if is_bad_poly:
-                                        print('hi', n, cn)
-                                    coef_seg.append(0)
+                                coef_seg.append(0)
+                                poly_seg.append(Bn)
 
                                 if len(coef_blk) > 0:
                                     coef_orbit_reg.append_disk_blk(coef_blk)
@@ -707,20 +704,11 @@ cdef _single_orbit(
                                 if len(poly_blk) > 0:
                                     poly_orbit_reg.append_disk_blk(poly_blk)
 
-                                if cn != 0:
-                                    if is_bad_poly:
-                                        print('_cleanup_regiser1', n, 1)
-                                    _cleanup_register(
-                                        min_poly, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg, orbit_apri, n, 1
-                                    )
-
-                                else:
-                                    if is_bad_poly:
-                                        print('_cleanup_regiser2', n - 1, 1)
-                                    _cleanup_register(
-                                        min_poly, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg, orbit_apri, n - 1, 1
-                                    )
-
+                                if is_bad_poly:
+                                    print('_cleanup_regiser1', n, 1)
+                                _cleanup_register(
+                                    min_poly, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg, orbit_apri, n - 1, 1
+                                )
                                 log(f'Simple parry, periodic_reg[...] = {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
                                 return
 

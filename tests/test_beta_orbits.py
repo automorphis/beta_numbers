@@ -85,12 +85,6 @@ class TestBetaOrbits(TestCase):
                 TestBetaOrbits.add_known_coef_orbit(*boyd_beta_n(n))
                 TestBetaOrbits.add_known_coef_orbit(*boyd_prop5_2(n))
 
-
-        print("perron_polys_reg", cls.perron_polys_reg.ident())
-        print("exp_coef_orbit_reg", cls.exp_coef_orbit_reg.ident())
-        print("exp_periodic_reg", cls.exp_periodic_reg.ident())
-        print("perron_nums_reg", cls.perron_nums_reg.ident())
-
     @classmethod
     def add_known_coef_orbit(cls, poly, orbit, m, p):
 
@@ -408,27 +402,6 @@ class TestBetaOrbits(TestCase):
                                                     print(max_poly_orbit_len)
                                                     print(exp_coef_preperiod_len)
                                                     print(cls.perron_polys_reg[perron_apri, index])
-                                                    print(cls.perron_polys_reg._approx_memory())
-                                                    with cls.perron_polys_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(poly_orbit_reg._approx_memory())
-                                                    with poly_orbit_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(coef_orbit_reg._approx_memory())
-                                                    with coef_orbit_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(periodic_reg._approx_memory())
-                                                    with periodic_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(status_reg._approx_memory())
-                                                    with status_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(cls.exp_coef_orbit_reg._approx_memory())
-                                                    with cls.exp_coef_orbit_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(cls.exp_periodic_reg._approx_memory())
-                                                    with cls.exp_periodic_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
                                                     raise
 
                                                 self.assertTrue(np.all(
@@ -456,11 +429,11 @@ class TestBetaOrbits(TestCase):
 
                                                 try:
                                                     self.assertTrue(np.all(
-                                                        [exp_coef_preperiod_len, exp_period] ==
+                                                        [exp_coef_preperiod_len - 1, exp_period] ==
                                                         periodic_reg.get(perron_apri, index, mmap_mode = "r")
                                                     ))
                                                 except AssertionError:
-                                                    print([exp_coef_preperiod_len, exp_period])
+                                                    print([exp_coef_preperiod_len - 1, exp_period])
                                                     print(periodic_reg.get(perron_apri, index, mmap_mode = "r"))
                                                     print(list(cls.exp_coef_orbit_reg[orbit_apri, :]))
                                                     print(list(coef_orbit_reg[orbit_apri, :]))
