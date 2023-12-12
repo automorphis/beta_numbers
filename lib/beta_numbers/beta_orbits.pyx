@@ -140,7 +140,7 @@ def calc_orbits(
     num_fixed = _fix_problems(perron_polys_reg, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg)
 
     if num_fixed != 0:
-        print(f'Fixed {num_fixed} problems')
+        log(f'Fixed {num_fixed} problems')
 
     try:
         # try clause followed by except clause that calls _fix_problems
@@ -204,7 +204,7 @@ def calc_orbits(
         num_fixed = _fix_problems(perron_polys_reg, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg)
 
         if num_fixed != 0:
-            print(f'Fixed {num_fixed} problems')
+            log(f'Fixed {num_fixed} problems')
 
         raise
 
