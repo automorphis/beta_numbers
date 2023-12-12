@@ -3,7 +3,7 @@ from intpolynomials import IntPolynomial, IntPolynomialArray, IntPolynomialRegis
 from beta_numbers.perron_numbers import Perron_Number
 from beta_numbers.registers import MPFRegister
 from beta_numbers.beta_orbits import setdps
-from cornifer import ApriInfo, AposInfo, DataNotFoundError, Block, NumpyRegister, openregs
+from cornifer import ApriInfo, AposInfo, DataNotFoundError, Block, NumpyRegister, stack
 from cornifer.debug import log
 
 def examples_setup(dir_):
@@ -13,7 +13,7 @@ def examples_setup(dir_):
     exp_coef_orbit_reg = NumpyRegister(dir_, 'exp_coef_orbit_reg', 'msg', 2 ** 40)
     exp_periodic_reg = NumpyRegister(dir_, 'exp_periodic_reg', 'msg', 2 ** 40)
 
-    with openregs(perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg):
+    with stack(perron_polys_reg.open(), perron_nums_reg.open(), exp_coef_orbit_reg.open(), exp_periodic_reg.open()):
 
         perron_nums_reg.add_subreg(perron_polys_reg)
         exp_periodic_reg.add_subreg(perron_polys_reg)
@@ -23,7 +23,7 @@ def examples_setup(dir_):
 
 def examples_populate(max_dps, func, params, perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg):
 
-    with openregs(perron_polys_reg, perron_nums_reg, exp_coef_orbit_reg, exp_periodic_reg):
+    with stack(perron_polys_reg.open(), perron_nums_reg.open(), exp_coef_orbit_reg.open(), exp_periodic_reg.open()):
 
         for param in params:
 

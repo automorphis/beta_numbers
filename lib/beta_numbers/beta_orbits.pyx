@@ -156,7 +156,7 @@ def calc_orbits(
 
                         with status_reg.blk(poly_apri, startn, length) as status_blk:
 
-                            orbit_lengths = status_blk.segment()[:,0]
+                            orbit_lengths = status_blk.segment[:,0]
                             nonneg_orbit_lengths = orbit_lengths[orbit_lengths >= 0]
                             complete_blk = len(nonneg_orbit_lengths) == 0 or np.all(nonneg_orbit_lengths >= max_orbit_len)
 
@@ -389,7 +389,7 @@ def _update_status_reg_apos(perron_polys_reg, status_reg, timers):
 
             for status_blk in status_reg.blks(apri):
                 # Ignore orbit lengths listed as -1 as those orbits are complete.
-                orbit_lengths = status_blk.segment()[:, 0]
+                orbit_lengths = status_blk.segment[:, 0]
                 nonneg_orbit_lengths = orbit_lengths[orbit_lengths >= 0]
 
                 if len(nonneg_orbit_lengths) != 0:
@@ -437,14 +437,14 @@ cdef _single_orbit(
 ):
 
     cdef DEG_t j, deg
-    cdef INDEX_t n, p, k, m
+    cdef INDEX_t n, k, preperiod_len, period_len
     cdef DPS_t current_x_prec, current_y_prec, original_dps, x_y_prec_offset, x_prec_lower_bound
-    cdef IntPolynomial min_poly, Bn, Bn_1, Bk
+    cdef IntPolynomial min_poly, Bn, Bn_1, Bk, B0, B1
     cdef IntPolynomialArray poly_seg
     cdef MPF_t beta0, xi
     cdef C_t cn
     cdef BOOL_t simple_parry, n_even
-    cdef COEF_t max_abs_coef, curr_max_abs_coef, max_max_abs_coef, norm_max_eval
+    cdef COEF_t max_abs_coef, curr_max_abs_coef, max_max_abs_coef, base2_magn_norm_max_eval, beta0_ceil, base2_magn_beta0_ceil
     cdef DPS_t PREC_INCREASE_FACTOR = 2
     cdef DPS_t max_prec = int(max_dps * LOG_2_10)
     cdef DPS_t constant_y_prec, constant_x_prec
@@ -464,9 +464,13 @@ cdef _single_orbit(
         constant_x_prec = int(constant_x_dps * LOG_2_10)
 
     min_poly = beta.min_poly
-    is_bad_poly = False
     debug = False
     beta0 = beta.beta0
+    beta0_ceil = int(mpmath.ceil(beta0))
+    beta0_floor = int(beta0)
+    base2_magn_beta0_ceil = _base2_magn(beta0_ceil)
+    B0 = IntPolynomial(0).set([1])
+    B1 = IntPolynomial(1).set([-int(beta0), 1])
     deg = beta.deg
     base2_magn_max_max_abs_coef = 61
     poly_apri = orbit_apri.resp
@@ -475,6 +479,7 @@ cdef _single_orbit(
     log(f'beta0 = {beta0}')
     log(f'min_poly = {min_poly}')
     log(f'poly_apri = {poly_apri}')
+    is_bad_poly = orbit_apri == ApriInfo(index=0, resp=ApriInfo(deg=32, sum_abs_coef=34))
 
     if last_overflow_index != -1:
         # cannot continue
@@ -496,6 +501,8 @@ cdef _single_orbit(
     poly_blk = Block(poly_seg, orbit_apri, startn)
     original_dps = mpmath.mp.dps
     log(f'startn = {startn}')
+    if is_bad_poly:
+        print(orbit_apri)
 
     with stack(coef_blk, poly_blk):
 
@@ -519,19 +526,23 @@ cdef _single_orbit(
                 Bk_iter = poly_orbit_reg[orbit_apri, 1:]
 
             if not prec_is_constant:
-
+                # x_y_prec_offset is derived from massaging the first order approximation of the rounding error and
+                # taking logs
+                # x_y_prec_offset will change as Bn_1 changes (cf _prec_offset)
                 initial_y_prec = 16
-                x_y_prec_offset = math.ceil(
+                x_y_prec_offset = (
                     1 +
                     2 * _base2_magn(deg) +
                     _base2_magn(Bn_1.max_abs_coef()) +
-                    deg * math.log2(int(beta0) + 2)
+                    deg * _base2_magn(beta0_ceil + 1)
                 )
 
                 if deg == 2:
                     x_prec_lower_bound = 1
 
                 else:
+                    # x_prec_lower_bound is the derived from massaging the Lagrange remainder of the first order
+                    # approximation of the error and taking logs (cf x_y_prec_offset)
                     x_prec_lower_bound = math.ceil(
                         2 +
                         2 * _base2_magn(deg - 1) -
@@ -545,10 +556,32 @@ cdef _single_orbit(
                     raise ValueError
 
             if current_x_prec > max_prec:
-                status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
 
-            with setprec(max_prec):
-                norm_max_eval = _base2_magn(int(beta0 * (beta0 ** deg - 1) / (beta0 - 1)) + 1)
+                status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
+                return
+            # base2_magn_norm_max_eval is a scaling factor that is used to detect potential overflow errors. it is derived by
+            # massaging the truncated geometric series of degree `deg - 1` and taking logs.
+            base2_magn_norm_max_eval = (deg + 1) * base2_magn_beta0_ceil
+            if is_bad_poly:
+                print(deg, beta0, base2_magn_beta0_ceil)
+                print(base2_magn_norm_max_eval)
+
+            if beta0 >= 2:
+                # this one gets smaller
+                base2_magn_norm_max_eval -= _base2_magn(beta0_floor - 1) - 1
+                if is_bad_poly:
+                    print(1, base2_magn_norm_max_eval)
+
+            else:
+                # this one gets bigger
+                with setprec(max_prec):
+                    base2_magn_norm_max_eval -= int(mpmath.log(beta0 - 1, 2))
+                if is_bad_poly:
+                    print(2, base2_magn_norm_max_eval)
+
+            if base2_magn_norm_max_eval >= base2_magn_max_max_abs_coef:
+                status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
+                return
 
             for n in range(startn, max_poly_orbit_len + 1):
                 # primary orbit iteration loop
@@ -575,7 +608,7 @@ cdef _single_orbit(
                 n_even = TRUE if 2 * k == n else FALSE
                 do_while = TRUE
 
-                if _base2_magn(Bn_1.max_abs_coef()) + norm_max_eval > base2_magn_max_max_abs_coef:
+                if _base2_magn(Bn_1.max_abs_coef()) + base2_magn_norm_max_eval > base2_magn_max_max_abs_coef:
                     # large coefficients found
                     log(f'large coefficient, quitting, n = {n}, Bn_1 = {Bn_1}.')
 
@@ -592,8 +625,10 @@ cdef _single_orbit(
                     # calculate next iterate and increase prec if necessary
                     Bn_1.c_eval(beta0, FALSE)
                     xi = beta0 * Bn_1.last_eval
-                    do_while = TRUE if _incr_prec(xi) else FALSE
-
+                    with setprec(current_y_prec):
+                        do_while = TRUE if _incr_prec(xi) else FALSE
+                    if is_bad_poly:
+                        print(xi, do_while)
                     if do_while == TRUE:
                         # precision error encountered
                         if prec_is_constant == FALSE and current_x_prec < max_prec:
@@ -611,7 +646,7 @@ cdef _single_orbit(
                         else:
                             # likely simple Parry number detected
                             if xi < 0:
-
+                                # unrecoverable precision error
                                 if len(coef_blk) > 0:
                                     coef_orbit_reg.append_disk_blk(coef_blk)
 
@@ -646,12 +681,24 @@ cdef _single_orbit(
                                 # simple parry
                                 if cn != 0:
 
+                                    if is_bad_poly:
+                                        print('hey', n, cn)
+
                                     coef_seg.append(cn)
-                                    poly_seg.append(Bn)
+
+                                    if len(coef_blk) >= max_blk_len:
+
+                                        coef_orbit_reg.append_disk_blk(coef_blk)
+                                        coef_blk.startn += len(coef_blk)
+                                        coef_seg.clear()
+
                                     coef_seg.append(0)
+                                    poly_seg.append(Bn)
 
                                 else:
                                     # append a trailing 0
+                                    if is_bad_poly:
+                                        print('hi', n, cn)
                                     coef_seg.append(0)
 
                                 if len(coef_blk) > 0:
@@ -660,35 +707,53 @@ cdef _single_orbit(
                                 if len(poly_blk) > 0:
                                     poly_orbit_reg.append_disk_blk(poly_blk)
 
-                                if cn == 0:
-
+                                if cn != 0:
+                                    if is_bad_poly:
+                                        print('_cleanup_regiser1', n, 1)
                                     _cleanup_register(
-                                        coef_orbit_reg, status_reg, periodic_reg,
-                                        orbit_apri, n, 1
-                                    )
-                                    _cleanup_register(
-                                        poly_orbit_reg, status_reg, periodic_reg,
-                                        orbit_apri, n - 1, 1
+                                        min_poly, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg, orbit_apri, n, 1
                                     )
 
                                 else:
-
+                                    if is_bad_poly:
+                                        print('_cleanup_regiser2', n - 1, 1)
                                     _cleanup_register(
-                                        coef_orbit_reg, status_reg, periodic_reg,
-                                        orbit_apri, n + 1, 1
-                                    )
-                                    _cleanup_register(
-                                        poly_orbit_reg, status_reg, periodic_reg,
-                                        orbit_apri, n, 1
+                                        min_poly, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg, orbit_apri, n - 1, 1
                                     )
 
                                 log(f'Simple parry, periodic_reg[...] = {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
                                 return
 
                 cn = _calc_cn(xi)
+                if is_bad_poly:
+                    print(n, cn)
                 Bn = IntPolynomial(min_poly._deg - 1)
                 _calc_Bn(Bn_1, cn, min_poly, Bn)
                 coef_seg.append(cn)
+
+                if n >= 2 and Bn == B1:
+                    # current poly is equal to B1 (the 1st poly)
+                    # this check isn't strictly necessary because `_calc_minimal_period` can do the same work, but it
+                    # is a lot faster to check here and many orbits repeat at B1
+                    if len(poly_blk) > 0:
+                        poly_orbit_reg.append_disk_blk(poly_blk)
+
+                    coef_orbit_reg.append_disk_blk(coef_blk)
+                    _set_periodic_info(status_reg, periodic_reg, orbit_apri, 0, n - 1)
+                    log(f'Non-simple parry, periodic_reg[...] = {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
+                    return
+
+
+                elif Bn == B0:
+                    # current poly is identically 1 (the 0th poly)
+                    if len(poly_blk) > 0:
+                        poly_orbit_reg.append_disk_blk(poly_blk)
+
+                    coef_orbit_reg.append_disk_blk(coef_blk)
+                    _set_periodic_info(status_reg, periodic_reg, orbit_apri, 0, n)
+                    log(f'Non-simple parry, periodic_reg[...] = {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
+                    return
+
                 poly_seg.append(Bn)
                 x_y_prec_offset += _prec_offset(Bn, Bn_1)
                 Bn_1 = Bn
@@ -697,17 +762,23 @@ cdef _single_orbit(
                     Bk = next(Bk_iter)
 
                 if n_even == TRUE and Bk.c_eq(Bn) == TRUE:
-                    # found period for non-simple Parry
-                    m, p = _calc_minimal_period(k, Bk, poly_orbit_reg, orbit_apri)
 
-                    if p + m >= coef_blk.startn():
+                    if is_bad_poly:
+                        print(list(poly_orbit_reg[orbit_apri, :]))
+                    # found period for non-simple Parry
+                    preperiod_len, period_len = _calc_minimal_period(k, Bk, poly_orbit_reg, orbit_apri)
+                    principal_len = preperiod_len + period_len
+
+                    if principal_len >= coef_blk.startn: # if current block included in principal orbit
                         coef_orbit_reg.append_disk_blk(coef_blk)
 
-                    if p + m >= poly_blk.startn():
+                    if principal_len + 1 >= poly_blk.startn:
+                        # + 1 because principal coef orbit has longer length than principal poly orbit
                         poly_orbit_reg.append_disk_blk(poly_blk)
 
-                    _cleanup_register(coef_orbit_reg, status_reg, periodic_reg, orbit_apri, m + 1, p)
-                    _cleanup_register(poly_orbit_reg, status_reg, periodic_reg, orbit_apri, m, p)
+                    _cleanup_register(
+                        min_poly, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg, orbit_apri, preperiod_len, period_len
+                    )
                     log(f'Non-simple parry, periodic_reg[...] = {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
                     return
 
@@ -716,7 +787,7 @@ cdef _single_orbit(
                     for reg, seg, blk in [(coef_orbit_reg, coef_seg, coef_blk), (poly_orbit_reg, poly_seg, poly_blk)]:
 
                         reg.append_disk_blk(blk)
-                        blk.set_startn(blk.startn() + len(blk))
+                        blk.startn = blk.startn + len(blk)
                         seg.clear()
 
                     status_reg.set(poly_apri, orbit_apri.index, [n, -1, -1], mmap_mode = "r+")
@@ -737,61 +808,84 @@ cdef _single_orbit(
 
 cdef (INDEX_t, INDEX_t) _calc_minimal_period(INDEX_t k, IntPolynomial Bk, object poly_orbit_reg, object B_apri) except *:
 
-    cdef INDEX_t p, m
+    cdef INDEX_t period_len, preperiod_len
     cdef IntPolynomial Bkp, B1, B2
 
-    for p in range(1, 2 + k // 2):
+    for period_len in range(1, 2 + k // 2):
 
-        if k % p == 0 or p == 1 + k // 2:
+        if k % period_len == 0 or period_len == 1 + k // 2:
 
-            if p == 1 + k // 2:
-                p = k
+            if period_len == 1 + k // 2:
+                period_len = k
 
-            Bkp = poly_orbit_reg.get(B_apri, k + p, mmap_mode ="r")
+            Bkp = poly_orbit_reg.get(B_apri, k + period_len, mmap_mode ="r")
 
             if Bk.c_eq(Bkp):
 
-                for m, (B1, B2) in enumerate(zip(poly_orbit_reg[B_apri, : k + 1], poly_orbit_reg[B_apri, p + 1 : k + p + 1])):
+                for preperiod_len, (B1, B2) in enumerate(
+                    zip(poly_orbit_reg[B_apri, : k + 1], poly_orbit_reg[B_apri, period_len + 1 : k + period_len + 1])
+                ):
 
                     if B1.c_eq(B2):
-                        break
+                        break # preperiod_len loop
 
-                break
+                break # period_len loop
 
     else:
         raise RuntimeError
 
-    return m + 1, p
+    return preperiod_len, period_len
 
-def _cleanup_register(orbit_reg, status_reg, periodic_reg, orbit_apri, periodic_startn, period_len):
+def _cleanup_register(min_poly, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg, orbit_apri, preperiod_len, period_len):
 
-    for startn, length in orbit_reg.intervals(orbit_apri, diskonly = True):
+    is_bad_poly = False # orbit_apri == ApriInfo(index = 0, resp = ApriInfo(deg = 4, sum_abs_coef = 6))
 
-        if period_len + periodic_startn - 1 < startn:
-            orbit_reg.rmv_disk_blk(orbit_apri, startn, length)
+    if is_bad_poly:
+        print(min_poly)
 
-        elif startn <= period_len + periodic_startn - 1 < startn + length - 1:
+    for orbit_reg, preperiod_len_ in ((poly_orbit_reg, preperiod_len), (coef_orbit_reg, preperiod_len + 1)):
 
-            with orbit_reg.blk(orbit_apri, startn, length, diskonly = True) as old_blk:
+        principal_len = period_len + preperiod_len_
 
-                old_seg = old_blk.segment()
+        for startn, length in orbit_reg.intervals(orbit_apri, diskonly = True):
 
-                if isinstance(old_seg, IntPolynomialArray):
+            if principal_len < startn:
+                # principal orbit does not intersect this block
+                orbit_reg.rmv_disk_blk(orbit_apri, startn, length)
 
-                    max_deg = old_seg.max_deg()
-                    new_seg = IntPolynomialArray(max_deg).set(old_seg.get_ndarray()[ : period_len + periodic_startn - startn, :])
+                if is_bad_poly:
+                    print(f'completely removing {startn}, {length}')
 
-                else:
-                    new_seg = old_blk[startn : period_len + periodic_startn]
+            elif principal_len < startn + length - 1:
+                # principal orbit partially (but not completely) includes this block
+                with orbit_reg.blk(orbit_apri, startn, length, diskonly = True) as old_blk:
 
-            with Block(new_seg, orbit_apri, startn) as new_blk:
-                orbit_reg.add_disk_blk(new_blk)
+                    old_seg = old_blk.segment
 
-            orbit_reg.rmv_disk_blk(orbit_apri, startn, length)
+                    if isinstance(old_seg, IntPolynomialArray):
 
-    status_reg.set(orbit_apri.resp, orbit_apri.index, [periodic_startn + period_len - 1, -1, -1], mmap_mode = "r+")
-    periodic_reg.set(orbit_apri.resp, orbit_apri.index, [periodic_startn - 1, period_len], mmap_mode = "r+")
+                        max_deg = old_seg.max_deg()
+                        new_seg = IntPolynomialArray(max_deg).set(
+                            old_seg.get_ndarray()[ : principal_len - startn + 1, :]
+                        )
 
+                    else:
+                        new_seg = old_blk[startn : principal_len + 1] # +1 bc coef sequence is 1-indexed
+
+                with Block(new_seg, orbit_apri, startn) as new_blk:
+                    if is_bad_poly:
+                        print(f'replacing {startn}, {length} with {startn, len(new_blk)}')
+
+                    orbit_reg.add_disk_blk(new_blk)
+
+                orbit_reg.rmv_disk_blk(orbit_apri, startn, length)
+
+    _set_periodic_info(status_reg, periodic_reg, orbit_apri, preperiod_len, period_len)
+
+def _set_periodic_info(status_reg, periodic_reg, orbit_apri, preperiod_len, period_len):
+
+    status_reg.set(orbit_apri.resp, orbit_apri.index, [preperiod_len + period_len, -1, -1], mmap_mode = "r+")
+    periodic_reg.set(orbit_apri.resp, orbit_apri.index, [preperiod_len, period_len], mmap_mode = "r+")
 
 cdef C_t _round(MPF_t x) except -1:
 

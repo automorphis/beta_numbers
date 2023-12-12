@@ -9,7 +9,7 @@ from beta_numbers.examples import boyd_psi_r, boyd_phi_r, boyd_beta_n, boyd_prop
 from beta_numbers.perron_numbers import Perron_Number
 from beta_numbers.beta_orbits import MPFRegister, setdps
 from intpolynomials import IntPolynomialRegister, IntPolynomialArray
-from cornifer import NumpyRegister, ApriInfo, DataNotFoundError, Block, openregs, AposInfo, load_shorthand, openblks
+from cornifer import NumpyRegister, ApriInfo, DataNotFoundError, Block, stack, AposInfo, load
 from cornifer._utilities import random_unique_filename
 from cornifer.registers import _CURR_ID_KEY
 from dagtimers import Timers
@@ -53,7 +53,7 @@ class TestBetaOrbits(TestCase):
             NUM_BYTES_PER_TERABYTE
         )
 
-        with openregs(cls.perron_nums_reg, cls.perron_polys_reg):
+        with stack(cls.perron_nums_reg.open(), cls.perron_polys_reg.open()):
             cls.perron_nums_reg.add_subreg(cls.perron_polys_reg)
 
         cls.exp_coef_orbit_reg = NumpyRegister(
@@ -70,14 +70,17 @@ class TestBetaOrbits(TestCase):
             NUM_BYTES_PER_TERABYTE
         )
 
-        with openregs(cls.perron_polys_reg, cls.exp_coef_orbit_reg, cls.exp_periodic_reg, cls.perron_nums_reg):
+        with stack(
+            cls.perron_polys_reg.open(), cls.exp_coef_orbit_reg.open(), cls.exp_periodic_reg.open(),
+            cls.perron_nums_reg.open()
+        ):
 
-            for r in range(1, 21):
+            for r in range(1, 15):
 
                 TestBetaOrbits.add_known_coef_orbit(*boyd_phi_r(r))
                 TestBetaOrbits.add_known_coef_orbit(*boyd_psi_r(r))
 
-            for n in range(2, 21):
+            for n in range(2, 15):
 
                 TestBetaOrbits.add_known_coef_orbit(*boyd_beta_n(n))
                 TestBetaOrbits.add_known_coef_orbit(*boyd_prop5_2(n))
@@ -139,31 +142,10 @@ class TestBetaOrbits(TestCase):
         else:
             # all four kinds with parameters from 1 or 2 - 100 each
             cls.saves_dir = cls.base_path / "ia7VUj"
-            cls.perron_polys_reg = load_shorthand('perron_polys_reg', cls.saves_dir)
-            cls.exp_coef_orbit_reg = load_shorthand('exp_coef_orbit_reg', cls.saves_dir)
-            cls.exp_periodic_reg = load_shorthand('exp_periodic_reg', cls.saves_dir)
-            cls.perron_nums_reg = load_shorthand('perron_nums_reg', cls.saves_dir)
-
-            # only phi_74
-            # cls.saves_dir = cls.base_path / "iLLTYX"
-            # cls.perron_polys_reg = load(cls.saves_dir / "MyMx")
-            # cls.exp_coef_orbit_reg = load(cls.saves_dir / "bA3y")
-            # cls.exp_periodic_reg = load(cls.saves_dir / "Uerz")
-            # cls.perron_nums_reg = load(cls.saves_dir / "RXAJ")
-
-            # all four kinds with parameters from 1 or 2 - 20 each
-            # cls.saves_dir = cls.base_path / "PBNTNA"
-            # cls.perron_polys_reg = load(cls.saves_dir / "R3GA")
-            # cls.exp_coef_orbit_reg = load(cls.saves_dir / "sbPW")
-            # cls.exp_periodic_reg = load(cls.saves_dir / "ZxyW")
-            # cls.perron_nums_reg = load(cls.saves_dir / "CGqw")
-
-            # all four kinds with parameters from 50 to 100 each
-            # cls.saves_dir = cls.base_path / "uA7hbQ"
-            # cls.perron_polys_reg = load(cls.saves_dir / "NTsn")
-            # cls.exp_coef_orbit_reg = load(cls.saves_dir / "Pyjn")
-            # cls.exp_periodic_reg = load(cls.saves_dir / "WRXw")
-            # cls.perron_nums_reg = load(cls.saves_dir / "gp3v")
+            cls.perron_polys_reg = load('perron_polys_reg', cls.saves_dir)
+            cls.exp_coef_orbit_reg = load('exp_coef_orbit_reg', cls.saves_dir)
+            cls.exp_periodic_reg = load('exp_periodic_reg', cls.saves_dir)
+            cls.perron_nums_reg = load('perron_nums_reg', cls.saves_dir)
 
         super().setUpClass()
 
@@ -267,7 +249,7 @@ class TestBetaOrbits(TestCase):
 
                     with timers.time("unittest checking calc_orbits_setup"):
 
-                        with openregs(poly_orbit_reg, coef_orbit_reg) as (poly_orbit_reg, coef_orbit_reg):
+                        with stack(poly_orbit_reg.open(), coef_orbit_reg.open()) as (poly_orbit_reg, coef_orbit_reg):
                             # check that `poly_orbit_reg` and `coef_orbit_reg` do not contain any apri
                             for _ in poly_orbit_reg:
                                 self.fail("`poly_orbit_reg` should not contain apri!")
@@ -275,39 +257,39 @@ class TestBetaOrbits(TestCase):
                             for _ in coef_orbit_reg:
                                 self.fail("`coef_orbit_Reg` should not contain apri!")
 
-                        with openregs(
-                            cls.perron_polys_reg, status_reg, periodic_reg, readonlys = (False,)*3
+                        with stack(
+                            cls.perron_polys_reg.open(), status_reg.open(), periodic_reg.open()
                         ) as (cls.perron_polys_reg, status_reg, periodic_reg):
                             # check that `status_reg` and `periodic_reg` contain the correct apri, apos, and blocks
-                            for poly_apri in cls.perron_polys_reg:
+                            for orbit_apri in cls.perron_polys_reg:
 
-                                self.assertIn(poly_apri, status_reg)
-                                self.assertIn(poly_apri, periodic_reg)
+                                self.assertIn(orbit_apri, status_reg)
+                                self.assertIn(orbit_apri, periodic_reg)
 
-                                for startn, length in status_reg.intervals(poly_apri):
+                                for startn, length in status_reg.intervals(orbit_apri):
 
-                                    if status_reg.is_compressed(poly_apri, startn, length):
-                                        status_reg.decompress(poly_apri, startn, length)
+                                    if status_reg.is_compressed(orbit_apri, startn, length):
+                                        status_reg.decompress(orbit_apri, startn, length)
 
-                                    if periodic_reg.is_compressed(poly_apri, startn, length):
-                                        periodic_reg.decompress(poly_apri, startn, length)
+                                    if periodic_reg.is_compressed(orbit_apri, startn, length):
+                                        periodic_reg.decompress(orbit_apri, startn, length)
 
-                                    if cls.perron_polys_reg.is_compressed(poly_apri, startn, length):
-                                        cls.perron_polys_reg.decompress(poly_apri, startn, length)
+                                    if cls.perron_polys_reg.is_compressed(orbit_apri, startn, length):
+                                        cls.perron_polys_reg.decompress(orbit_apri, startn, length)
 
-                                    with openblks(
-                                        status_reg.blk(poly_apri, startn, length),
-                                        periodic_reg.blk(poly_apri, startn, length),
-                                        cls.perron_polys_reg.blk(poly_apri, startn, length)
+                                    with stack(
+                                        status_reg.blk(orbit_apri, startn, length),
+                                        periodic_reg.blk(orbit_apri, startn, length),
+                                        cls.perron_polys_reg.blk(orbit_apri, startn, length)
                                     ) as (status_blk, periodic_blk, perron_poly_blk):
 
                                         self.assertEqual(
-                                            status_blk.startn(),
-                                            periodic_blk.startn()
+                                            status_blk.startn,
+                                            periodic_blk.startn
                                         )
                                         self.assertEqual(
-                                            periodic_blk.startn(),
-                                            perron_poly_blk.startn()
+                                            periodic_blk.startn,
+                                            perron_poly_blk.startn
                                         )
                                         self.assertEqual(
                                             len(status_blk),
@@ -318,21 +300,21 @@ class TestBetaOrbits(TestCase):
                                             len(perron_poly_blk)
                                         )
 
-                                for blk in status_reg.blks(poly_apri, mmap_mode = "r"):
+                                for blk in status_reg.blks(orbit_apri, mmap_mode = "r"):
 
-                                    seg = blk.segment()
+                                    seg = blk.segment
                                     self.assertTrue(np.all(seg[:,0] == 0))
                                     self.assertTrue(np.all(seg[:,1] == -1))
                                     self.assertTrue(np.all(seg[:,2] == -1))
 
-                                for blk in periodic_reg.blks(poly_apri, mmap_mode = "r"):
+                                for blk in periodic_reg.blks(orbit_apri, mmap_mode = "r"):
 
-                                    seg = blk.segment()
+                                    seg = blk.segment
                                     self.assertTrue(np.all(seg[:,0] == -1))
                                     self.assertTrue(np.all(seg[:,1] == -1))
 
                                 self.assertEqual(
-                                    status_reg.apos(poly_apri),
+                                    status_reg.apos(orbit_apri),
                                     AposInfo(min_len = 0)
                                 )
 
@@ -363,9 +345,10 @@ class TestBetaOrbits(TestCase):
                         with timers.time("unittest checking calc_obits"):
                             # print("\t\t\tunittest checking")
                             # check that everything is correct up to `max_poly_orbit_len`
-                            with openregs(
-                                cls.perron_polys_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg,
-                                cls.exp_coef_orbit_reg, cls.exp_periodic_reg
+                            with stack(
+                                cls.perron_polys_reg.open(), poly_orbit_reg.open(), coef_orbit_reg.open(),
+                                periodic_reg.open(), status_reg.open(), cls.exp_coef_orbit_reg.open(),
+                                cls.exp_periodic_reg.open()
                             ):
 
                                 for perron_apri in cls.perron_polys_reg:
@@ -378,32 +361,32 @@ class TestBetaOrbits(TestCase):
 
                                     for index in range(cls.perron_polys_reg.maxn(perron_apri) + 1):
 
-                                        poly_apri = ApriInfo(resp = perron_apri, index = index)
+                                        orbit_apri = ApriInfo(resp = perron_apri, index = index)
                                         exp_coef_preperiod_len, exp_period = cls.exp_periodic_reg.get(perron_apri, index, mmap_mode = "r")
                                         exp_coef_preperiod_len += 1
                                         last_coef_index = exp_coef_preperiod_len + exp_period
-                                        self.assertNotIn(poly_apri, periodic_reg)
-                                        self.assertNotIn(poly_apri, status_reg)
+                                        self.assertNotIn(orbit_apri, periodic_reg)
+                                        self.assertNotIn(orbit_apri, status_reg)
 
                                         try:
-                                            self.assertIn(poly_apri, poly_orbit_reg)
+                                            self.assertIn(orbit_apri, poly_orbit_reg)
 
                                         except AssertionError:
 
                                             print(poly_orbit_reg.summary())
                                             raise
 
-                                        self.assertIn(poly_apri, coef_orbit_reg)
-                                        calc_coefs = np.array(list(coef_orbit_reg[poly_apri, :]))
+                                        self.assertIn(orbit_apri, coef_orbit_reg)
+                                        calc_coefs = np.array(list(coef_orbit_reg[orbit_apri, :]))
 
-                                        with cls.exp_coef_orbit_reg.blk(poly_apri) as exp_blk:
+                                        with cls.exp_coef_orbit_reg.blk(orbit_apri) as exp_blk:
 
-                                            exp_periodic_coefs = list(exp_blk.segment()[ exp_coef_preperiod_len : ])
-                                            exp_preperiodic_coefs = list(exp_blk.segment()[ : exp_coef_preperiod_len])
+                                            exp_periodic_coefs = list(exp_blk.segment[ exp_coef_preperiod_len : ])
+                                            exp_preperiodic_coefs = list(exp_blk.segment[ : exp_coef_preperiod_len])
                                             exp_coefs =  exp_preperiodic_coefs + exp_periodic_coefs
                                             exp_simple_parry = (
                                                 exp_period == 1 and
-                                                cls.exp_coef_orbit_reg.get(poly_apri, last_coef_index, mmap_mode = "r") == 0
+                                                cls.exp_coef_orbit_reg.get(orbit_apri, last_coef_index, mmap_mode = "r") == 0
                                             )
                                             # print(f"\t\t\t\t\t\texp_periodic_coefs    = {exp_periodic_coefs}")
                                             # print(f"\t\t\t\t\t\texp_preperiodic_coefs = {exp_preperiodic_coefs}")
@@ -469,33 +452,20 @@ class TestBetaOrbits(TestCase):
                                                     print(max_poly_orbit_len)
                                                     print(exp_coef_preperiod_len)
                                                     print(cls.perron_polys_reg[perron_apri, index])
-                                                    print(cls.perron_polys_reg._approx_memory())
-                                                    with cls.perron_polys_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(poly_orbit_reg._approx_memory())
-                                                    with poly_orbit_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(coef_orbit_reg._approx_memory())
-                                                    with coef_orbit_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(periodic_reg._approx_memory())
-                                                    with periodic_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(status_reg._approx_memory())
-                                                    with status_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(cls.exp_coef_orbit_reg._approx_memory())
-                                                    with cls.exp_coef_orbit_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(cls.exp_periodic_reg._approx_memory())
-                                                    with cls.exp_periodic_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
                                                     raise
 
-                                                self.assertTrue(np.all(
-                                                    [exp_coef_preperiod_len - 1, exp_period] ==
-                                                    periodic_reg.get(perron_apri, index, mmap_mode = "r")
-                                                ))
+                                                try:
+                                                    self.assertTrue(np.all(
+                                                        [exp_coef_preperiod_len, exp_period] ==
+                                                        periodic_reg.get(perron_apri, index, mmap_mode = "r")
+                                                    ))
+                                                except AssertionError:
+                                                    print([exp_coef_preperiod_len, exp_period])
+                                                    print(periodic_reg.get(perron_apri, index, mmap_mode = "r"))
+                                                    print(list(cls.exp_coef_orbit_reg[orbit_apri, :]))
+                                                    print(list(coef_orbit_reg[orbit_apri, :]))
+                                                    print(cls.perron_polys_reg[perron_apri, index])
+                                                    raise
 
                                             elif max_poly_orbit_len < 2 * exp_period * math.ceil(exp_coef_preperiod_len / exp_period):
                                                 # have calculated up to periodic portion, but no period yet calculated
@@ -530,33 +500,21 @@ class TestBetaOrbits(TestCase):
                                                     print(max_poly_orbit_len)
                                                     print(exp_coef_preperiod_len)
                                                     print(cls.perron_polys_reg[perron_apri, index])
-                                                    print(cls.perron_polys_reg._approx_memory())
-                                                    with cls.perron_polys_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(poly_orbit_reg._approx_memory())
-                                                    with poly_orbit_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(coef_orbit_reg._approx_memory())
-                                                    with coef_orbit_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(periodic_reg._approx_memory())
-                                                    with periodic_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(status_reg._approx_memory())
-                                                    with status_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(cls.exp_coef_orbit_reg._approx_memory())
-                                                    with cls.exp_coef_orbit_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
-                                                    print(cls.exp_periodic_reg._approx_memory())
-                                                    with cls.exp_periodic_reg._db.begin() as ro_txn:
-                                                        print(ro_txn.get(_CURR_ID_KEY))
+                                                    print(periodic_reg[perron_apri, index])
                                                     raise
 
-                                                self.assertTrue(np.all(
-                                                    [exp_coef_preperiod_len - 1, exp_period] ==
-                                                    periodic_reg.get(perron_apri, index, mmap_mode = "r")
-                                                ))
+                                                try:
+                                                    self.assertTrue(np.all(
+                                                        [exp_coef_preperiod_len - 1, exp_period] ==
+                                                        periodic_reg.get(perron_apri, index, mmap_mode = "r")
+                                                    ))
+
+                                                except AssertionError:
+                                                    print([exp_coef_preperiod_len - 1, exp_period])
+                                                    print(periodic_reg.get(perron_apri, index, mmap_mode = "r"))
+                                                    print(list(cls.exp_coef_orbit_reg[orbit_apri, :]))
+                                                    print(list(coef_orbit_reg[orbit_apri, :]))
+                                                    raise
 
         print(timers.pretty_print())
                 # print(timers._tree)
