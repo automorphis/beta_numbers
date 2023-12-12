@@ -14,8 +14,6 @@ poly_orbit_reg = load('poly_orbit_reg', '/fs/project/thompson.2455/lane.662/beta
 
 with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(True), poly_orbit_reg.open(True)):
 
-    print('hi')
-
     for orbit_apri in poly_orbit_reg:
 
         try:
@@ -42,8 +40,8 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
                 except AssertionError:
 
                     print(f'orbit_apri = {orbit_apri}')
-                    print(f'perron_nums_reg[poly_apri, index] = {perron_nums_reg[orbit_apri.resp, orbit_apri.index]}')
-                    print(f'perron_polys_reg[poly_apri, index] = {perron_polys_reg[orbit_apri.resp, orbit_apri.index]}')
+                    print(f'perron_polys_reg[poly_apri, index] = {perron_polys_reg[poly_apri, index]}')
+                    print(f'perron_nums_reg[poly_apri, index] = {perron_nums_reg[poly_apri, index]}')
                     print(f'm = {m}')
                     print(f'p = {p}')
                     print(f'm + p = {m + p}')
