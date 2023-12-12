@@ -32,12 +32,12 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
 
                 assert p != -1
                 try:
-                    assert poly_orbit_reg.total_len(orbit_apri) == m + p
+                    assert poly_orbit_reg.len(orbit_apri, True) == poly_orbit_reg.len(orbit_apri, False) == m + p
                 except AssertionError:
                     print('hi', poly_orbit_reg.total_len(orbit_apri), m, p)
                     print(list(poly_orbit_reg[orbit_apri, :]))
                 try:
-                    assert coef_orbit_reg.total_len(orbit_apri) == m + p + 1
+                    assert coef_orbit_reg.len(orbit_apri, True) == coef_orbit_reg.len(orbit_apri, False) == m + p + 1
                 except AssertionError:
                     print('hello', coef_orbit_reg.total_len(orbit_apri), m, p)
                     print(list(coef_orbit_reg[orbit_apri, :]))
@@ -48,11 +48,12 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
 
             else:
 
-                poly_len = poly_orbit_reg.total_len(orbit_apri)
+                poly_len = poly_orbit_reg.len(orbit_apri, True)
+                assert poly_orbit_reg.len(orbit_apri, False) == poly_len
                 try:
-                    assert coef_orbit_reg.total_len(orbit_apri) == poly_len
+                    assert coef_orbit_reg.len(orbit_apri, True) == coef_orbit_reg.len(orbit_apri, False) == poly_len
                 except AssertionError:
-                    print('yo', coef_orbit_reg.total_len(orbit_apri), poly_len)
+                    print('yo', coef_orbit_reg.len(orbit_apri), poly_len)
                     for blk in coef_orbit_reg.blks(orbit_apri):
                         print(blk)
                     for blk in poly_orbit_reg.blks(orbit_apri):
