@@ -42,6 +42,8 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
 
                     print(f'orbit_apri = {orbit_apri}')
                     print(f'nums_apri = {nums_apri}')
+                    print(f'perron_polys_reg.get(poly_apri, index, decompress = True) = {perron_polys_reg.get(poly_apri, index, decompress = True)}')
+                    print(f'perron_nums_reg.get(nums_apri, index, decompress = True) = {perron_nums_reg.get(nums_apri, index, decompress = True)}')
                     print(f'm = {m}')
                     print(f'p = {p}')
                     print(f'm + p = {m + p}')
@@ -50,9 +52,8 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
                     print(f'coef_orbit_reg.len(orbit_apri, True) = {coef_orbit_reg.len(orbit_apri, True)}')
                     print(f'coef_orbit_reg.len(orbit_apri, False) = {coef_orbit_reg.len(orbit_apri, False)}')
                     print(f'np.all(status_reg[poly_apri, index] == np.array([m + p, -1, -1])) = {np.all(status_reg[poly_apri, index] == np.array([m + p, -1, -1]))}')
-                    print(f'perron_polys_reg.get(poly_apri, index, decompress = True) = {perron_polys_reg.get(poly_apri, index, decompress = True)}')
-                    print(f'list(perron_nums_reg.intervals(poly_apri)) = {list(perron_nums_reg.intervals(poly_apri))}')
-                    print(f'perron_nums_reg.get(nums_apri, index, decompress = True) = {perron_nums_reg.get(nums_apri, index, decompress = True)}')
+                    print(f'list(poly_orbit_reg[orbit_apri, :]) = {list(poly_orbit_reg[orbit_apri, :])}')
+                    print(f'list(coef_orbit_reg[orbit_apri, :]) = {list(coef_orbit_reg[orbit_apri, :])}')
                     raise
 
             else:
