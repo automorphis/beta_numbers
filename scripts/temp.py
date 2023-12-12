@@ -24,6 +24,7 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
 
         else:
 
+            nums_apri = ApriInfo(sum_abs_coef = poly_apri.sum_abs_coef, deg = poly_apri.deg, max_dps = 500)
             index = orbit_apri.index
             m, p = periodic_reg[poly_apri, index]
             is_periodic = m != -1
@@ -40,6 +41,7 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
                 except AssertionError:
 
                     print(f'orbit_apri = {orbit_apri}')
+                    print(f'nums_apri = {nums_apri}')
                     print(f'm = {m}')
                     print(f'p = {p}')
                     print(f'm + p = {m + p}')
@@ -50,7 +52,7 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
                     print(f'np.all(status_reg[poly_apri, index] == np.array([m + p, -1, -1])) = {np.all(status_reg[poly_apri, index] == np.array([m + p, -1, -1]))}')
                     print(f'perron_polys_reg.get(poly_apri, index, decompress = True) = {perron_polys_reg.get(poly_apri, index, decompress = True)}')
                     print(f'list(perron_nums_reg.intervals(poly_apri)) = {list(perron_nums_reg.intervals(poly_apri))}')
-                    print(f'perron_nums_reg.get(poly_apri, index, decompress = True) = {perron_nums_reg.get(poly_apri, index, decompress = True)}')
+                    print(f'perron_nums_reg.get(nums_apri, index, decompress = True) = {perron_nums_reg.get(poly_apri, index, decompress = True)}')
                     raise
 
             else:
