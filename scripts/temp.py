@@ -5,6 +5,8 @@ from cornifer import load, NumpyRegister, stack, ApriInfo, DecompressionError
 from beta_numbers.registers import MPFRegister
 from intpolynomials.registers import IntPolynomialRegister
 
+perron_nums_reg = load('perron_nums_reg', '/fs/project/thompson.2455/lane.662/perronnums')
+perron_polys_reg = load('perron_polys_reg', '/fs/project/thompson.2455/lane.662/perronnums')
 status_reg = load('status_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
 periodic_reg = load('periodic_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
 coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
@@ -30,21 +32,27 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
 
             if is_periodic:
 
-                assert p != -1
                 try:
+
+                    assert p != -1
                     assert poly_orbit_reg.len(orbit_apri, True) == poly_orbit_reg.len(orbit_apri, False) == m + p
-                except AssertionError:
-                    print('hi', poly_orbit_reg.len(orbit_apri), m, p)
-                    print(list(poly_orbit_reg[orbit_apri, :]))
-                try:
                     assert coef_orbit_reg.len(orbit_apri, True) == coef_orbit_reg.len(orbit_apri, False) == m + p + 1
-                except AssertionError:
-                    print('hello', coef_orbit_reg.len(orbit_apri), m, p)
-                    print(list(coef_orbit_reg[orbit_apri, :]))
-                try:
                     assert np.all(status_reg[poly_apri, index] == np.array([m + p, -1, -1]))
+
                 except AssertionError:
-                    print('hey', status_reg[poly_apri, index])
+
+                    print(f'orbit_apri = {orbit_apri}')
+                    print(f'perron_nums_reg[poly_apri, index] = {perron_nums_reg[orbit_apri.resp, orbit_apri.index]}')
+                    print(f'perron_polys_reg[poly_apri, index] = {perron_polys_reg[orbit_apri.resp, orbit_apri.index]}')
+                    print(f'm = {m}')
+                    print(f'p = {p}')
+                    print(f'm + p = {m + p}')
+                    print(f'poly_orbit_reg.len(orbit_apri, True) = {poly_orbit_reg.len(orbit_apri, True)}')
+                    print(f'poly_orbit_reg.len(orbit_apri, False) = {poly_orbit_reg.len(orbit_apri, False)}')
+                    print(f'coef_orbit_reg.len(orbit_apri, True) = {coef_orbit_reg.len(orbit_apri, True)}')
+                    print(f'coef_orbit_reg.len(orbit_apri, False) = {coef_orbit_reg.len(orbit_apri, False)}')
+                    print(f'np.all(status_reg[poly_apri, index]) = {np.all(status_reg[poly_apri, index])}')
+                    raise
 
             else:
 
