@@ -24,7 +24,7 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
 
         else:
 
-            nums_apri = ApriInfo(sum_abs_coef = poly_apri.sum_abs_coef, deg = poly_apri.deg, max_dps = 500)
+            nums_apri = ApriInfo(sum_abs_coef = poly_apri.sum_abs_coef, deg = poly_apri.deg, dps = 500)
             index = orbit_apri.index
             m, p = periodic_reg[poly_apri, index]
             is_periodic = m != -1
