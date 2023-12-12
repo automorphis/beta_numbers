@@ -34,12 +34,12 @@ with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(T
                 try:
                     assert poly_orbit_reg.len(orbit_apri, True) == poly_orbit_reg.len(orbit_apri, False) == m + p
                 except AssertionError:
-                    print('hi', poly_orbit_reg.total_len(orbit_apri), m, p)
+                    print('hi', poly_orbit_reg.len(orbit_apri), m, p)
                     print(list(poly_orbit_reg[orbit_apri, :]))
                 try:
                     assert coef_orbit_reg.len(orbit_apri, True) == coef_orbit_reg.len(orbit_apri, False) == m + p + 1
                 except AssertionError:
-                    print('hello', coef_orbit_reg.total_len(orbit_apri), m, p)
+                    print('hello', coef_orbit_reg.len(orbit_apri), m, p)
                     print(list(coef_orbit_reg[orbit_apri, :]))
                 try:
                     assert np.all(status_reg[poly_apri, index] == np.array([m + p, -1, -1]))
