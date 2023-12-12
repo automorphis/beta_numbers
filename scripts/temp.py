@@ -58,6 +58,7 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
 
             else:
 
+                assert p == 1
                 poly_len = poly_orbit_reg.len(orbit_apri, True)
                 assert poly_orbit_reg.len(orbit_apri, False) == poly_len
                 try:
