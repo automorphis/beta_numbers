@@ -12,7 +12,7 @@ periodic_reg = load('periodic_reg', '/fs/project/thompson.2455/lane.662/betaorbi
 coef_orbit_reg = load('coef_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
 poly_orbit_reg = load('poly_orbit_reg', '/fs/project/thompson.2455/lane.662/betaorbits')
 
-with stack(status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(True), poly_orbit_reg.open(True)):
+with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.open(True), periodic_reg.open(True), coef_orbit_reg.open(True), poly_orbit_reg.open(True)):
 
     print('hi')
 
