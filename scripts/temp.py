@@ -40,8 +40,6 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
                 except AssertionError:
 
                     print(f'orbit_apri = {orbit_apri}')
-                    print(f'perron_polys_reg.get(poly_apri, index, decompress = True) = {perron_polys_reg.get(poly_apri, index, decompress = True)}')
-                    print(f'perron_nums_reg.get(poly_apri, index, decompress = True) = {perron_nums_reg.get(poly_apri, index, decompress = True)}')
                     print(f'm = {m}')
                     print(f'p = {p}')
                     print(f'm + p = {m + p}')
@@ -50,6 +48,8 @@ with stack(perron_nums_reg.open(True), perron_polys_reg.open(True), status_reg.o
                     print(f'coef_orbit_reg.len(orbit_apri, True) = {coef_orbit_reg.len(orbit_apri, True)}')
                     print(f'coef_orbit_reg.len(orbit_apri, False) = {coef_orbit_reg.len(orbit_apri, False)}')
                     print(f'np.all(status_reg[poly_apri, index]) = {np.all(status_reg[poly_apri, index])}')
+                    print(f'perron_polys_reg.get(poly_apri, index, decompress = True) = {perron_polys_reg.get(poly_apri, index, decompress = True)}')
+                    print(f'perron_nums_reg.get(poly_apri, index, decompress = True) = {perron_nums_reg.get(poly_apri, index, decompress = True)}')
                     raise
 
             else:
