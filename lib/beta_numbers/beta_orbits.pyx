@@ -137,53 +137,57 @@ def calc_orbits(
     if proc_index == 0:
         _update_status_reg_apos(perron_polys_reg, status_reg, timers)
 
-    num_fixed = _fix_problems(perron_polys_reg, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg)
+    # try clause followed by except clause that calls _fix_problems
+    with stack(
+        perron_polys_reg.open(True), perron_nums_reg.open(True), poly_orbit_reg.open(), coef_orbit_reg.open(),
+        periodic_reg.open(), status_reg.open()
+    ) as (perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg):
 
-    if num_fixed != 0:
-        log(f'Fixed {num_fixed} problems')
+        for poly_apri in perron_polys_reg:
 
-    try:
-        # try clause followed by except clause that calls _fix_problems
-        with stack(
-            perron_polys_reg.open(True), perron_nums_reg.open(True), poly_orbit_reg.open(), coef_orbit_reg.open(),
-            periodic_reg.open(), status_reg.open()
-        ) as (perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg):
+            num_apri = ApriInfo(deg = poly_apri.deg, sum_abs_coef = poly_apri.sum_abs_coef, dps = max_dps)
+            min_len = status_reg.apos(poly_apri).min_len
+            complete_to_max_orbit_len = min_len >= max_orbit_len if min_len != -1 else True
 
-            for poly_apri in perron_polys_reg:
+            if not complete_to_max_orbit_len:
 
-                num_apri = ApriInfo(deg = poly_apri.deg, sum_abs_coef = poly_apri.sum_abs_coef, dps = max_dps)
-                min_len = status_reg.apos(poly_apri).min_len
-                complete_to_max_orbit_len = min_len >= max_orbit_len if min_len != -1 else True
+                for blk_index, (startn, length) in enumerate(status_reg.intervals(poly_apri)):
 
-                if not complete_to_max_orbit_len:
+                    if blk_index % num_procs == proc_index:
 
-                    for blk_index, (startn, length) in enumerate(status_reg.intervals(poly_apri)):
+                        with status_reg.blk(poly_apri, startn, length) as status_blk:
 
-                        if blk_index % num_procs == proc_index:
+                            orbit_lengths = status_blk.segment[:,0]
+                            nonneg_orbit_lengths = orbit_lengths[orbit_lengths >= 0]
+                            complete_blk = len(nonneg_orbit_lengths) == 0 or np.all(nonneg_orbit_lengths >= max_orbit_len)
 
-                            with status_reg.blk(poly_apri, startn, length) as status_blk:
+                            if not complete_blk:
 
-                                orbit_lengths = status_blk.segment[:,0]
-                                nonneg_orbit_lengths = orbit_lengths[orbit_lengths >= 0]
-                                complete_blk = len(nonneg_orbit_lengths) == 0 or np.all(nonneg_orbit_lengths >= max_orbit_len)
+                                incomplete_indices = startn + np.nonzero(0 <= orbit_lengths < max_orbit_len)[0]
 
-                                if not complete_blk:
+                                with setdps(max_dps):
 
-                                    incomplete_indices = startn + np.nonzero(0 <= orbit_lengths < max_orbit_len)[0]
+                                    with stack(
+                                        perron_polys_reg.blk(poly_apri, startn, length, decompress = True),
+                                        perron_nums_reg.blk(num_apri, startn, length, decompress = True),
+                                    ) as (perron_poly_blk, perron_num_blk):
 
-                                    with setdps(max_dps):
+                                        for index in incomplete_indices:
 
-                                        with stack(
-                                            perron_polys_reg.blk(poly_apri, startn, length, decompress = True),
-                                            perron_nums_reg.blk(num_apri, startn, length, decompress = True),
-                                        ) as (perron_poly_blk, perron_num_blk):
+                                            orbit_apri = ApriInfo(resp = poly_apri, index = index)
+                                            fixed = _fix_problems(
+                                                orbit_apri, perron_polys_reg, poly_orbit_reg, coef_orbit_reg,
+                                                status_reg, periodic_reg
+                                            )
 
-                                            for index in incomplete_indices:
+                                            if fixed:
+                                                log(f'Problem with {orbit_apri}; restarting from beginning.')
 
-                                                orbit_apri = ApriInfo(resp = poly_apri, index = index)
-                                                p = perron_poly_blk[index]
-                                                beta0 = perron_num_blk[index]
-                                                beta = Perron_Number(p, beta0 = beta0)
+                                            p = perron_poly_blk[index]
+                                            beta0 = perron_num_blk[index]
+                                            beta = Perron_Number(p, beta0 = beta0)
+
+                                            try:
                                                 _single_orbit(
                                                     beta,
                                                     orbit_apri,
@@ -199,14 +203,17 @@ def calc_orbits(
                                                     -1
                                                 )
 
-    except BaseException:
+                                            except BaseException:
 
-        num_fixed = _fix_problems(perron_polys_reg, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg)
+                                                fixed = _fix_problems(
+                                                    orbit_apri, perron_polys_reg, poly_orbit_reg, coef_orbit_reg,
+                                                    status_reg, periodic_reg
+                                                )
 
-        if num_fixed != 0:
-            log(f'Fixed {num_fixed} problems')
+                                                if fixed:
+                                                    log(f'Problems with {orbit_apri} fixed during exception.')
 
-        raise
+                                                raise
 
 def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len, timers, verbose = False):
     """Setup and return the `Register`s `poly_orbit_reg`, `coef_orbit_reg`, `periodic_reg`, and `status_reg`.
@@ -891,63 +898,52 @@ def _set_periodic_info(status_reg, periodic_reg, orbit_apri, preperiod_len, peri
     status_reg.set(orbit_apri.resp, orbit_apri.index, [preperiod_len + period_len, -1, -1], mmap_mode = "r+")
     periodic_reg.set(orbit_apri.resp, orbit_apri.index, [preperiod_len, period_len], mmap_mode = "r+")
 
-def _fix_problems(perron_polys_reg, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg):
+def _fix_problems(orbit_apri, perron_polys_reg, poly_orbit_reg, coef_orbit_reg, status_reg, periodic_reg):
 
-    num_fixed = 0
+    poly_orbit_reg_has_orbit_apri = orbit_apri in poly_orbit_reg
+    preperiod_len, period_len = periodic_reg[orbit_apri.resp, orbit_apri.index]
+    is_periodic = preperiod_len != -1
+    principal_len = preperiod_len + period_len
 
-    with stack(
-        perron_polys_reg.open(True), poly_orbit_reg.open(), coef_orbit_reg.open(), status_reg.open(), periodic_reg.open()
-    ):
+    try:
 
-        for min_poly_apri in perron_polys_reg:
+        assert poly_orbit_reg_has_orbit_apri == (orbit_apri in coef_orbit_reg)
 
-            for index in range(perron_polys_reg.maxn(min_poly_apri) + 1):
+        if poly_orbit_reg_has_orbit_apri:
 
-                orbit_apri = ApriInfo(resp = min_poly_apri, index = index)
-                poly_orbit_reg_has_orbit_apri = orbit_apri in poly_orbit_reg
-                preperiod_len, period_len = periodic_reg[min_poly_apri, index]
-                is_periodic = preperiod_len != -1
-                principal_len = preperiod_len + period_len
+            assert is_periodic == (period_len != -1)
 
-                try:
+            if is_periodic:
 
-                    assert poly_orbit_reg_has_orbit_apri == (orbit_apri in coef_orbit_reg)
+                assert (
+                    poly_orbit_reg.len(orbit_apri, True) == poly_orbit_reg.len(orbit_apri, False) ==
+                    principal_len
+                )
+                assert (
+                    coef_orbit_reg.len(orbit_apri, True) == coef_orbit_reg.len(orbit_apri, False) ==
+                    principal_len + 1
+                )
+                assert np.all(status_reg[orbit_apri.resp, orbit_apri.index] == np.array([principal_len, -1, -1]))
 
-                    if poly_orbit_reg_has_orbit_apri:
+            else:
+                assert (
+                    poly_orbit_reg.len(orbit_apri, True) == poly_orbit_reg.len(orbit_apri, False) ==
+                    coef_orbit_reg.len(orbit_apri, True) == coef_orbit_reg.len(orbit_apri, False) ==
+                    status_reg[orbit_apri.resp, orbit_apri.index][0]
+                )
 
-                        assert is_periodic == (period_len != -1)
+        return False
 
-                        if is_periodic:
+    except AssertionError:
 
-                            assert (
-                                poly_orbit_reg.len(orbit_apri, True) == poly_orbit_reg.len(orbit_apri, False) ==
-                                principal_len
-                            )
-                            assert (
-                                coef_orbit_reg.len(orbit_apri, True) == coef_orbit_reg.len(orbit_apri, False) ==
-                                principal_len + 1
-                            )
-                            assert np.all(status_reg[min_poly_apri, index] == np.array([principal_len, -1, -1]))
+        if orbit_apri in poly_orbit_reg:
+            poly_orbit_reg.rmv_apri(orbit_apri, force = True)
 
-                        else:
-                            assert (
-                                poly_orbit_reg.len(orbit_apri, True) == poly_orbit_reg.len(orbit_apri, False) ==
-                                coef_orbit_reg.len(orbit_apri, True) == coef_orbit_reg.len(orbit_apri, False) ==
-                                status_reg[min_poly_apri, index][0]
-                            )
+        if orbit_apri in coef_orbit_reg:
+            coef_orbit_reg.rmv_apri(orbit_apri, force = True)
 
-                except AssertionError:
-
-                    if orbit_apri in poly_orbit_reg:
-                        poly_orbit_reg.rmv_apri(orbit_apri, force = True)
-
-                    if orbit_apri in coef_orbit_reg:
-                        coef_orbit_reg.rmv_apri(orbit_apri, force = True)
-
-                    status_reg[min_poly_apri, index] = np.array([0, -1, -1])
-                    num_fixed += 1
-
-    return num_fixed
+        status_reg[orbit_apri.resp, orbit_apri.index] = np.array([0, -1, -1])
+        return True
 
 cdef C_t _round(MPF_t x) except -1:
 
