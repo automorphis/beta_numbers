@@ -937,10 +937,10 @@ def _fix_problems(orbit_apri, perron_polys_reg, poly_orbit_reg, coef_orbit_reg, 
     except AssertionError:
 
         if orbit_apri in poly_orbit_reg:
-            poly_orbit_reg.rmv_apri(orbit_apri, force = True, ignore_errors = True)
+            poly_orbit_reg.rmv_apri(orbit_apri, force = True, missing_ok = True, ignore_errors = True)
 
         if orbit_apri in coef_orbit_reg:
-            coef_orbit_reg.rmv_apri(orbit_apri, force = True, ignore_errors = True)
+            coef_orbit_reg.rmv_apri(orbit_apri, force = True, missing_ok = True, ignore_errors = True)
 
         status_reg[orbit_apri.resp, orbit_apri.index] = np.array([0, -1, -1])
         return True
