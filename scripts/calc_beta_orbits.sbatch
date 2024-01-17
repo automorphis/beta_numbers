@@ -11,8 +11,8 @@
 #SBATCH --mail-type=ALL
 #SBATCH --signal=TERM@300
 
-PERRONDIR=/fs/project/thompson.2455/lane.662/perronnums
-BETADIR=/fs/project/thompson.2455/lane.662/betaorbits
+PERRONDIR=/fs/project/thompson.2455/lane.662/perronnums/deg4
+BETADIR=/fs/project/thompson.2455/lane.662/betaorbits/deg4
 DOSETUP=True
 MAINFILE=~/beta_numbers/scripts/calc_beta_orbits.py
 BLKSIZE=25000

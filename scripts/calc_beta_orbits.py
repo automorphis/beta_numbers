@@ -4,7 +4,7 @@ from pathlib import Path
 
 from intpolynomials.registers import IntPolynomialRegister
 from beta_numbers.beta_orbits import calc_orbits, calc_orbits_setup
-from cornifer import parallelize, load
+from cornifer import parallelize, load, load_ident
 from cornifer.debug import init_dir, set_dir, log
 from cornifer._utilities.multiprocessing import slurm_timecode_to_timedelta
 from dagtimers import Timers
@@ -52,9 +52,7 @@ if __name__ == '__main__':
     timers = Timers()
 
     if do_setup:
-
         poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg = calc_orbits_setup(perron_polys_reg, perron_nums_reg, beta_numbers_dir, max_blk_len, timers)
-        log('???')
 
     else:
 
