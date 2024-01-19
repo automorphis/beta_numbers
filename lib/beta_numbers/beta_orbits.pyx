@@ -331,6 +331,8 @@ the apri are periodic OR there are no associated blks in `poly_orbit_reg`, then 
         periodic_reg.add_subreg(perron_polys_reg)
         poly_orbit_reg.add_subreg(perron_polys_reg)
         coef_orbit_reg.add_subreg(perron_polys_reg)
+        poly_orbit_reg.increase_max_apri(10 ** 9)
+        coef_orbit_reg.increase_max_apri(10 ** 9)
 
     if verbose:
         log("... success!")
