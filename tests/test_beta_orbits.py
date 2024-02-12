@@ -237,7 +237,7 @@ class TestBetaOrbits(TestCase):
                     print(f"\tnum_procs = {num_procs}")
 
                     with timers.time("unittest calc_orbits_setup call"):
-                        poly_orbit_reg, coef_orbit_reg, periodic_reg, status_reg = calc_orbits_setup(
+                        poly_orbit_reg, coef_orbit_reg, periodic_reg, monotone_reg, status_reg = calc_orbits_setup(
                             cls.perron_polys_reg, cls.perron_nums_reg, cls.saves_dir, initial_max_blk_len, timers, False
                         )
 
@@ -327,6 +327,7 @@ class TestBetaOrbits(TestCase):
                                     poly_orbit_reg,
                                     coef_orbit_reg,
                                     periodic_reg,
+                                    monotone_reg,
                                     status_reg,
                                     max_blk_len,
                                     max_poly_orbit_len,

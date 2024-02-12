@@ -79,7 +79,7 @@ def boyd_phi_r(r):
         poly.set([-1, -1, 1])
 
     else:
-        poly.set([-1, 1] + [0] * (r - 2) + [-2, 1])
+        poly.set([-1, 1] + [0] * (r - 2) + [-2, 1]) # [-1, 1, 0, 0, -2, 1] index 44
 
     return poly, [1] * r + [0] * (r - 1) + [1, 0], 2 * r - 1, 1
 
