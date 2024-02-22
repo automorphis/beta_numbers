@@ -105,6 +105,7 @@ class MPFRegister(NumpyRegister):
     @classmethod
     def dump_disk_data(cls, data, filename, **kwargs):
 
+        print(data)
         data = np.array(data)
         asciilen = len(str(data[(0,) * data.ndim]))
         new_data = np.empty(data.shape, dtype = f'S{asciilen}')
