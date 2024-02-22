@@ -423,7 +423,7 @@ def calc_perron_nums(
 
                                         polys_seg.append(poly)
                                         nums_seg.append(perron.beta0)
-                                        conjs_seg.append(perron.conjs_mods_mults[1:])
+                                        conjs_seg.append([conj for conj, _, _ in perron.conjs_mods_mults[1:]])
 
                                         if len(polys_seg) >= blk_size:
 
@@ -585,7 +585,7 @@ def calc_salem_nums(
 
                                         polys_seg.append(poly)
                                         nums_seg.append(salem.beta0)
-                                        conjs_seg.append(salem.conjs_mods_mults[1:])
+                                        conjs_seg.append([conj for conj, _, _ in salem.conjs_mods_mults[1:]])
 
                                         if len(polys_seg) >= blk_size:
 
