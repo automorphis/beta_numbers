@@ -146,7 +146,7 @@ class Salem_Number(Perron_Number):
 
         if (
             self.min_poly.deg() % 2 != 0 or
-            any(not almosteq(mod, mp.one) for _, mod, _ in self.conjs_mods_mults[1:-1]) or
+            not all(almosteq(mod, 1.0) for _, mod, _ in self.conjs_mods_mults[1:-1]) or
             not almosteq(self.conjs_mods_mults[-1][0].imag, 0.) or
             not(0 < self.conjs_mods_mults[-1][0].real < 1)
         ):
@@ -230,6 +230,38 @@ def calc_perron_nums_setup_regs(saves_dir):
         perron_conjs_reg.add_subreg(perron_polys_reg)
 
     return perron_polys_reg, perron_nums_reg, perron_conjs_reg
+
+def calc_salem_nums_setup_regs(saves_dir):
+
+    salem_polys_reg = IntPolynomialRegister(
+        saves_dir,
+        "salem_polys_reg",
+        "Several minimal polynomials of Perron numbers.",
+        NUM_BYTES_PER_TERABYTE
+    )
+    salem_nums_reg = MPFRegister(
+        saves_dir,
+        "salem_nums_reg",
+        "Respective decimal approximations of Perron numbers whose minimal polynomials are given by the subregister "
+        "`salem_polys_reg`.",
+        NUM_BYTES_PER_TERABYTE
+    )
+    salem_conjs_reg = MPFRegister(
+        saves_dir,
+        "salem_conjs_reg",
+        "Respective decimal approximations of proper conjugates of Perron numbers, whose respective Perron numbers are "
+        "given by the subregister `salem_nums_reg` and whose respective minimal polynomials are given by the "
+        "subregister `salem_polys_reg`.",
+        NUM_BYTES_PER_TERABYTE
+    )
+
+    with stack(salem_polys_reg.open(), salem_nums_reg.open(), salem_conjs_reg.open()):
+
+        salem_nums_reg.add_subreg(salem_polys_reg)
+        salem_conjs_reg.add_subreg(salem_nums_reg)
+        salem_conjs_reg.add_subreg(salem_polys_reg)
+
+    return salem_polys_reg, salem_nums_reg, salem_conjs_reg
 
 def calc_perron_nums(
     max_sum_abs_coef, blk_size, dps, perron_polys_reg, perron_nums_reg, perron_conjs_reg, num_procs,
@@ -398,4 +430,166 @@ def calc_perron_nums(
                             dump()
 
                         perron_polys_reg.set_apos(poly_apri, AposInfo(complete = True), exists_ok = True)
+
+def calc_salem_nums(
+    max_sum_abs_coef, blk_size, dps, salem_polys_reg, salem_nums_reg, salem_conjs_reg, num_procs,
+    proc_index, timers
+):
+    with setdps(dps):
+
+        with stack(salem_polys_reg.open(), salem_nums_reg.open(), salem_conjs_reg.open()):
+
+            for d in max_sum_abs_coef.keys():
+
+                for s in range(3 + proc_index, max_sum_abs_coef[d] + 1, num_procs):
+
+                    log(f"deg = {d}, sum_abs_coef = {s}, dps = {dps}")
+                    poly_apri = ApriInfo(deg = d, sum_abs_coef = s)
+                    num_conj_apri = ApriInfo(deg = d, sum_abs_coef = s, dps = dps)
+
+                    try:
+                        restart_apos = salem_polys_reg.apos(poly_apri)
+
+                    except DataNotFoundError:
+                        last_poly = None
+
+                    else:
+
+                        if not restart_apos.complete:
+                            last_poly = IntPolynomial(d).set(restart_apos.last_poly)
+
+                        else:
+                            continue
+
+                    polys_seg = IntPolynomialArray(d)
+                    polys_seg.empty(blk_size)
+                    nums_seg = []
+                    conjs_seg = []
+                    total_poly = 0
+                    total_irreducible = 0
+
+                    with stack(Block(polys_seg, poly_apri), Block(nums_seg, num_conj_apri), Block(conjs_seg, num_conj_apri)) as (
+                        polys_blk, nums_blk, conjs_blk
+                    ):
+
+                        def dump():
+
+                            with timers.time("dump"):
+
+                                len_ = len(polys_seg)
+                                log(
+                                    f"dumping {len_} numbers, ({100 * len_ / total_irreducible : .1f}% among irreducible, "
+                                    f"{100 * len_ / total_poly : .1f}% among all)"
+                                )
+                                log("...polys...")
+                                polys_done = nums_done = conjs_done = False
+                                length = len(polys_blk)
+
+                                try:
+
+                                    with timers.time("polys"):
+                                        startn = salem_polys_reg.append_disk_blk(polys_blk)
+                                    length = len(polys_blk)
+                                    polys_done = True
+                                    with timers.time("compress polys"):
+                                        salem_polys_reg.compress(poly_apri, startn, length, 9)
+
+                                    polys_seg.clear()
+                                    log("...nums...")
+                                    with timers.time("nums"):
+                                        salem_nums_reg.append_disk_blk(nums_blk)
+                                    nums_done = True
+                                    with timers.time("compress nums"):
+                                        salem_nums_reg.compress(num_conj_apri, startn, length, 9)
+
+                                    if _debug == 2 or (_debug == 5 and salem_nums_reg.num_blks(num_conj_apri) > 0):
+                                        raise KeyboardInterrupt
+
+                                    nums_seg.clear()
+                                    log("...conjs...")
+                                    with timers.time("conjs"):
+                                        salem_conjs_reg.append_disk_blk(conjs_blk)
+                                    conjs_done = True
+                                    with timers.time("compress conjs"):
+                                        salem_polys_reg.compress(num_conj_apri, startn, length, 9)
+
+                                    if _debug == 3 or (_debug == 6 and salem_conjs_reg.num_blks(num_conj_apri) > 0):
+                                        raise KeyboardInterrupt
+
+                                    conjs_seg.clear()
+                                    log("...done.")
+                                    salem_polys_reg.set_apos(poly_apri, AposInfo(
+                                        complete = False, last_poly = tuple(poly.get_ndarray().astype(int))
+                                    ), exists_ok = True)
+
+
+                                except BaseException:
+
+                                    if polys_done:
+
+                                        salem_polys_reg.rmv_disk_blk(poly_apri, startn, length)
+
+                                        if salem_polys_reg.num_blks(poly_apri) == 0:
+                                            salem_polys_reg.rmv_apri(poly_apri, force = True)
+
+                                    logging.error("...polys successfully deleted...")
+
+                                    if nums_done:
+
+                                        salem_nums_reg.rmv_disk_blk(num_conj_apri, startn, length)
+
+                                        if salem_nums_reg.num_blks(num_conj_apri) == 0:
+                                            salem_nums_reg.rmv_apri(num_conj_apri, force = True)
+
+                                    logging.error("...nums successfully deleted...")
+
+                                    if conjs_done:
+
+                                        salem_conjs_reg.rmv_disk_blk(num_conj_apri, startn, length)
+
+                                        if salem_conjs_reg.num_blks(num_conj_apri) == 0:
+                                            salem_conjs_reg.rmv_apri(num_conj_apri, force = True)
+
+                                    logging.error("...conjs successfully deleted...")
+                                    raise
+
+                            log(timers.pretty_print())
+
+                        with timers.time("IntPolynomialIter"):
+
+                            for poly in IntPolynomialIter(d, s, True, last_poly):
+
+                                total_poly += 1
+
+                                with timers.time("is_irreducible"):
+                                    is_irreducible = poly.is_irreducible()
+
+                                if is_irreducible:
+
+                                    total_irreducible += 1
+                                    salem = Salem_Number(poly)
+
+                                    try:
+
+                                        with timers.time("roots"):
+                                            salem.calc_roots()
+
+                                    except Not_Salem_Error:
+                                        pass
+
+                                    else:
+
+                                        polys_seg.append(poly)
+                                        nums_seg.append(salem.beta0)
+                                        conjs_seg.append(salem.conjs_mods_mults[1:])
+
+                                        if len(polys_seg) >= blk_size:
+
+                                            dump()
+                                            total_poly = total_irreducible = 0
+
+                        if len(polys_seg) > 0:
+                            dump()
+
+                        salem_polys_reg.set_apos(poly_apri, AposInfo(complete = True), exists_ok = True)
 
