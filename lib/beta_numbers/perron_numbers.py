@@ -142,7 +142,11 @@ class Salem_Number(Perron_Number):
     def verify(self):
         """Check that this object actually encodes a Salem number as promised. Raises `Not_Salem_Error` if not."""
 
-        super().verify()
+        try:
+            super().verify()
+
+        except Not_Perron_Error:
+            raise Not_Salem_Error from None
 
         if (
             self.min_poly.deg() % 2 != 0 or
