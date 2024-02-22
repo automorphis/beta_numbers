@@ -111,8 +111,8 @@ class MPFRegister(NumpyRegister):
 
         for indices, val in np.ndenumerate(data):
 
-            new_data[indices + (0,)] = str(val.real)
-            new_data[indices + (1,)] = str(val.imag)
+            new_data[indices + (0,)] = mpmath.nstr(val.real, show_zero_exponent = True, min_fixed = 0, max_fixed = 0)
+            new_data[indices + (1,)] = mpmath.nstr(val.imag, show_zero_exponent = True, min_fixed = 0, max_fixed = 0)
 
         # print(new_data)
         super().dump_disk_data(new_data, filename, **kwargs)
@@ -124,9 +124,6 @@ class MPFRegister(NumpyRegister):
         new_data = np.empty(data.shape[:-1], dtype = object)
 
         for indices, _ in np.ndenumerate(new_data):
-            print(data[indices + (0,)], data[indices + (1,)])
-            new_data[indices] = mpmath.mpc(data[indices + (0,)], data[indices + (1,)])
+            new_data[indices] = mpmath.mpc(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
 
-        # for datum in data:
-        #     print(datum)
-        return list(mpmath.mpf(datum.decode("ASCII")) for datum in data)
+        return new_data
