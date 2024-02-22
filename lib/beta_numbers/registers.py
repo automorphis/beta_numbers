@@ -124,6 +124,7 @@ class MPFRegister(NumpyRegister):
         new_data = np.empty(data.shape[:-1], dtype = object)
 
         for indices, _ in np.ndenumerate(new_data):
+            print(data[indices + (0,)], data[indices + (1,)])
             new_data[indices] = mpmath.mpc(data[indices + (0,)], data[indices + (1,)])
 
         # for datum in data:
