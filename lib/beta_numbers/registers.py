@@ -105,7 +105,7 @@ class MPFRegister(NumpyRegister):
     @classmethod
     def dump_disk_data(cls, data, filename, **kwargs):
 
-        print(data)
+        # print(data)
         data = np.array(data)
         asciilen = len(str(data[(0,) * data.ndim]))
         new_data = np.empty(data.shape, dtype = f'S{asciilen}')
@@ -113,13 +113,13 @@ class MPFRegister(NumpyRegister):
         for indices, val in np.ndenumerate(data):
             new_data[indices] = str(val)
 
-        print(new_data)
+        # print(new_data)
         super().dump_disk_data(new_data, filename, **kwargs)
 
     @classmethod
     def load_disk_data(cls, filename, **kwargs):
 
         data = super().load_disk_data(filename, **kwargs)
-        for datum in data:
-            print(datum)
+        # for datum in data:
+        #     print(datum)
         return list(mpmath.mpf(datum.decode("ASCII")) for datum in data)
