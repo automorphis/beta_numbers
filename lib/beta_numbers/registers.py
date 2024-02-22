@@ -112,4 +112,5 @@ class MPFRegister(NumpyRegister):
     def load_disk_data(cls, filename, **kwargs):
 
         data = super().load_disk_data(filename, **kwargs)
+        print(data)
         return list(mpmath.mpf(datum.decode("ASCII")) for datum in data)
