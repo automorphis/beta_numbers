@@ -240,20 +240,20 @@ def calc_salem_nums_setup_regs(saves_dir):
     salem_polys_reg = IntPolynomialRegister(
         saves_dir,
         "salem_polys_reg",
-        "Several minimal polynomials of Perron numbers.",
+        "Several minimal polynomials of Salem numbers.",
         NUM_BYTES_PER_TERABYTE
     )
     salem_nums_reg = MPFRegister(
         saves_dir,
         "salem_nums_reg",
-        "Respective decimal approximations of Perron numbers whose minimal polynomials are given by the subregister "
+        "Respective decimal approximations of Salem numbers whose minimal polynomials are given by the subregister "
         "`salem_polys_reg`.",
         NUM_BYTES_PER_TERABYTE
     )
     salem_conjs_reg = MPFRegister(
         saves_dir,
         "salem_conjs_reg",
-        "Respective decimal approximations of proper conjugates of Perron numbers, whose respective Perron numbers are "
+        "Respective decimal approximations of proper conjugates of Salem numbers, whose respective Salem numbers are "
         "given by the subregister `salem_nums_reg` and whose respective minimal polynomials are given by the "
         "subregister `salem_polys_reg`.",
         NUM_BYTES_PER_TERABYTE
@@ -515,7 +515,7 @@ def calc_salem_nums(
                                         salem_conjs_reg.append_disk_blk(conjs_blk)
                                     conjs_done = True
                                     with timers.time("compress conjs"):
-                                        salem_polys_reg.compress(num_conj_apri, startn, length, 9)
+                                        salem_conjs_reg.compress(num_conj_apri, startn, length, 9)
 
                                     if _debug == 3 or (_debug == 6 and salem_conjs_reg.num_blks(num_conj_apri) > 0):
                                         raise KeyboardInterrupt
