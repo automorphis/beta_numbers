@@ -112,6 +112,7 @@ class MPFRegister(NumpyRegister):
         for indices, val in np.ndenumerate(data):
             new_data[indices] = str(val)
 
+        print(new_data)
         super().dump_disk_data(new_data, filename, **kwargs)
 
     @classmethod
