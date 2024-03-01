@@ -477,8 +477,6 @@ def calc_salem_nums(
                     polys_seg.empty(blk_size)
                     nums_seg = []
                     conjs_seg = []
-                    total_poly = 0
-                    total_irreducible = 0
 
                     with stack(Block(polys_seg, poly_apri), Block(nums_seg, num_conj_apri), Block(conjs_seg, num_conj_apri)) as (
                         polys_blk, nums_blk, conjs_blk
@@ -488,11 +486,6 @@ def calc_salem_nums(
 
                             with timers.time("dump"):
 
-                                len_ = len(polys_seg)
-                                log(
-                                    f"dumping {len_} numbers, ({100 * len_ / total_irreducible : .1f}% among irreducible, "
-                                    f"{100 * len_ / total_poly : .1f}% among all)"
-                                )
                                 log("...polys...")
                                 polys_done = nums_done = conjs_done = False
                                 length = len(polys_blk)
