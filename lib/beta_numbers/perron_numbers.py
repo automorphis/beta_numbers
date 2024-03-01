@@ -564,7 +564,8 @@ def calc_salem_nums(
 
                             for salem in salem_iter(d,s,dps,last_poly):
 
-                                polys_seg.append(salem.min_poly)
+                                poly = salem.min_poly
+                                polys_seg.append(poly)
                                 nums_seg.append(salem.beta0)
                                 conjs_seg.append([conj for conj, _, _ in salem.conjs_mods_mults[1:]])
 
