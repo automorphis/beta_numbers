@@ -187,19 +187,27 @@ def _is_salem_6poly(a, b, c, dps):
         except Not_Salem_Error:
             return False
 
-def salem_iter(deg, min_trace, max_trace, dps):
-    if deg != 6:
-        raise NotImplementedError
-    for a in range(-min_trace, -max_trace - 1, -1):
-        b_max = 7 + (5 - a) * 4
-        c_max = 8 + (5 - a) * 6
-        for b in range(-b_max, b_max + 1):
-            for c in range(-c_max, c_max + 1):
-                if _is_salem_6poly(a, b, c, dps):
-                    P = IntPolynomial([1, a, b, c, b, a, 1], dps)
-                    beta = Salem_Number(P, dps)
-                    beta.calc_roots()
-                    yield beta
+
+def salem_iter(deg, sum_abs_coef, max_dps, last_poly):
+    coef_1_upper_bound = deg - 5
+
+    with setdps(max_dps):
+
+        for p in IntPolynomialIter(deg, sum_abs_coef, True, True, True, last_poly):
+
+            if p[1] <= coef_1_upper_bound:
+
+                num = Salem_Number(p)
+
+                try:
+                    num.calc_roots()
+
+                except Not_Salem_Error:
+                    pass
+
+                else:
+                    yield num
+
 
 def calc_perron_nums_setup_regs(saves_dir):
 
@@ -561,36 +569,14 @@ def calc_salem_nums(
 
                         with timers.time("IntPolynomialIter"):
 
-                            for poly in IntPolynomialIter(d, s, True, last_poly):
+                            for salem in salem_iter(d,s,dps,last_poly):
 
-                                total_poly += 1
+                                polys_seg.append(salem.min_poly)
+                                nums_seg.append(salem.beta0)
+                                conjs_seg.append([conj for conj, _, _ in salem.conjs_mods_mults[1:]])
 
-                                with timers.time("is_irreducible"):
-                                    is_irreducible = poly.is_irreducible()
-
-                                if is_irreducible:
-
-                                    total_irreducible += 1
-                                    salem = Salem_Number(poly)
-
-                                    try:
-
-                                        with timers.time("roots"):
-                                            salem.calc_roots()
-
-                                    except Not_Salem_Error:
-                                        pass
-
-                                    else:
-
-                                        polys_seg.append(poly)
-                                        nums_seg.append(salem.beta0)
-                                        conjs_seg.append([conj for conj, _, _ in salem.conjs_mods_mults[1:]])
-
-                                        if len(polys_seg) >= blk_size:
-
-                                            dump()
-                                            total_poly = total_irreducible = 0
+                                if len(polys_seg) >= blk_size:
+                                    dump()
 
                         if len(polys_seg) > 0:
                             dump()
