@@ -105,36 +105,23 @@ class MPFRegister(NumpyRegister):
     @classmethod
     def dump_disk_data(cls, data, filename, **kwargs):
 
-        # print(data)
         data = np.array(data)
         new_data = np.empty(data.shape + (2,), dtype = f'S{mpmath.mp.dps + 8}')
 
         for indices, val in np.ndenumerate(data):
 
-            new_data[indices + (0,)] = mpmath.nstr(val.real, show_zero_exponent = True, min_fixed = 0, max_fixed = 0)
-            new_data[indices + (1,)] = mpmath.nstr(val.imag, show_zero_exponent = True, min_fixed = 0, max_fixed = 0)
+            new_data[indices + (0,)] = mpmath.nstr(val.real, n = mpmath.mp.dps, show_zero_exponent = True, min_fixed = 0, max_fixed = 0)
+            new_data[indices + (1,)] = mpmath.nstr(val.imag, n = mpmath.mp.dps, show_zero_exponent = True, min_fixed = 0, max_fixed = 0)
 
-        # print(new_data)
         super().dump_disk_data(new_data, filename, **kwargs)
 
     @classmethod
     def load_disk_data(cls, filename, **kwargs):
 
         data = super().load_disk_data(filename, **kwargs)
-        print(type(data))
-        print(data.shape)
-        print(data)
         new_data = np.empty(data.shape[:-1], dtype = object)
 
         for indices, _ in np.ndenumerate(new_data):
-
-            try:
-                new_data[indices] = mpmath.mpc(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
-
-            except TypeError:
-                # print(indices)
-                # print(data.shape)
-                # print(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
-                raise
+            new_data[indices] = mpmath.mpc(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
 
         return new_data
