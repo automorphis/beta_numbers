@@ -567,6 +567,7 @@ def calc_salem_nums(
                                 poly = salem.min_poly
                                 polys_seg.append(poly)
                                 nums_seg.append(salem.beta0)
+                                print(mp.dps, salem.beta0)
                                 conjs_seg.append([conj for conj, _, _ in salem.conjs_mods_mults[1:]])
 
                                 if len(polys_seg) >= blk_size:
