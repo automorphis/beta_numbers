@@ -121,9 +121,9 @@ class MPFRegister(NumpyRegister):
     def load_disk_data(cls, filename, **kwargs):
 
         data = super().load_disk_data(filename, **kwargs)
-        print(type(data))
-        print(data.shape)
-        print(data)
+        # print(type(data))
+        # print(data.shape)
+        # print(data)
         new_data = np.empty(data.shape[:-1], dtype = object)
 
         for indices, _ in np.ndenumerate(new_data):
@@ -132,9 +132,9 @@ class MPFRegister(NumpyRegister):
                 new_data[indices] = mpmath.mpc(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
 
             except TypeError:
-                print(indices)
-                print(data.shape)
-                print(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
+                # print(indices)
+                # print(data.shape)
+                # print(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
                 raise
 
         return new_data
