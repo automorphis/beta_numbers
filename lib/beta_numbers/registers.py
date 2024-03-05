@@ -124,6 +124,14 @@ class MPFRegister(NumpyRegister):
         new_data = np.empty(data.shape[:-1], dtype = object)
 
         for indices, _ in np.ndenumerate(new_data):
-            new_data[indices] = mpmath.mpc(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
+
+            try:
+                new_data[indices] = mpmath.mpc(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
+
+            except TypeError:
+                print(indices)
+                print(data.shape)
+                print(data[indices + (0,)].decode('ASCII'), data[indices + (1,)].decode('ASCII'))
+                raise
 
         return new_data
