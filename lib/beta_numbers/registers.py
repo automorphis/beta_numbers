@@ -122,6 +122,7 @@ class MPFRegister(NumpyRegister):
 
         data = super().load_disk_data(filename, **kwargs)
         print(type(data))
+        print(data.shape)
         print(data)
         new_data = np.empty(data.shape[:-1], dtype = object)
 
