@@ -354,15 +354,15 @@ Initialized to 0.""",
         perron_nums_reg.open(True), perron_polys_reg.open(True),
     ):
 
-        status_reg.add_subreg(poly_orbit_reg)
-        status_reg.add_subreg(perron_nums_reg)
-        periodic_reg.add_subreg(poly_orbit_reg)
-        status_reg.add_subreg(perron_polys_reg)
-        periodic_reg.add_subreg(perron_polys_reg)
-        poly_orbit_reg.add_subreg(perron_polys_reg)
-        coef_orbit_reg.add_subreg(perron_polys_reg)
-        monotone_reg.add_subreg(perron_polys_reg)
-        monotone_reg.add_subreg(poly_orbit_reg)
+        # status_reg.add_subreg(poly_orbit_reg)
+        # status_reg.add_subreg(perron_nums_reg)
+        # periodic_reg.add_subreg(poly_orbit_reg)
+        # status_reg.add_subreg(perron_polys_reg)
+        # periodic_reg.add_subreg(perron_polys_reg)
+        # poly_orbit_reg.add_subreg(perron_polys_reg)
+        # coef_orbit_reg.add_subreg(perron_polys_reg)
+        # monotone_reg.add_subreg(perron_polys_reg)
+        # monotone_reg.add_subreg(poly_orbit_reg)
         poly_orbit_reg.increase_max_apri(10 ** 9)
         coef_orbit_reg.increase_max_apri(10 ** 9)
 
