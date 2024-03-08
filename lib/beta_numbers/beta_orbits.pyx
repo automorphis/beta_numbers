@@ -233,7 +233,7 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
     max_blk_len = check_return_int(max_blk_len, "max_blk_len")
     check_type(verbose, "verbose", bool)
 
-    with perron_nums_reg.open():
+    with stack(perron_nums_reg.open(), perron_polys_reg.open(True)):
 
         if perron_polys_reg not in perron_nums_reg.subregs():
             perron_nums_reg.add_subreg(perron_polys_reg)
