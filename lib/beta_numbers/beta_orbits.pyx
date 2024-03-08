@@ -185,7 +185,7 @@ def calc_orbits(
                                                 log(f'Problem with {orbit_apri}; restarting from beginning.')
 
                                             p = perron_poly_blk[index]
-                                            beta0 = perron_num_blk[index]
+                                            beta0 = perron_num_blk[index].real
                                             beta = Perron_Number(p, beta0 = beta0)
 
                                             try:
