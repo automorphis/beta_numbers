@@ -525,7 +525,14 @@ cdef _single_orbit(
     min_poly = beta.min_poly
     debug = False
     beta0 = beta.beta0
-    beta0_ceil = int(mpmath.ceil(beta0))
+
+    try:
+        beta0_ceil = int(mpmath.ceil(beta0))
+
+    except:
+
+        print(beta0)
+        raise
     beta0_floor = int(beta0)
     base2_magn_beta0_ceil = _base2_magn(beta0_ceil)
     B0 = IntPolynomial(0).set([1])
