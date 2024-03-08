@@ -48,8 +48,8 @@ if __name__ == '__main__':
     sec_per_block_upper_bound = int(sys.argv[11])
     tmp_filename = Path(os.environ['TMPDIR'])
     debug_dir = init_dir('/fs/project/thompson.2455/lane.662/debugs')
-    perron_polys_reg = load('perron_polys_reg', perron_polys_dir)
-    perron_nums_reg = load('perron_nums_reg', perron_polys_dir)
+    perron_polys_reg = load('salem_polys_reg', perron_polys_dir)
+    perron_nums_reg = load('salem_nums_reg', perron_polys_dir)
     timers = Timers()
 
     if do_setup:
