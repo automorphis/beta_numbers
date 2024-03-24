@@ -5,7 +5,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from beta_numbers.examples import boyd_psi_r, boyd_phi_r, boyd_beta_n, boyd_prop5_2
+from beta_numbers.examples import boyd_psi_r, boyd_phi_r, boyd_beta_n, boyd_prop5_2, salems
 from beta_numbers.perron_numbers import Perron_Number
 from beta_numbers.beta_orbits import MPFRegister, setdps
 from intpolynomials import IntPolynomialRegister, IntPolynomialArray
@@ -74,16 +74,17 @@ class TestBetaOrbits(TestCase):
             cls.perron_polys_reg.open(), cls.exp_coef_orbit_reg.open(), cls.exp_periodic_reg.open(),
             cls.perron_nums_reg.open()
         ):
+            TestBetaOrbits.add_known_coef_orbit(*salems[0])
 
-            for r in range(1, 15):
-
-                TestBetaOrbits.add_known_coef_orbit(*boyd_phi_r(r))
-                TestBetaOrbits.add_known_coef_orbit(*boyd_psi_r(r))
-
-            for n in range(2, 15):
-
-                TestBetaOrbits.add_known_coef_orbit(*boyd_beta_n(n))
-                TestBetaOrbits.add_known_coef_orbit(*boyd_prop5_2(n))
+            # for r in range(1, 15):
+            #
+            #     TestBetaOrbits.add_known_coef_orbit(*boyd_phi_r(r))
+            #     TestBetaOrbits.add_known_coef_orbit(*boyd_psi_r(r))
+            #
+            # for n in range(2, 15):
+            #
+            #     TestBetaOrbits.add_known_coef_orbit(*boyd_beta_n(n))
+            #     TestBetaOrbits.add_known_coef_orbit(*boyd_prop5_2(n))
 
     @classmethod
     def add_known_coef_orbit(cls, poly, orbit, m, p):

@@ -478,7 +478,7 @@ def _update_status_reg_apos(perron_polys_reg, status_reg, timers):
                 if to_update:
                     status_reg.set_apos(perron_apri, apos, exists_ok = True)
 
-cdef _single_orbit(
+cdef ERR_t _single_orbit(
     object beta,
     object orbit_apri,
     object poly_orbit_reg,
@@ -549,14 +549,14 @@ cdef _single_orbit(
     if last_overflow_index != -1:
         # cannot continue
         log(f'last_overflow_index = {last_overflow_index}, quitting.')
-        return
+        return 0
     # get periodic info
     poly_preperiod_length, _ = periodic_reg.get(poly_apri, orbit_apri.index, mmap_mode = "r")
 
     if poly_preperiod_length != -1:
         # already found period
         log(f'poly_preperiod_length = {poly_preperiod_length}, quitting.')
-        return
+        return 0
 
     # get monotone info
     is_monotone = TRUE if monotone_reg.get(poly_apri, orbit_apri.index, mmap_mode = "r")[0] == 1 else FALSE
@@ -631,7 +631,7 @@ cdef _single_orbit(
             if current_x_prec > max_prec:
 
                 status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
-                return
+                return 0
             # base2_magn_norm_max_eval is a scaling factor that is used to detect potential overflow errors. it is derived by
             # massaging the truncated geometric series of degree `deg - 1` and taking logs.
             base2_magn_norm_max_eval = (deg + 1) * base2_magn_beta0_ceil
@@ -647,7 +647,7 @@ cdef _single_orbit(
 
             if base2_magn_norm_max_eval >= base2_magn_max_max_abs_coef:
                 status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
-                return
+                return 0
 
             for n in range(startn, max_poly_orbit_len + 1):
                 # primary orbit iteration loop
@@ -685,7 +685,7 @@ cdef _single_orbit(
                         poly_orbit_reg.append_disk_blk(poly_blk)
 
                     status_reg[poly_apri, orbit_apri.index] = np.array([n-1, -1, n])
-                    return
+                    return 0
 
                 while do_while:
                     # calculate next iterate and increase prec if necessary
@@ -723,7 +723,7 @@ cdef _single_orbit(
                                     poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode = "r+"
                                 )
                                 log(f'unrecoverable precision, quitting, n = {n}, xi = {xi}.')
-                                return
+                                return 0
 
                             cn = _round(xi)
 
@@ -746,7 +746,7 @@ cdef _single_orbit(
 
                                     log(f'unrecoverable precision, quitting, n = {n}, Bn = {Bn}.')
                                     status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
-                                    return
+                                    return 0
 
                             else:
                                 # simple parry
@@ -772,9 +772,10 @@ cdef _single_orbit(
                                 )
                                 _set_monotone_data(is_monotone, monotone_reg, poly_apri, orbit_apri, min_blowup)
                                 log(f'Simple parry, periodic_reg[...] = {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
-                                return
+                                return 0
 
                 cn = _calc_cn(xi)
+                print(cn)
                 Bn = IntPolynomial(min_poly._deg - 1)
                 _calc_Bn(Bn_1, cn, min_poly, Bn)
                 min_blowup = _calc_min_blowup(is_monotone, n, min_poly._deg, min_blowup, Bn_1, Bn)
@@ -795,7 +796,7 @@ cdef _single_orbit(
                     _set_periodic_info(status_reg, periodic_reg, orbit_apri, 0, n - 1)
                     _set_monotone_data(is_monotone, monotone_reg, poly_apri, orbit_apri, min_blowup)
                     log(f'Non-simple parry, periodic_reg[...] = {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
-                    return
+                    return 0
 
 
                 elif Bn == B0:
@@ -807,7 +808,7 @@ cdef _single_orbit(
                     _set_periodic_info(status_reg, periodic_reg, orbit_apri, 0, n)
                     _set_monotone_data(is_monotone, monotone_reg, poly_apri, orbit_apri, min_blowup)
                     log(f'Non-simple parry, periodic_reg[...] = {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
-                    return
+                    return 0
 
                 poly_seg.append(Bn)
                 x_y_prec_offset += _prec_offset(Bn, Bn_1)
@@ -834,7 +835,7 @@ cdef _single_orbit(
                     )
                     _set_monotone_data(is_monotone, monotone_reg, poly_apri, orbit_apri, min_blowup)
                     log(f'Non-simple parry, periodic_reg[...] = {periodic_reg[orbit_apri.resp, orbit_apri.index]}')
-                    return
+                    return 0
 
                 if len(coef_blk) >= max_blk_len:
                     # dump blk and clear seg
@@ -861,6 +862,8 @@ cdef _single_orbit(
 
             poly_orbit_reg.rmv_all_ram_blks()
             mpmath.mp.dps = original_dps
+
+    return  0
 
 cdef (INDEX_t, INDEX_t) _calc_minimal_period(INDEX_t k, IntPolynomial Bk, object poly_orbit_reg, object B_apri) except *:
 
