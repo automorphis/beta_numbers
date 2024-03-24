@@ -14,11 +14,12 @@
 """
 import logging
 import math
+from functools import reduce
 
 from dagtimers import Timers
 from cornifer import Block, ApriInfo, DataNotFoundError, AposInfo, stack
 from cornifer.debug import log
-from mpmath import almosteq, mp
+from mpmath import almosteq, mp, fmul
 from intpolynomials import IntPolynomial, IntPolynomialRegister, IntPolynomialArray, IntPolynomialIter
 
 from .registers import MPFRegister
@@ -53,6 +54,7 @@ class Perron_Number:
         self._last_calc_roots_dps = None
         self.conjs_mods_mults = None
         self.extradps = None
+        self._mahler_measure = None
 
     def __eq__(self, other):
         return self.min_poly == other.min_poly
@@ -127,6 +129,22 @@ class Perron_Number:
             math.ceil((self.deg - 1) * math.log(self.beta0, 2))
         )
 
+    def mahler_measure(self):
+
+        if self._mahler_measure is None:
+
+            _, cmm = self.calc_roots()
+            self._mahler_measure = reduce(fmul, (t[1] for t in cmm))
+
+        return self._mahler_measure
+
+    def boyd_C(self):
+
+        beta0 = self.calc_roots()[0]
+        disc = self.min_poly.discriminant()
+        return beta0 ** (self.deg - 1) * (math.pi / 6) ** (-1 + self.deg / 2) / math.sqrt(abs(disc))
+
+
 class Salem_Number(Perron_Number):
     """A class representing a Salem number.
 
@@ -156,6 +174,17 @@ class Salem_Number(Perron_Number):
         ):
             raise Not_Salem_Error
 
+    def mahler_measure(self):
+
+        if self._mahler_measure is None:
+
+            if self.beta0 is None:
+                self.calc_roots()
+
+            self._mahler_measure = self.beta0
+
+        return self._mahler_measure
+
 class Pisot_Number(Perron_Number):
     """A class representing a Pisot number.
 
@@ -169,6 +198,17 @@ class Pisot_Number(Perron_Number):
 
         if any(mod >= 1 for _, mod, _ in self.conjs_mods_mults[1:]):
             raise Not_Pisot_Error
+
+    def mahler_measure(self):
+
+        if self._mahler_measure is None:
+
+            if self.beta0 is None:
+                self.calc_roots()
+
+            self._mahler_measure = self.beta0
+
+        return self._mahler_measure
 
 def _is_salem_6poly(a, b, c, dps):
     U = IntPolynomial([c - 2 * a, b - 3, a, 1], dps)

@@ -9,7 +9,7 @@ ctypedef cnp.longlong_t N_t
 ctypedef object         MPF_t
 ctypedef int            INDEX_t
 
-cdef _single_orbit(
+cdef ERR_t _single_orbit(
     object beta,
     object orbit_apri,
     object poly_orbit_reg,

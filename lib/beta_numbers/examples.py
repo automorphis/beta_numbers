@@ -6,6 +6,10 @@ from beta_numbers.beta_orbits import setdps
 from cornifer import ApriInfo, AposInfo, DataNotFoundError, Block, NumpyRegister, stack
 from cornifer.debug import log
 
+salems = [
+    (IntPolynomial(8).set([1, -4, 0, 0, 0, 0, 0, -4, 1]), [4, 0, 0, 0, 0, 0, 3, 3], 0, 7)
+]
+
 def examples_setup(dir_):
 
     perron_polys_reg = IntPolynomialRegister(dir_, 'perron_polys_reg', 'msg', 2 ** 40)
