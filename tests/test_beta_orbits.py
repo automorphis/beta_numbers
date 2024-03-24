@@ -30,7 +30,7 @@ class TestBetaOrbits(TestCase):
     new = True
     delete = False
     # base_path = Path("/mnt/c/Users/mlane/beta_numbers_testcases")
-    base_path = Path("/mnt/d/beta_numbers_testcases")
+    base_path = Path().home()
 
     @classmethod
     def setup_readonly_registers(cls):
