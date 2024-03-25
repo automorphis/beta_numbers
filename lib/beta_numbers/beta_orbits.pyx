@@ -775,7 +775,19 @@ cdef ERR_t _single_orbit(
                                 return 0
 
                 cn = _calc_cn(xi)
-                print(cn)
+
+                if cn > beta0:
+
+                    if len(coef_blk) > 0:
+                        coef_orbit_reg.append_disk_blk(coef_blk)
+
+                    if len(poly_blk) > 0:
+                        poly_orbit_reg.append_disk_blk(poly_blk)
+
+                    log(f'unrecoverable precision, quitting, n = {n}, Bn = {Bn}.')
+                    status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
+                    return 0
+
                 Bn = IntPolynomial(min_poly._deg - 1)
                 _calc_Bn(Bn_1, cn, min_poly, Bn)
                 min_blowup = _calc_min_blowup(is_monotone, n, min_poly._deg, min_blowup, Bn_1, Bn)
@@ -1088,7 +1100,7 @@ cdef ERR_t _calc_Bn(IntPolynomial Bn_1, C_t cn, IntPolynomial min_poly, IntPolyn
     return 0
 
 cdef C_t _calc_cn(MPF_t xi) except -1:
-    return  <C_t> int(mpmath.floor(xi))
+    return int(xi)
 
 cdef str _mpf_to_str(MPF_t x):
     return mpmath.nstr(x, mpmath.mp.dps, strip_zeros = False, min_fixed = -mpmath.inf, max_fixed = mpmath.inf)
