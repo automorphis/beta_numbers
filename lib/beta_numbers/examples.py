@@ -7,7 +7,8 @@ from cornifer import ApriInfo, AposInfo, DataNotFoundError, Block, NumpyRegister
 from cornifer.debug import log
 
 salems = [
-    (IntPolynomial(8).set([1, -4, 0, 0, 0, 0, 0, -4, 1]), [4, 0, 0, 0, 0, 0, 3, 3], 0, 7)
+    (IntPolynomial(8).set([1, -4, 0, 0, 0, 0, 0, -4, 1]), [4, 0, 0, 0, 0, 0, 3, 3], 0, 7),
+    (IntPolynomial(8).set([1, -4, 0, 1, 0, 1, 0, -4, 1]), [3, 3, 2, 2, 1, 2, 2, 1, 2, 2, 3, 2, 2], 0, 12)
 ]
 
 def examples_setup(dir_):

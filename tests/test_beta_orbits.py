@@ -76,15 +76,15 @@ class TestBetaOrbits(TestCase):
         ):
             TestBetaOrbits.add_known_coef_orbit(*salems[0])
 
-            # for r in range(1, 15):
-            #
-            #     TestBetaOrbits.add_known_coef_orbit(*boyd_phi_r(r))
-            #     TestBetaOrbits.add_known_coef_orbit(*boyd_psi_r(r))
-            #
-            # for n in range(2, 15):
-            #
-            #     TestBetaOrbits.add_known_coef_orbit(*boyd_beta_n(n))
-            #     TestBetaOrbits.add_known_coef_orbit(*boyd_prop5_2(n))
+            for r in range(1, 15):
+
+                TestBetaOrbits.add_known_coef_orbit(*boyd_phi_r(r))
+                TestBetaOrbits.add_known_coef_orbit(*boyd_psi_r(r))
+
+            for n in range(2, 15):
+
+                TestBetaOrbits.add_known_coef_orbit(*boyd_beta_n(n))
+                TestBetaOrbits.add_known_coef_orbit(*boyd_prop5_2(n))
 
     @classmethod
     def add_known_coef_orbit(cls, poly, orbit, m, p):
