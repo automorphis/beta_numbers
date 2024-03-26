@@ -691,6 +691,7 @@ cdef ERR_t _single_orbit(
                     # calculate next iterate and increase prec if necessary
                     Bn_1.c_eval(beta0, FALSE)
                     xi = beta0 * Bn_1.last_eval
+                    print(xi, current_x_prec, current_y_prec)
 
                     with setprec(current_y_prec):
                         do_while = TRUE if _incr_prec(xi) else FALSE
@@ -1075,7 +1076,7 @@ cdef MPF_t _torus_norm(MPF_t x):
 cdef BOOL_t _incr_prec(MPF_t x) except -1:
 
     cdef MPF_t frac = mpmath.frac(x)
-    return TRUE if x < 0 or mpmath.almosteq(frac, 0) or mpmath.almosteq(frac, 1) else FALSE
+    return TRUE if mpmath.almosteq(frac, 0) or mpmath.almosteq(frac, 1) else FALSE
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
