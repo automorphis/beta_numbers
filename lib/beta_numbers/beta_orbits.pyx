@@ -790,6 +790,7 @@ cdef ERR_t _single_orbit(
 
                 Bn = IntPolynomial(min_poly._deg - 1)
                 _calc_Bn(Bn_1, cn, min_poly, Bn)
+                print(cn, xi, Bn, Bn._deg, min_poly, min_poly._deg)
                 min_blowup = _calc_min_blowup(is_monotone, n, min_poly._deg, min_blowup, Bn_1, Bn)
 
                 if min_blowup == -1:
