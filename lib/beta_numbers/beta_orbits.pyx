@@ -722,7 +722,7 @@ cdef ERR_t _single_orbit(
                                 status_reg.set(
                                     poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode = "r+"
                                 )
-                                print('error 1')
+                                print('error 1', prec_is_constant, current_x_prec, max_prec, xi)
                                 log(f'unrecoverable precision, quitting, n = {n}, xi = {xi}.')
                                 return 0
 
