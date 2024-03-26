@@ -572,6 +572,9 @@ cdef ERR_t _single_orbit(
     original_dps = mpmath.mp.dps
     log(f'startn = {startn}')
 
+    with setdps(max_dps):
+        print('top', beta0)
+
     with stack(coef_blk, poly_blk):
 
         try:
