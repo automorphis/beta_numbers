@@ -722,12 +722,14 @@ cdef ERR_t _single_orbit(
                                 status_reg.set(
                                     poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode = "r+"
                                 )
+                                print('error 1')
                                 log(f'unrecoverable precision, quitting, n = {n}, xi = {xi}.')
                                 return 0
 
                             cn = _round(xi)
 
                             if cn == 0:
+                                print('error 2')
                                 log(f'unrecoverable precision, quitting, n = {n}.')
                                 status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
 
@@ -745,6 +747,7 @@ cdef ERR_t _single_orbit(
                                         poly_orbit_reg.append_disk_blk(poly_blk)
 
                                     log(f'unrecoverable precision, quitting, n = {n}, Bn = {Bn}.')
+                                    print('error 3')
                                     status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
                                     return 0
 
@@ -784,6 +787,7 @@ cdef ERR_t _single_orbit(
                     if len(poly_blk) > 0:
                         poly_orbit_reg.append_disk_blk(poly_blk)
 
+                    print('error 4', cn, xi)
                     log(f'unrecoverable precision, quitting, n = {n}, Bn = {Bn}.')
                     status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
                     return 0
