@@ -691,7 +691,7 @@ cdef ERR_t _single_orbit(
                     # calculate next iterate and increase prec if necessary
                     Bn_1.c_eval(beta0, FALSE)
                     xi = beta0 * Bn_1.last_eval
-                    print(xi, current_x_prec, current_y_prec)
+                    # print(xi, current_x_prec, current_y_prec)
 
                     with setprec(current_y_prec):
                         do_while = TRUE if _incr_prec(xi) else FALSE
