@@ -525,14 +525,7 @@ cdef ERR_t _single_orbit(
     min_poly = beta.min_poly
     debug = False
     beta0 = beta.beta0
-
-    try:
-        beta0_ceil = int(mpmath.ceil(beta0))
-
-    except:
-
-        print(beta0)
-        raise
+    beta0_ceil = int(mpmath.ceil(beta0))
     beta0_floor = int(beta0)
     base2_magn_beta0_ceil = _base2_magn(beta0_ceil)
     B0 = IntPolynomial(0).set([1])
@@ -571,9 +564,6 @@ cdef ERR_t _single_orbit(
     poly_blk = Block(poly_seg, orbit_apri, startn)
     original_dps = mpmath.mp.dps
     log(f'startn = {startn}')
-
-    with setdps(max_dps):
-        print('top', beta0)
 
     with stack(coef_blk, poly_blk):
 
@@ -725,14 +715,13 @@ cdef ERR_t _single_orbit(
                                 status_reg.set(
                                     poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode = "r+"
                                 )
-                                print('error 1', prec_is_constant, current_x_prec, max_prec, xi)
                                 log(f'unrecoverable precision, quitting, n = {n}, xi = {xi}.')
                                 return 0
 
                             cn = _round(xi)
 
                             if cn == 0:
-                                print('error 2')
+
                                 log(f'unrecoverable precision, quitting, n = {n}.')
                                 status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
 
@@ -750,7 +739,6 @@ cdef ERR_t _single_orbit(
                                         poly_orbit_reg.append_disk_blk(poly_blk)
 
                                     log(f'unrecoverable precision, quitting, n = {n}, Bn = {Bn}.')
-                                    print('error 3')
                                     status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
                                     return 0
 
@@ -790,14 +778,12 @@ cdef ERR_t _single_orbit(
                     if len(poly_blk) > 0:
                         poly_orbit_reg.append_disk_blk(poly_blk)
 
-                    print('error 4', cn, xi)
                     log(f'unrecoverable precision, quitting, n = {n}, Bn = {Bn}.')
                     status_reg.set(poly_apri, orbit_apri.index, [n - 1, n, -1], mmap_mode="r+")
                     return 0
 
                 Bn = IntPolynomial(min_poly._deg - 1)
                 _calc_Bn(Bn_1, cn, min_poly, Bn)
-                print(cn, xi, Bn, Bn._deg, min_poly, min_poly._deg)
                 min_blowup = _calc_min_blowup(is_monotone, n, min_poly._deg, min_blowup, Bn_1, Bn)
 
                 if min_blowup == -1:
