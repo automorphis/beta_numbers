@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-#SBATCH --job-name=04CalcBetaOrbits
-#SBATCH --time=5-00:00:00
+#SBATCH --time=0-01:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=24
@@ -11,10 +10,10 @@
 
 PERRONDIR=/fs/project/thompson.2455/lane.662/salemnums/nums/deg${SLURM_JOB_NAME:0:2}
 BETADIR=/fs/project/thompson.2455/lane.662/salemnums/orbits/deg${SLURM_JOB_NAME:0:2}
-DOSETUP=True
+DOSETUP=False
 MAINFILE=~/beta_numbers/scripts/calc_beta_orbits.py
 BLKSIZE=25000
-MAXORBITLEN=1000000
+MAXORBITLEN=100000000
 MAXDPS=500
 TIMEOUT=$(squeue -j $SLURM_JOB_ID -h --Format TimeLimit)
 UPDATEPERIOD=900
