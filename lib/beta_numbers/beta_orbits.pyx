@@ -626,24 +626,24 @@ cdef ERR_t _single_orbit(
                 log(f'oh no! 1 {current_x_prec} {max_prec}')
                 status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
                 return 0
-            # base2_magn_norm_max_eval is a scaling factor that is used to detect potential overflow errors. it is derived by
-            # massaging the truncated geometric series of degree `deg - 1` and taking logs.
-            base2_magn_norm_max_eval = (deg + 1) * base2_magn_beta0_ceil
-
-            if beta0 >= 2:
-                # this one gets smaller
-                base2_magn_norm_max_eval -= _base2_magn(beta0_floor - 1) - 1
-
-            else:
-                # this one gets bigger
-                with setprec(max_prec):
-                    base2_magn_norm_max_eval -= int(mpmath.log(beta0 - 1, 2))
-
-            if base2_magn_norm_max_eval >= base2_magn_max_max_abs_coef:
-
-                log(f'oh no! 2 {base2_magn_norm_max_eval} {base2_magn_max_max_abs_coef}')
-                status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
-                return 0
+            # # base2_magn_norm_max_eval is a scaling factor that is used to detect potential overflow errors. it is derived by
+            # # massaging the truncated geometric series of degree `deg - 1` and taking logs.
+            # base2_magn_norm_max_eval = (deg + 1) * base2_magn_beta0_ceil
+            #
+            # if beta0 >= 2:
+            #     # this one gets smaller
+            #     base2_magn_norm_max_eval -= _base2_magn(beta0_floor - 1) - 1
+            #
+            # else:
+            #     # this one gets bigger
+            #     with setprec(max_prec):
+            #         base2_magn_norm_max_eval -= int(mpmath.log(beta0 - 1, 2))
+            #
+            # if base2_magn_norm_max_eval >= base2_magn_max_max_abs_coef:
+            #
+            #     log(f'oh no! 2 {base2_magn_norm_max_eval} {base2_magn_max_max_abs_coef}')
+            #     status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
+            #     return 0
 
             for n in range(startn, max_poly_orbit_len + 1):
                 # primary orbit iteration loop
@@ -670,23 +670,36 @@ cdef ERR_t _single_orbit(
                 n_even = TRUE if 2 * k == n else FALSE
                 do_while = TRUE
 
-                if _base2_magn(Bn_1.max_abs_coef()) + base2_magn_norm_max_eval > base2_magn_max_max_abs_coef:
-                    # large coefficients found
-                    log(f'large coefficient, quitting, n = {n}, Bn_1 = {Bn_1}.')
-
-                    if len(coef_blk) > 0:
-                        coef_orbit_reg.append_disk_blk(coef_blk)
-
-                    if len(poly_blk) > 0:
-                        poly_orbit_reg.append_disk_blk(poly_blk)
-
-                    status_reg[poly_apri, orbit_apri.index] = np.array([n-1, -1, n])
-                    return 0
+                # if _base2_magn(Bn_1.max_abs_coef()) + base2_magn_norm_max_eval > base2_magn_max_max_abs_coef:
+                #     # large coefficients found
+                #     log(f'large coefficient, quitting, n = {n}, Bn_1 = {Bn_1}.')
+                #
+                #     if len(coef_blk) > 0:
+                #         coef_orbit_reg.append_disk_blk(coef_blk)
+                #
+                #     if len(poly_blk) > 0:
+                #         poly_orbit_reg.append_disk_blk(poly_blk)
+                #
+                #     status_reg[poly_apri, orbit_apri.index] = np.array([n-1, -1, n])
+                #     return 0
 
                 while do_while:
                     # calculate next iterate and increase prec if necessary
                     Bn_1.c_eval(beta0, FALSE)
                     xi = beta0 * Bn_1.last_eval
+
+                    if _mpf_base2_magn(xi) >= base2_magn_max_max_abs_coef:
+                        # large coefficients found
+                        log(f'large coefficient, quitting, n = {n}, Bn_1 = {Bn_1}.')
+
+                        if len(coef_blk) > 0:
+                            coef_orbit_reg.append_disk_blk(coef_blk)
+
+                        if len(poly_blk) > 0:
+                            poly_orbit_reg.append_disk_blk(poly_blk)
+
+                        status_reg[poly_apri, orbit_apri.index] = np.array([n-1, -1, n])
+                        return 0
 
                     with setprec(current_y_prec):
                         do_while = TRUE if _incr_prec(xi) else FALSE
@@ -1101,6 +1114,9 @@ cdef C_t _calc_cn(MPF_t xi) except -1:
 
 cdef str _mpf_to_str(MPF_t x):
     return mpmath.nstr(x, mpmath.mp.dps, strip_zeros = False, min_fixed = -mpmath.inf, max_fixed = mpmath.inf)
+
+cdef DPS_t _mpf_base2_magn(MPF_t x):
+    return _base2_magn(int(x) + 1)
 
 cdef DPS_t _base2_magn(COEF_t x):
 

@@ -37,6 +37,10 @@ cdef float _calc_min_blowup(
     BOOL_t is_monotone, INDEX_t n, DEG_t deg, float min_blowup, IntPolynomial Bn_1, IntPolynomial Bn
 ) except -2
 
+cdef DPS_t _mpf_base2_magn(MPF_t x)
+
+cdef DPS_t _base2_magn(COEF_t x)
+
 cdef DPS_t _prec_offset(IntPolynomial Bn, IntPolynomial Bn_1)
 
 cdef C_t _calc_cn(MPF_t xi) except -1
