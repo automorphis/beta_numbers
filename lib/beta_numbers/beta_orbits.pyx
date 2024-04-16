@@ -623,7 +623,7 @@ cdef ERR_t _single_orbit(
 
             if current_x_prec > max_prec:
 
-                log(f'oh no! {current_x_prec} {max_prec}')
+                log(f'oh no! 1 {current_x_prec} {max_prec}')
                 status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
                 return 0
             # base2_magn_norm_max_eval is a scaling factor that is used to detect potential overflow errors. it is derived by
@@ -640,6 +640,8 @@ cdef ERR_t _single_orbit(
                     base2_magn_norm_max_eval -= int(mpmath.log(beta0 - 1, 2))
 
             if base2_magn_norm_max_eval >= base2_magn_max_max_abs_coef:
+
+                log(f'oh no! 2 {base2_magn_norm_max_eval} {base2_magn_max_max_abs_coef}')
                 status_reg[orbit_apri.resp, orbit_apri.index] = np.array([startn - 1, startn, -1])
                 return 0
 
