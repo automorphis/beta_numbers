@@ -605,6 +605,7 @@ def calc_salem_nums(
                             for salem in salem_iter(d,s,dps,last_poly):
 
                                 poly = salem.min_poly
+                                log(str(poly))
                                 polys_seg.append(poly)
                                 nums_seg.append(salem.beta0)
                                 print(mp.dps, salem.beta0)
