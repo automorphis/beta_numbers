@@ -13,6 +13,7 @@
     GNU General Public License for more details.
 """
 from contextlib import contextmanager
+from itertools import zip_longest
 
 cimport cython
 from intpolynomials.intpolynomials cimport IntPolynomial, IntPolynomialArray, BOOL_t, ERR_t, calc_deg
@@ -20,7 +21,7 @@ from intpolynomials.intpolynomials cimport IntPolynomial, IntPolynomialArray, BO
 import numpy as np
 import math
 import mpmath
-from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, stack, load
+from cornifer import Block, NumpyRegister, DataNotFoundError, ApriInfo, AposInfo, stack, load, CompressionError
 from cornifer._utilities import check_type, check_return_int, check_return_Path
 from cornifer.debug import log
 from intpolynomials.registers import IntPolynomialRegister
@@ -216,6 +217,26 @@ def calc_orbits(
                                                     log(f'Problems with {orbit_apri} fixed during exception.')
 
                                                 raise
+
+                                            else:
+
+                                                for (startn1, length1), (startn2, length2) in zip_longest(
+                                                    poly_orbit_reg.intervals(orbit_apri),
+                                                    coef_orbit_reg.intervals(orbit_apri)
+                                                ):
+
+                                                    try:
+                                                        poly_orbit_reg.compress(orbit_apri, startn1, length1)
+
+                                                    except CompressionError:
+                                                        pass
+
+                                                    try:
+                                                        coef_orbit_reg.compress(orbit_apri, startn2, length2)
+
+                                                    except CompressionError:
+                                                        pass
+
 
 def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len, timers, verbose = False):
     """Setup and return the `Register`s `poly_orbit_reg`, `coef_orbit_reg`, `periodic_reg`, and `status_reg`.
@@ -693,7 +714,9 @@ cdef ERR_t _single_orbit(
                         log(f'large coefficient, quitting, n = {n}, Bn_1 = {Bn_1}.')
 
                         if len(coef_blk) > 0:
+
                             coef_orbit_reg.append_disk_blk(coef_blk)
+
 
                         if len(poly_blk) > 0:
                             poly_orbit_reg.append_disk_blk(poly_blk)
