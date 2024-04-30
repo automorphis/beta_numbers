@@ -23,7 +23,7 @@ cdef ERR_t _single_orbit(
     object timers,
     DPS_t constant_y_dps,
     DPS_t constant_x_dps
-)
+) except -1
 
 cdef C_t _round(MPF_t x) except -1
 
