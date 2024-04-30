@@ -596,7 +596,15 @@ cdef ERR_t _single_orbit(
 
             if startn > 1:
                 # setup restart info
-                Bn_1 = poly_orbit_reg[orbit_apri, startn - 1]
+
+                try:
+                    Bn_1 = poly_orbit_reg[orbit_apri, startn - 1]
+
+                except DataNotFoundError:
+
+                    print(poly_orbit_reg.total_len(orbit_apri))
+                    raise
+
                 k = (startn + 1) // 2
                 Bk_iter = poly_orbit_reg[orbit_apri, k : ]
                 ret = monotone_reg.get(poly_apri, orbit_apri.index, mmap_mode = 'r')
