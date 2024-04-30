@@ -513,7 +513,7 @@ cdef ERR_t _single_orbit(
     object timers,
     DPS_t constant_y_dps,
     DPS_t constant_x_dps
-) except *:
+) except -1:
 
     cdef DEG_t j, deg
     cdef INDEX_t n, k, preperiod_len, period_len
