@@ -602,17 +602,43 @@ def calc_salem_nums(
 
                         with timers.time("IntPolynomialIter"):
 
-                            for salem in salem_iter(d,s,dps,last_poly):
+                            coef_1_upper_bound = d - 5
+                            last_last_poly = last_poly
 
-                                poly = salem.min_poly
-                                log(str(poly))
-                                polys_seg.append(poly)
-                                nums_seg.append(salem.beta0)
-                                print(mp.dps, salem.beta0)
-                                conjs_seg.append([conj for conj, _, _ in salem.conjs_mods_mults[1:]])
+                            try:
 
-                                if len(polys_seg) >= blk_size:
-                                    dump()
+                                for p in IntPolynomialIter(d, s, True, True, True, last_poly):
+
+                                    if p[1] <= coef_1_upper_bound:
+
+                                        salem = Salem_Number(p)
+
+                                        try:
+                                            salem.calc_roots()
+
+                                        except Not_Salem_Error:
+                                            pass
+
+                                        else:
+
+                                            poly = salem.min_poly
+                                            log(str(poly))
+                                            polys_seg.append(poly)
+                                            nums_seg.append(salem.beta0)
+                                            print(mp.dps, salem.beta0)
+                                            conjs_seg.append([conj for conj, _, _ in salem.conjs_mods_mults[1:]])
+
+                                            if len(polys_seg) >= blk_size:
+                                                dump()
+
+                                    last_last_poly = p
+
+                            except BaseException:
+
+                                salem_polys_reg.set_apos(poly_apri, AposInfo(
+                                    complete = False, last_poly = tuple(last_last_poly.get_ndarray().astype(int))
+                                ), exists_ok = True)
+                                raise
 
                         if len(polys_seg) > 0:
                             dump()
