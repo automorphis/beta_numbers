@@ -2,8 +2,8 @@
 
 #SBATCH --time=0-01:00:00
 #SBATCH --ntasks=1
-#SBATCH --output=slurm-%j.out
-#SBATCH --error=slurm-%j.out
+#SBATCH --output=/home/lane.662/slurm-%j.out
+#SBATCH --error=/home/lane.662/slurm-%j.out
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mail-user=lane.662@osu.edu
