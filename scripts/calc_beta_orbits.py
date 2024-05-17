@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     parallelize(
         num_procs, f, (
-            perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, monotone_reg, status_reg,
-            power_feats_reg, max_blk_len, max_orbit_len, max_dps, debug_dir, timers
+            perron_polys_reg, perron_nums_reg, perron_conjs_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg,
+            monotone_reg, status_reg, power_feats_reg, max_blk_len, max_orbit_len, max_dps, debug_dir, timers
         ), timeout, tmp_filename, update_period, update_timeout, sec_per_block_upper_bound
     )
