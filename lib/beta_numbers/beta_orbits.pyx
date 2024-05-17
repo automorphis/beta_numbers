@@ -40,11 +40,13 @@ NUM_BYTES_PER_TERABYTE = 2 ** 40
 def calc_orbits(
     perron_polys_reg,
     perron_nums_reg,
+    perron_conjs_reg,
     poly_orbit_reg,
     coef_orbit_reg,
     periodic_reg,
     monotone_reg,
     status_reg,
+    power_feats_reg,
     max_blk_len,
     max_orbit_len,
     max_dps,
@@ -139,6 +141,8 @@ def calc_orbits(
     if proc_index == 0:
         _update_status_reg_apos(perron_polys_reg, status_reg, timers)
 
+    M = 1000
+
     # try clause followed by except clause that calls _fix_problems
     with stack(
         perron_polys_reg.open(True), perron_nums_reg.open(True), poly_orbit_reg.open(), coef_orbit_reg.open(),
@@ -150,6 +154,7 @@ def calc_orbits(
             num_apri = ApriInfo(deg = poly_apri.deg, sum_abs_coef = poly_apri.sum_abs_coef, dps = max_dps)
             min_len = status_reg.apos(poly_apri).min_len
             complete_to_max_orbit_len = min_len >= max_orbit_len if min_len != -1 else True
+            deg = poly_apri.deg
 
             if not complete_to_max_orbit_len:
 
@@ -220,22 +225,61 @@ def calc_orbits(
 
                                             else:
 
-                                                for (startn1, length1), (startn2, length2) in zip_longest(
-                                                    poly_orbit_reg.intervals(orbit_apri),
-                                                    coef_orbit_reg.intervals(orbit_apri)
-                                                ):
+                                                m, p = periodic_reg[poly_apri, index]
+                                                orb_len, err1, err2 = status_reg[poly_apri, index]
 
-                                                    try:
-                                                        poly_orbit_reg.compress(orbit_apri, startn1, length1)
+                                                if m != -1 or orb_len >= min_len - 1: # periodic or long enough
 
-                                                    except CompressionError:
-                                                        pass
+                                                    conjs = perron_conjs_reg.get(
+                                                        num_apri, orbit_apri.index, decompress = True
+                                                    ).astype(complex)
+                                                    args = np.angle(conjs)
+                                                    conjs = conjs[np.argsort(args)[deg // 2:]]
+                                                    vand = np.empty((deg, len(conjs)), dtype = complex)
+                                                    vand[0, :] = 1
+                                                    XTX_train = np.zeros((2, 2), dtype = float)
+                                                    XTy_train = np.zeros((2, len(conjs)), dtype = float)
+                                                    XTX_test = np.zeros((2, 2), dtype = float)
+                                                    XTy_test = np.zeros((2, len(conjs)), dtype = float)
 
-                                                    try:
-                                                        coef_orbit_reg.compress(orbit_apri, startn2, length2)
+                                                    for j in range(1, deg):
+                                                        vand[j, :] = vand[j - 1, :] * conjs
 
-                                                    except CompressionError:
-                                                        pass
+                                                    for blk in poly_orbit_reg.blks(orbit_apri, decompress = True):
+
+                                                        len_train = len(blk)
+                                                        x_train = np.log(np.arange(blk.startn, blk.startn + len_, dtype = float))  # (len,)
+                                                        y_train = np.log(np.abs(np.matmul(blk.segment.get_ndarray(), vand)))  # (len, conjs)
+
+                                                        if blk.startn + len(blk) - 1 <= M:
+
+                                                            len_test = len_train
+                                                            x_test = x_train
+                                                            y_test = y_train
+
+                                                        else:
+
+                                                            len_test = max(0, M - blk.startn + 1)
+                                                            x_test = x_train[ : len_test]
+                                                            y_test = y_train[ : len_test, :]
+
+                                                        for XTX, XTy, x, y, len_ in (
+                                                            (XTX_train, XTy_train, x_train, y_train, len_train),
+                                                            (XTX_test, XTy_test, x_test, y_test, len_test)
+                                                        ):
+
+                                                            if len_ > 0:
+
+                                                                XTX[0, 0] += np.sum(x ** 2)
+                                                                XTX[0, 1] = XTX[1, 0] = XTX[0, 1] + np.sum(x)
+                                                                XTX[1, 1] += len_
+                                                                XTy[0, :] += np.matmul(x[np.newaxis], y)[0, :]
+                                                                XTy[1, :] += np.sum(y, axis = 0)
+
+                                                    power_feats_reg.set(poly_apri, index, np.stack((
+                                                        np.matmul(np.linalg.inv(XTX_train), XTy_train),
+                                                        np.matmul(np.linalg.inv(XTX_test), XTy_test)
+                                                    )), mmap_mode = 'r+')
 
 
 def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len, timers, verbose = False):
@@ -330,6 +374,7 @@ greater than the absolute values of the respective coefficients of the previous 
 Initialized to 0.""",
         NUM_BYTES_PER_TERABYTE
     )
+    power_feats_reg = NumpyRegister(saves_dir, 'power_feats_reg', 'lazy', NUM_BYTES_PER_TERABYTE)
     calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose)
 
     if verbose:
@@ -365,6 +410,15 @@ Initialized to 0.""",
 
                 with Block(seg, apri, startn) as blk:
                     monotone_reg.add_disk_blk(blk)
+
+        for apri in perron_polys_reg:
+
+            for startn, length in perron_polys_reg.intervals(apri):
+
+                seg = np.empty((length, 2, 2, apri.deg // 2 - 1), dtype = float) # index, training/testing, slope/inhom, conj
+
+                with Block(seg, apri, startn) as blk:
+                    power_feats_reg.add_disk_blk(blk)
 
     if verbose:
         log("... success!")
