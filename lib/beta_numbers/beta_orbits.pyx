@@ -248,7 +248,7 @@ def calc_orbits(
                                                     for blk in poly_orbit_reg.blks(orbit_apri, decompress = True):
 
                                                         len_train = len(blk)
-                                                        x_train = np.log(np.arange(blk.startn, blk.startn + len_, dtype = float))  # (len,)
+                                                        x_train = np.log(np.arange(blk.startn, blk.startn + len_train, dtype = float))  # (len,)
                                                         y_train = np.log(np.abs(np.matmul(blk.segment.get_ndarray(), vand)))  # (len, conjs)
 
                                                         if blk.startn + len(blk) - 1 <= M:
