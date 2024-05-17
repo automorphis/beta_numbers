@@ -146,7 +146,7 @@ def calc_orbits(
     # try clause followed by except clause that calls _fix_problems
     with stack(
         perron_polys_reg.open(True), perron_nums_reg.open(True), poly_orbit_reg.open(), coef_orbit_reg.open(),
-        periodic_reg.open(), monotone_reg.open(), status_reg.open()
+        periodic_reg.open(), monotone_reg.open(), status_reg.open(), power_feats_reg.open()
     ):
 
         for poly_apri in perron_polys_reg:
@@ -380,7 +380,7 @@ Initialized to 0.""",
     if verbose:
         log("Making `periodic_reg` directory...")
 
-    with stack(perron_polys_reg.open(True), periodic_reg.open(), monotone_reg.open()):
+    with stack(perron_polys_reg.open(True), periodic_reg.open(), monotone_reg.open(), power_feats_reg.open()):
 
         if verbose:
             log("... success!")
@@ -444,7 +444,7 @@ Initialized to 0.""",
     if verbose:
         log("... success!")
 
-    return poly_orbit_reg, coef_orbit_reg, periodic_reg, monotone_reg, status_reg
+    return poly_orbit_reg, coef_orbit_reg, periodic_reg, monotone_reg, status_reg, power_feats_reg
 
 def calc_orbits_resetup(perron_polys_reg, status_reg, timers, verbose = False):
     """Call this function if you have changed `perron_polys_reg` since you called `calc_orbits_setup`. Nothing is

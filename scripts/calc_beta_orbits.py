@@ -11,7 +11,7 @@ from dagtimers import Timers
 
 def f(
     num_procs, proc_index, perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg,
-    monotone_reg, status_reg, max_blk_len, max_orbit_len, max_dps, debug_dir, timers
+    monotone_reg, status_reg, power_feats_reg, max_blk_len, max_orbit_len, max_dps, debug_dir, timers
 ):
 
     set_dir(debug_dir)
@@ -25,6 +25,7 @@ def f(
         periodic_reg,
         monotone_reg,
         status_reg,
+        power_feats_reg,
         max_blk_len,
         max_orbit_len,
         max_dps,
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     timers = Timers()
 
     if do_setup:
-        poly_orbit_reg, coef_orbit_reg, periodic_reg, monotone_reg, status_reg = calc_orbits_setup(perron_polys_reg, perron_nums_reg, beta_numbers_dir, max_blk_len, timers)
+        poly_orbit_reg, coef_orbit_reg, periodic_reg, monotone_reg, status_reg, power_feats_reg = calc_orbits_setup(perron_polys_reg, perron_nums_reg, beta_numbers_dir, max_blk_len, timers)
 
     else:
 
@@ -62,10 +63,11 @@ if __name__ == '__main__':
         periodic_reg = load('periodic_reg', beta_numbers_dir)
         monotone_reg = load('monotone_reg', beta_numbers_dir)
         status_reg = load('status_reg', beta_numbers_dir)
+        power_feats_reg = load('power_feats_reg', beta_numbers_dir)
 
     parallelize(
         num_procs, f, (
             perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg, monotone_reg, status_reg,
-            max_blk_len, max_orbit_len, max_dps, debug_dir, timers
+            power_feats_reg, max_blk_len, max_orbit_len, max_dps, debug_dir, timers
         ), timeout, tmp_filename, update_period, update_timeout, sec_per_block_upper_bound
     )
