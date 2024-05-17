@@ -145,8 +145,8 @@ def calc_orbits(
 
     # try clause followed by except clause that calls _fix_problems
     with stack(
-        perron_polys_reg.open(True), perron_nums_reg.open(True), poly_orbit_reg.open(), coef_orbit_reg.open(),
-        periodic_reg.open(), monotone_reg.open(), status_reg.open(), power_feats_reg.open()
+        perron_polys_reg.open(True), perron_nums_reg.open(True), perron_conjs_reg.open(True), poly_orbit_reg.open(),
+        coef_orbit_reg.open(), periodic_reg.open(), monotone_reg.open(), status_reg.open(), power_feats_reg.open()
     ):
 
         for poly_apri in perron_polys_reg:
