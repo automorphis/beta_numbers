@@ -10,7 +10,7 @@ from cornifer._utilities.multiprocessing import slurm_timecode_to_timedelta
 from dagtimers import Timers
 
 def f(
-    num_procs, proc_index, perron_polys_reg, perron_nums_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg,
+    num_procs, proc_index, perron_polys_reg, perron_nums_reg, perron_conjs_reg, poly_orbit_reg, coef_orbit_reg, periodic_reg,
     monotone_reg, status_reg, power_feats_reg, max_blk_len, max_orbit_len, max_dps, debug_dir, timers
 ):
 
@@ -20,6 +20,7 @@ def f(
     return calc_orbits(
         perron_polys_reg,
         perron_nums_reg,
+        perron_conjs_reg,
         poly_orbit_reg,
         coef_orbit_reg,
         periodic_reg,
@@ -51,6 +52,7 @@ if __name__ == '__main__':
     debug_dir = init_dir('/fs/project/thompson.2455/lane.662/debugs')
     perron_polys_reg = load('salem_polys_reg', perron_polys_dir)
     perron_nums_reg = load('salem_nums_reg', perron_polys_dir)
+    perron_conjs_reg = load('salem_conjs_reg', perron_polys_dir)
     timers = Timers()
 
     if do_setup:
