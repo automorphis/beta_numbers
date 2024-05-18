@@ -280,6 +280,7 @@ def calc_orbits(
                                                         np.matmul(np.linalg.inv(XTX_train), XTy_train),
                                                         np.matmul(np.linalg.inv(XTX_test), XTy_test)
                                                     )), mmap_mode = 'r+')
+                                                    log(str(power_feats_reg.get(poly_apri, index, mmap_mode='r')))
 
 
 def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len, timers, verbose = False):
