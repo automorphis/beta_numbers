@@ -228,7 +228,7 @@ def calc_orbits(
                                                 m, p = periodic_reg[poly_apri, index]
                                                 orb_len, err1, err2 = status_reg[poly_apri, index]
 
-                                                if m != -1 or orb_len >= min_len - 1: # periodic or long enough
+                                                if m != -1 or orb_len >= max_orbit_len - 1: # periodic or long enough
 
                                                     conjs = perron_conjs_reg.get(
                                                         num_apri, orbit_apri.index, decompress = True
@@ -281,6 +281,9 @@ def calc_orbits(
                                                         np.matmul(np.linalg.inv(XTX_test), XTy_test)
                                                     )), mmap_mode = 'r+')
                                                     log(str(power_feats_reg.get(poly_apri, index, mmap_mode='r')))
+
+                                                else:
+                                                    log(f'm {m} p {p} orb_len {orb_len} err1 {err1} err2 {err2} max_orbit_len {max_orbit_len}')
 
 
 def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len, timers, verbose = False):
