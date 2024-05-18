@@ -182,108 +182,87 @@ def calc_orbits(
                                         for index in incomplete_indices:
 
                                             orbit_apri = ApriInfo(resp = poly_apri, index = index)
-                                            fixed = _fix_problems(
-                                                orbit_apri, perron_polys_reg, poly_orbit_reg, coef_orbit_reg,
-                                                status_reg, periodic_reg
-                                            )
-
-                                            if fixed:
-                                                log(f'Problem with {orbit_apri}; restarting from beginning.')
-
                                             p = perron_poly_blk[index]
                                             beta0 = perron_num_blk[index].real
                                             beta = Perron_Number(p, beta0 = beta0)
+                                            _single_orbit(
+                                                beta,
+                                                orbit_apri,
+                                                poly_orbit_reg,
+                                                coef_orbit_reg,
+                                                periodic_reg,
+                                                monotone_reg,
+                                                status_reg,
+                                                max_blk_len,
+                                                max_orbit_len,
+                                                max_dps,
+                                                timers,
+                                                -1,
+                                                -1
+                                            )
 
-                                            try:
-                                                _single_orbit(
-                                                    beta,
-                                                    orbit_apri,
-                                                    poly_orbit_reg,
-                                                    coef_orbit_reg,
-                                                    periodic_reg,
-                                                    monotone_reg,
-                                                    status_reg,
-                                                    max_blk_len,
-                                                    max_orbit_len,
-                                                    max_dps,
-                                                    timers,
-                                                    -1,
-                                                    -1
-                                                )
+                                            m, p = periodic_reg[poly_apri, index]
+                                            orb_len, err1, err2 = status_reg[poly_apri, index]
 
-                                            except BaseException:
+                                            if m != -1 or orb_len >= max_orbit_len - 1: # periodic or long enough
 
-                                                fixed = _fix_problems(
-                                                    orbit_apri, perron_polys_reg, poly_orbit_reg, coef_orbit_reg,
-                                                    status_reg, periodic_reg
-                                                )
+                                                conjs = perron_conjs_reg.get(
+                                                    num_apri, orbit_apri.index, decompress = True
+                                                ).astype(complex)
+                                                args = np.angle(conjs)
+                                                conjs = conjs[np.argsort(args)[deg // 2:]]
+                                                vand = np.empty((deg, len(conjs)), dtype = complex)
+                                                vand[0, :] = 1
+                                                XTX_train = np.zeros((2, 2), dtype = float)
+                                                XTy_train = np.zeros((2, len(conjs)), dtype = float)
+                                                XTX_test = np.zeros((2, 2), dtype = float)
+                                                XTy_test = np.zeros((2, len(conjs)), dtype = float)
 
-                                                if fixed:
-                                                    log(f'Problems with {orbit_apri} fixed during exception.')
+                                                for j in range(1, deg):
+                                                    vand[j, :] = vand[j - 1, :] * conjs
 
-                                                raise
+                                                for blk in poly_orbit_reg.blks(orbit_apri, decompress = True):
+
+                                                    len_train = len(blk)
+                                                    x_train = np.log(np.arange(blk.startn, blk.startn + len_train, dtype = float))  # (len,)
+                                                    y_train = np.log(np.abs(np.matmul(blk.segment.get_ndarray(), vand)))  # (len, conjs)
+
+                                                    if blk.startn + len(blk) - 1 <= M:
+
+                                                        len_test = len_train
+                                                        x_test = x_train
+                                                        y_test = y_train
+
+                                                    else:
+
+                                                        len_test = max(0, M - blk.startn + 1)
+                                                        x_test = x_train[ : len_test]
+                                                        y_test = y_train[ : len_test, :]
+
+                                                    for XTX, XTy, x, y, len_ in (
+                                                        (XTX_train, XTy_train, x_train, y_train, len_train),
+                                                        (XTX_test, XTy_test, x_test, y_test, len_test)
+                                                    ):
+
+                                                        if len_ > 0:
+
+                                                            XTX[0, 0] += np.sum(x ** 2)
+                                                            XTX[0, 1] = XTX[1, 0] = XTX[0, 1] + np.sum(x)
+                                                            XTX[1, 1] += len_
+                                                            XTy[0, :] += np.matmul(x[np.newaxis], y)[0, :]
+                                                            XTy[1, :] += np.sum(y, axis = 0)
+
+                                                power_feats_reg.set(poly_apri, index, np.stack((
+                                                    np.matmul(np.linalg.inv(XTX_train), XTy_train),
+                                                    np.matmul(np.linalg.inv(XTX_test), XTy_test)
+                                                )), mmap_mode = 'r+')
+                                                log(str(power_feats_reg.get(poly_apri, index, mmap_mode='r')))
 
                                             else:
+                                                log(f'm {m} p {p} orb_len {orb_len} err1 {err1} err2 {err2} max_orbit_len {max_orbit_len}')
 
-                                                m, p = periodic_reg[poly_apri, index]
-                                                orb_len, err1, err2 = status_reg[poly_apri, index]
-
-                                                if m != -1 or orb_len >= max_orbit_len - 1: # periodic or long enough
-
-                                                    conjs = perron_conjs_reg.get(
-                                                        num_apri, orbit_apri.index, decompress = True
-                                                    ).astype(complex)
-                                                    args = np.angle(conjs)
-                                                    conjs = conjs[np.argsort(args)[deg // 2:]]
-                                                    vand = np.empty((deg, len(conjs)), dtype = complex)
-                                                    vand[0, :] = 1
-                                                    XTX_train = np.zeros((2, 2), dtype = float)
-                                                    XTy_train = np.zeros((2, len(conjs)), dtype = float)
-                                                    XTX_test = np.zeros((2, 2), dtype = float)
-                                                    XTy_test = np.zeros((2, len(conjs)), dtype = float)
-
-                                                    for j in range(1, deg):
-                                                        vand[j, :] = vand[j - 1, :] * conjs
-
-                                                    for blk in poly_orbit_reg.blks(orbit_apri, decompress = True):
-
-                                                        len_train = len(blk)
-                                                        x_train = np.log(np.arange(blk.startn, blk.startn + len_train, dtype = float))  # (len,)
-                                                        y_train = np.log(np.abs(np.matmul(blk.segment.get_ndarray(), vand)))  # (len, conjs)
-
-                                                        if blk.startn + len(blk) - 1 <= M:
-
-                                                            len_test = len_train
-                                                            x_test = x_train
-                                                            y_test = y_train
-
-                                                        else:
-
-                                                            len_test = max(0, M - blk.startn + 1)
-                                                            x_test = x_train[ : len_test]
-                                                            y_test = y_train[ : len_test, :]
-
-                                                        for XTX, XTy, x, y, len_ in (
-                                                            (XTX_train, XTy_train, x_train, y_train, len_train),
-                                                            (XTX_test, XTy_test, x_test, y_test, len_test)
-                                                        ):
-
-                                                            if len_ > 0:
-
-                                                                XTX[0, 0] += np.sum(x ** 2)
-                                                                XTX[0, 1] = XTX[1, 0] = XTX[0, 1] + np.sum(x)
-                                                                XTX[1, 1] += len_
-                                                                XTy[0, :] += np.matmul(x[np.newaxis], y)[0, :]
-                                                                XTy[1, :] += np.sum(y, axis = 0)
-
-                                                    power_feats_reg.set(poly_apri, index, np.stack((
-                                                        np.matmul(np.linalg.inv(XTX_train), XTy_train),
-                                                        np.matmul(np.linalg.inv(XTX_test), XTy_test)
-                                                    )), mmap_mode = 'r+')
-                                                    log(str(power_feats_reg.get(poly_apri, index, mmap_mode='r')))
-
-                                                else:
-                                                    log(f'm {m} p {p} orb_len {orb_len} err1 {err1} err2 {err2} max_orbit_len {max_orbit_len}')
+                                            poly_orbit_reg.rmv_apri(orbit_apri, force = True)
+                                            coef_orbit_reg.rmv_apri(orbit_apri, force = True)
 
 
 def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len, timers, verbose = False):
