@@ -183,6 +183,7 @@ def calc_orbits(
 
                                             orbit_apri = ApriInfo(resp = poly_apri, index = index)
                                             p = perron_poly_blk[index]
+                                            log(f'starting {p}')
                                             beta0 = perron_num_blk[index].real
                                             beta = Perron_Number(p, beta0 = beta0)
                                             _single_orbit(
@@ -256,13 +257,14 @@ def calc_orbits(
                                                     np.matmul(np.linalg.inv(XTX_train), XTy_train),
                                                     np.matmul(np.linalg.inv(XTX_test), XTy_test)
                                                 )), mmap_mode = 'r+')
-                                                log(str(power_feats_reg.get(poly_apri, index, mmap_mode='r')))
+                                                log('finished without problem')
 
                                             else:
                                                 log(f'm {m} p {p} orb_len {orb_len} err1 {err1} err2 {err2} max_orbit_len {max_orbit_len}')
 
                                             poly_orbit_reg.rmv_apri(orbit_apri, force = True)
                                             coef_orbit_reg.rmv_apri(orbit_apri, force = True)
+                                            log('deleted')
 
 
 def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len, timers, verbose = False):
