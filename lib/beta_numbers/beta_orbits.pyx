@@ -637,7 +637,7 @@ cdef ERR_t _single_orbit(
                 # setup restart info
 
                 try:
-                    Bn_1 = poly_orbit_reg[orbit_apri, startn - 1]
+                    Bn_1 = poly_orbit_reg.get(orbit_apri, startn - 1, decompress = True)
 
                 except DataNotFoundError:
 
@@ -645,7 +645,7 @@ cdef ERR_t _single_orbit(
                     raise
 
                 k = (startn + 1) // 2
-                Bk_iter = poly_orbit_reg[orbit_apri, k : ]
+                Bk_iter = poly_orbit_reg.get(orbit_apri, slice(k, None) , decompress = True)
                 ret = monotone_reg.get(poly_apri, orbit_apri.index, mmap_mode = 'r')
                 is_monotone = TRUE if ret[0] == 1. else FALSE
                 min_blowup = ret[1]
@@ -655,7 +655,7 @@ cdef ERR_t _single_orbit(
                 Bn_1 = IntPolynomial(min_poly.deg() - 1)
                 Bn_1.zero_poly()
                 Bn_1.c_set_coef(0, 1)
-                Bk_iter = poly_orbit_reg[orbit_apri, 1:]
+                Bk_iter = poly_orbit_reg.get(orbit_apri, slice(k, None), decompress = True)
                 is_monotone = TRUE
                 min_blowup = 0.
 
@@ -761,9 +761,7 @@ cdef ERR_t _single_orbit(
                         log(f'large coefficient, quitting, n = {n}, Bn_1 = {Bn_1}.')
 
                         if len(coef_blk) > 0:
-
                             coef_orbit_reg.append_disk_blk(coef_blk)
-
 
                         if len(poly_blk) > 0:
                             poly_orbit_reg.append_disk_blk(poly_blk)
@@ -936,6 +934,7 @@ cdef ERR_t _single_orbit(
                     for reg, seg, blk in [(coef_orbit_reg, coef_seg, coef_blk), (poly_orbit_reg, poly_seg, poly_blk)]:
 
                         reg.append_disk_blk(blk)
+                        reg.compress(orbit_apri, blk.startn, len(blk), compression_level = 9)
                         blk.startn = blk.startn + len(blk)
                         seg.clear()
 
@@ -971,12 +970,12 @@ cdef (INDEX_t, INDEX_t) _calc_minimal_period(INDEX_t k, IntPolynomial Bk, object
             if period_len == 1 + k // 2:
                 period_len = k
 
-            Bkp = poly_orbit_reg.get(B_apri, k + period_len, mmap_mode ="r")
+            Bkp = poly_orbit_reg.get(B_apri, k + period_len, decompress = True)
 
             if Bk.c_eq(Bkp):
 
                 for preperiod_len, (B1, B2) in enumerate(
-                    zip(poly_orbit_reg[B_apri, : k + 1], poly_orbit_reg[B_apri, period_len + 1 : k + period_len + 1])
+                    zip(poly_orbit_reg.get(B_apri, slice(k + 1), decompress = True), poly_orbit_reg.get(B_apri, slice(period_len + 1 , k + period_len + 1), decompress = True))
                 ):
 
                     if B1.c_eq(B2):
