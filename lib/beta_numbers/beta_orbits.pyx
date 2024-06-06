@@ -298,7 +298,7 @@ def calc_orbits_setup(perron_polys_reg, perron_nums_reg, saves_dir, max_blk_len,
             for apri in perron_polys_reg:
 
                 total_apri += 1
-                total_polys += perron_polys_reg.total_len(apri)
+                total_polys += perron_polys_reg.len(apri)
 
     poly_orbit_reg = IntPolynomialRegister(
         saves_dir,
