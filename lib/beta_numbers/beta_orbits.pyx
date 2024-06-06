@@ -655,7 +655,7 @@ cdef ERR_t _single_orbit(
                 Bn_1 = IntPolynomial(min_poly.deg() - 1)
                 Bn_1.zero_poly()
                 Bn_1.c_set_coef(0, 1)
-                Bk_iter = poly_orbit_reg.get(orbit_apri, slice(k, None), decompress = True)
+                Bk_iter = poly_orbit_reg.get(orbit_apri, slice(1, None), decompress = True)
                 is_monotone = TRUE
                 min_blowup = 0.
 
