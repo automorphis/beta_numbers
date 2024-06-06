@@ -56,7 +56,7 @@ if __name__ == '__main__':
     timers = Timers()
 
     if do_setup:
-        poly_orbit_reg, coef_orbit_reg, periodic_reg, monotone_reg, status_reg, power_feats_reg = calc_orbits_setup(perron_polys_reg, perron_nums_reg, beta_numbers_dir, max_blk_len, timers)
+        poly_orbit_reg, coef_orbit_reg, periodic_reg, monotone_reg, status_reg, power_feats_reg = calc_orbits_setup(perron_polys_reg, perron_nums_reg, beta_numbers_dir, max_blk_len, timers, True)
 
     else:
 
