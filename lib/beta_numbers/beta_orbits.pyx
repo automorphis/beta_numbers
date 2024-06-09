@@ -641,7 +641,7 @@ cdef ERR_t _single_orbit(
 
                 except DataNotFoundError:
 
-                    print(poly_orbit_reg.total_len(orbit_apri))
+                    print(poly_orbit_reg.len(orbit_apri))
                     raise
 
                 k = (startn + 1) // 2
